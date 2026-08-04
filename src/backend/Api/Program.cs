@@ -38,6 +38,6 @@ if (app.Environment.IsDevelopment())
 app.UseHttpsRedirection();
 app.UseStaticFiles();
 app.MapControllers();
-app.MapFallbackToFile("index.html"); // evt. 404.html
+app.MapFallbackToFile("404.html"); // evt. index.html
 
 app.Run();

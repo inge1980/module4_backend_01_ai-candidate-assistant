@@ -1,4 +1,4 @@
-using aspnetintro.Model;
+using aspnetintro.Models;
 
 namespace aspnetintro.Services;
 

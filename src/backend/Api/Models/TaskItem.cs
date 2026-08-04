@@ -1,4 +1,4 @@
-namespace aspnetintro.Model;
+namespace aspnetintro.Models;
 
 public class TaskItem
 {

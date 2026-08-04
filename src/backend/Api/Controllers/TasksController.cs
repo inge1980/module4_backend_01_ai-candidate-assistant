@@ -1,4 +1,4 @@
-using aspnetintro.Model;
+using aspnetintro.Models;
 using aspnetintro.Services;
 using Microsoft.AspNetCore.Mvc;
 

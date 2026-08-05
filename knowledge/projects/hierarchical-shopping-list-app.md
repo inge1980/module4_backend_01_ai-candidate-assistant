@@ -1,5 +1,5 @@
 ---
-title: Hierarchical Drag & Drop Shopping List App
+title: Offline-First Hierarchical Shopping List App
 
 organization: Personal Project
 

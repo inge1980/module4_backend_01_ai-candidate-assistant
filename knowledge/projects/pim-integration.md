@@ -33,7 +33,7 @@ concepts:
 
 links:
   github:
-  live:
+  live: Not available
 
 ---
 

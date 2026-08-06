@@ -1,13 +1,16 @@
 CREATE EXTENSION IF NOT EXISTS vector;
 
-
-CREATE TABLE documents
+CREATE TABLE IF NOT EXISTS document_chunks
 (
- id SERIAL PRIMARY KEY,
+    id text PRIMARY KEY,
 
- source TEXT NOT NULL,
+    source text NOT NULL,
 
- content TEXT NOT NULL,
+    section text NOT NULL,
 
- embedding vector(1536)
+    content text NOT NULL,
+
+    metadata jsonb,
+
+    embedding vector(1024)
 );

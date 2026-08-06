@@ -1,5 +1,5 @@
 ---
-title: ERP Platform Development and Optimization
+title: ERP Platform Development and Modernization
 
 organization: Episteme AS
 
@@ -21,11 +21,11 @@ technologies:
 
 concepts:
   - enterprise-software
-  - legacy-systems
-  - performance-optimization
-  - database-optimization
+  - legacy-modernization
   - backend-development
+  - api-design
   - system-integration
+  - e-commerce
   - scalability
   - maintainability
   - debugging
@@ -40,116 +40,137 @@ links:
 
 # Overview
 
-Continuous development and optimization of an ERP platform used by multiple businesses.
+Continuous development and modernization of a business-critical ERP platform together with a complete redesign of its connected e-commerce solution.
 
-The work included adapting existing ERP functionality to customer requirements, improving system performance, maintaining integrations with external systems, and ensuring stable operation through server and database administration.
+The project involved extending an existing ERP system, developing new data access logic, maintaining IIS-hosted production environments, and modernizing the online store architecture by replacing direct database communication with a REST API integration.
 
-The project focused on extending an existing enterprise platform while maintaining reliability, improving usability, and ensuring that connected systems such as online stores continued to operate efficiently.
+The solution supported daily operations for a catering company with multiple warehouse locations, retail operations, order processing, invoicing workflows, and an integrated online ordering platform.
+
+The main focus was improving maintainability, system stability, user experience, and communication between connected systems while preserving existing business-critical workflows.
 
 ---
 
 # Context
 
-Enterprise systems require continuous maintenance and improvement as business requirements evolve.
+The solution consisted of an established ERP platform and an online store that were central to daily business operations.
 
-The ERP platform was already in active use and needed ongoing enhancements to support changing customer needs while maintaining performance, stability, and compatibility with connected services.
+The existing online store was tightly coupled to the ERP database through direct database access. This made future development more difficult and created unnecessary dependencies between the customer-facing application and internal business systems.
 
-The environment included both application development and operational responsibilities, requiring understanding of:
+The project focused on modernizing the architecture while ensuring uninterrupted operation.
 
-- Existing business logic.
-- Legacy application structures.
-- Database performance.
-- Server configuration.
-- Integration between ERP and external systems.
+The work included:
+
+- Redesigning the customer-facing online store.
+- Introducing a REST API between the online store and ERP system.
+- Extending ERP functionality based on business requirements.
+- Developing new SQL queries and data access logic required by new functionality.
+- Maintaining production infrastructure.
+
+Orders completed through the online store were automatically transferred into the ERP workflow where they continued through internal order handling, invoicing, and fulfillment processes.
+
+The role required understanding of:
+
+- Existing ERP business logic.
+- Legacy application architecture.
+- SQL Server data structures.
+- IIS administration.
+- REST API development.
+- Production troubleshooting.
+- Business workflows.
 
 Important requirements included:
 
-- Improving system responsiveness.
 - Maintaining stable production operation.
-- Optimizing database performance.
-- Supporting customer-specific functionality.
-- Ensuring reliable communication between ERP and connected platforms.
+- Supporting changing business requirements.
+- Reducing system coupling.
+- Ensuring reliable communication between ERP and external systems.
 
 ---
 
 # Task
 
-My responsibility was continuous development, optimization, and operational maintenance of the ERP platform.
+My responsibility was continuous development, modernization, and operational maintenance of the ERP platform and connected systems.
 
 This included:
 
-- Implementing customer-specific ERP improvements.
-- Investigating and resolving performance issues.
-- Optimizing database queries and data operations.
+- Extending ERP functionality.
+- Redesigning the online store application.
+- Implementing REST API communication between systems.
+- Replacing direct database access from the storefront.
+- Developing SQL queries and data access logic for new functionality.
 - Maintaining IIS server configuration.
-- Managing SQL Server environments.
+- Investigating and resolving production issues.
 - Improving system stability and reliability.
-- Supporting integrations between ERP and online stores.
-- Debugging production issues.
+- Supporting customer-specific workflows.
 
-The goal was keeping the ERP platform performant, secure, and adaptable to changing business requirements.
+The goal was creating a more maintainable architecture while keeping business-critical systems stable and operational.
 
 ---
 
 # Challenge
 
-## Challenge: Improving Performance in an Existing Enterprise System
+## Challenge: Modernizing a Legacy ERP Integration
 
 ### Problem
 
-Long-running enterprise systems often accumulate complexity over time, which can result in slower response times, inefficient database operations, and increased maintenance requirements.
+The existing online store communicated directly with the ERP database.
 
-The ERP platform needed improvements without disrupting existing business workflows.
+This created a tightly coupled architecture where changes in one system could affect the other. It also limited future development possibilities and made the solution harder to maintain.
 
-The main challenges included:
-
-- Identifying performance bottlenecks.
-- Improving database response times.
-- Maintaining compatibility with existing functionality.
-- Reducing operational issues in production.
+At the same time, the business depended on reliable order processing and uninterrupted daily operations.
 
 ### Solution
 
-Improved system performance through targeted optimization of application logic and database operations.
+Designed and implemented a REST API layer between the online store and ERP platform.
 
-Implemented improvements including:
+The new architecture separated responsibilities:
 
-- Analysis and optimization of SQL queries.
-- Improvements to data handling.
-- Adjustments to ERP functionality based on user requirements.
-- Server configuration improvements through IIS administration.
-- Continuous debugging and refinement of production issues.
+- The online store handled customer-facing functionality and ordering.
+- The REST API handled communication between systems.
+- The ERP remained responsible for business workflows, order processing, and invoicing.
+
+The online store was redesigned with a more modern responsive experience, authentication functionality, and API-based communication instead of direct database access.
+
+SQL queries and data access logic were developed to expose required ERP data and functionality through the API layer.
 
 ### Result
 
-The ERP system achieved improved responsiveness and increased operational stability.
+The new integration reduced coupling between systems, improved maintainability, and created a cleaner architecture while preserving existing business processes.
 
-Users experienced faster interactions, while the platform became easier to maintain and adapt to business requirements.
+The business gained a more flexible platform for future improvements without exposing internal database structures directly to the online store.
 
 ---
 
-## Challenge: Maintaining Integration Between ERP and External Systems
+## Challenge: Extending a Mature Enterprise System
 
 ### Problem
 
-The ERP system needed to exchange data with connected services such as online stores.
+The ERP platform was already deeply integrated into daily operations and contained important business logic.
 
-Incorrect synchronization or unstable integrations could result in inconsistent data and operational problems.
+New requirements needed to be implemented without disrupting existing workflows or introducing unnecessary risk.
+
+Challenges included:
+
+- Understanding existing business rules.
+- Extending functionality safely.
+- Creating new data access logic.
+- Maintaining compatibility with existing processes.
+- Resolving production issues.
 
 ### Solution
 
-Maintained and improved integrations between ERP and external systems.
+Implemented incremental improvements through:
 
-Work included:
-
-- Improving data flow between systems.
-- Debugging integration issues.
-- Ensuring reliable communication.
-- Supporting changes required by business processes.
+- New ERP functionality.
+- Custom business workflows.
+- SQL queries supporting new features.
+- REST API extensions.
+- Production debugging and improvements.
+- Infrastructure maintenance through IIS.
 
 ### Result
 
-The ERP platform and connected systems continued to operate together reliably, reducing manual work and improving business workflows.
+The ERP platform continued to support evolving business requirements while remaining stable and maintainable.
 
 ---
 
@@ -159,25 +180,40 @@ The ERP platform and connected systems continued to operate together reliably, r
 
 ### Frontend
 
-The ERP platform consisted primarily of existing enterprise interfaces and business workflows.
+The project included a complete redesign of the existing online store to improve usability and provide a modern responsive experience.
+
+The previous storefront was not optimized for mobile devices and required a redesign to support customers using different screen sizes.
 
 Responsibilities included:
 
-- Improving user-facing functionality.
-- Adapting workflows based on customer requirements.
-- Maintaining usability in existing application structures.
+- Redesigning the customer-facing online store.
+- Implementing responsive layouts for desktop and mobile devices.
+- Improving user experience and ordering workflows.
+- Adding authentication functionality.
+- Updating frontend communication to use the new REST API integration.
+
+The redesigned storefront provided a more accessible and maintainable user experience for customers across desktop and mobile devices.
+
+---
 
 ### Backend
 
-Backend development focused on extending and maintaining ERP functionality.
+Backend development focused on extending ERP functionality and building communication between systems.
 
 Responsibilities included:
 
-- Business logic implementation.
-- Customer-specific customization.
-- Integration handling.
+- ERP business logic.
+- REST API development.
+- Order integration.
+- Customer-specific functionality.
+- Business workflow adjustments.
+- SQL query development.
+- Data access implementation.
 - Production debugging.
-- Performance improvements.
+
+The API layer provided controlled communication between the online store and ERP platform.
+
+---
 
 ### Database
 
@@ -185,10 +221,14 @@ SQL Server was used as the primary database platform.
 
 Responsibilities included:
 
-- Query optimization.
-- Database maintenance.
-- Performance troubleshooting.
-- Improving data access efficiency.
+- Writing SQL queries for new functionality.
+- Creating data access logic required by REST API endpoints.
+- Working with existing ERP data structures.
+- Ensuring reliable data retrieval.
+
+Database work focused on supporting new functionality while preserving existing ERP behavior.
+
+---
 
 ### Infrastructure
 
@@ -197,35 +237,77 @@ The production environment was managed through Windows Server and IIS.
 Responsibilities included:
 
 - IIS administration.
-- Server maintenance.
+- Server configuration.
 - Deployment support.
-- Stability and availability improvements.
+- Production troubleshooting.
+- Stability improvements.
+
+The environment required continuous operational support to maintain reliable business operation.
 
 ---
 
-## Technical Decisions
+# Technical Decisions
 
-## Decision: Optimize Existing Systems Instead of Rebuilding
+## Decision: Introduce REST API Between Online Store and ERP
 
 ### Context
 
-The ERP platform contained established business logic and was actively used by customers.
+The existing architecture relied on direct database communication between the online store and ERP system.
 
-A complete rewrite would introduce unnecessary risk and require significant migration effort.
+This created unnecessary coupling and made future development more difficult.
+
+### Chosen Solution
+
+Implemented a REST API layer responsible for communication between systems.
+
+The API provided:
+
+- Controlled access to ERP functionality.
+- Separation between customer-facing applications and internal systems.
+- A cleaner integration architecture.
+
+### Alternatives Considered
+
+- Maintaining the existing direct database communication between the online store and ERP.
+
+The existing architecture was functional, but the tight coupling made future improvements and maintenance more difficult.
+
+### Trade-offs
+
+Advantages:
+
+- Reduced coupling.
+- Improved maintainability.
+- Better separation of responsibilities.
+- Easier future development.
+
+Disadvantages:
+
+- Additional API development and maintenance.
+- More components to monitor.
+
+---
+
+## Decision: Incremental Modernization Instead of Rebuilding
+
+### Context
+
+The ERP platform contained established business logic and was actively used in daily operations.
+
+A complete replacement was not practical due to operational risk and the importance of existing workflows.
 
 ### Chosen Solution
 
 Focused on incremental improvements:
 
-- Optimizing existing functionality.
-- Improving database performance.
-- Extending existing workflows.
+- Modernizing integrations.
+- Extending functionality.
+- Building dedicated interfaces.
 - Maintaining compatibility.
 
 ### Alternatives Considered
 
-- Rebuilding the platform from scratch.
-- Migrating to a new architecture.
+- Continuing with the existing tightly coupled architecture.
 
 ### Trade-offs
 
@@ -233,41 +315,54 @@ Advantages:
 
 - Lower business risk.
 - Faster delivery of improvements.
-- Preserved existing functionality.
-- Reduced migration complexity.
+- Preserved existing workflows.
 
 Disadvantages:
 
 - Some legacy constraints remained.
-- Improvements required understanding existing architecture.
+- Required careful understanding of existing architecture.
 
 ---
 
-## Implementation
+# Implementation
 
 Implemented improvements including:
 
 - ERP functionality extensions.
-- Customer-specific customizations.
-- SQL Server performance optimization.
+- Complete redesign of online store frontend.
+- REST API integration between ERP and online store.
+- Authentication functionality for online store users.
+- SQL query development for new functionality.
 - IIS server administration.
 - Production troubleshooting.
-- System integration improvements.
-- Stability and reliability enhancements.
+- Business workflow improvements.
+- System stability enhancements.
+
+Additional modernization work extended the architecture by extracting selected ERP functionality into dedicated interfaces.
+
+This included:
+
+- PIM functionality for improved product information management.
+- Order office dashboards for improved operational workflows.
+- Modern administrative interfaces built on top of the REST API.
+
+These solutions reduced dependency on the ERP user interface and allowed specific business processes to be handled through more focused and user-friendly applications.
 
 ---
 
 # Result
 
-The ERP platform became faster, more stable, and better aligned with customer requirements.
+The ERP platform and connected online store became more maintainable, stable, and easier to extend.
 
 Key outcomes:
 
-- Improved application responsiveness.
-- Faster database operations.
+- Modernized customer-facing online store.
+- Replaced direct database communication with REST API integration.
+- Improved communication between systems.
+- Enabled new functionality through API-based integrations.
 - Increased production stability.
-- Better integration between ERP and online store systems.
-- Continued support for evolving business requirements.
+- Reduced coupling between systems.
+- Better support for future business requirements.
 
 ---
 
@@ -275,19 +370,23 @@ Key outcomes:
 
 ## Technical Lessons
 
-- Existing enterprise systems require careful optimization rather than unnecessary rewrites.
-- Database performance has a significant impact on application responsiveness.
-- Production systems require continuous monitoring and debugging.
-- Understanding business processes is essential when modifying ERP solutions.
+- Legacy systems can often be improved significantly through targeted incremental modernization.
+- API boundaries create cleaner separation between business systems.
+- Understanding existing data structures is essential when extending enterprise systems.
+- Production systems require careful changes and continuous troubleshooting.
 
 ## Architectural Lessons
 
-Working with established ERP systems reinforced the importance of:
+Working with established enterprise systems reinforced the importance of:
 
-- Maintaining backward compatibility.
-- Making incremental improvements.
-- Separating business logic from operational concerns.
-- Balancing technical improvements with business requirements.
+- Modernizing incrementally instead of unnecessary rewrites.
+- Separating external applications from internal databases.
+- Understanding business processes before changing architecture.
+- Balancing technical improvements with operational stability.
+
+The project demonstrated the value of gradually extracting functionality from large business systems into specialized applications.
+
+By keeping the ERP as the source of core business logic while exposing functionality through APIs, new interfaces could be developed without tightly coupling users to the original ERP interface.
 
 ---
 
@@ -295,32 +394,33 @@ Working with established ERP systems reinforced the importance of:
 
 ## Possible Questions
 
-### How did you improve performance in an existing ERP system?
+### Why did you introduce a REST API instead of continuing direct database access?
 
-Performance improvements were mainly achieved through database optimization, analysis of slow operations, and targeted changes in application logic instead of large architectural changes.
+Direct database access created tight coupling between the online store and ERP system. The REST API created a clearer separation where each system could evolve independently while maintaining reliable communication.
 
 ---
 
-### How did you handle working with a legacy enterprise system?
+### How did you modernize an existing ERP system without disrupting operations?
 
-The focus was understanding existing business logic, making controlled improvements, and avoiding unnecessary changes that could impact production users.
+The approach was incremental. Existing workflows were preserved while improvements were introduced gradually through targeted changes, API integrations, and new user interfaces.
 
 ---
 
 ### What was your role beyond development?
 
-The role also included server administration through IIS, SQL Server maintenance, debugging production issues, and ensuring stable operation of connected systems.
+The role included backend development, API integration, SQL query development, IIS administration, production troubleshooting, and maintaining stable operation of business-critical systems.
 
 ---
 
 ## Key Talking Points
 
-- Developed and optimized enterprise ERP functionality.
-- Improved database performance and application responsiveness.
-- Worked with SQL Server and IIS production environments.
-- Maintained integrations between ERP and online stores.
-- Supported stable operation of business-critical systems.
-- Balanced new functionality with legacy system constraints.
+- Modernized a legacy ERP integration architecture.
+- Redesigned an online store connected to an existing ERP system.
+- Replaced direct database access with REST API communication.
+- Developed SQL queries and data access logic for new functionality.
+- Built API-based integrations for future expansion.
+- Worked with IIS-hosted production environments.
+- Balanced modernization with stability requirements.
 
 ---
 
@@ -329,8 +429,10 @@ The role also included server administration through IIS, SQL Server maintenance
 Possible improvements:
 
 - Introduce automated monitoring and alerting.
-- Add more automated testing around critical ERP workflows.
+- Add integration tests around critical business workflows.
 - Improve deployment automation.
-- Modernize selected legacy components.
-- Improve observability around integrations.
-- Introduce structured performance monitoring.
+- Add structured API documentation.
+- Introduce centralized logging and observability.
+- Continue modernizing remaining ERP functionality through dedicated applications and API-based integrations.
+
+---

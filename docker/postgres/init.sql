@@ -12,5 +12,5 @@ CREATE TABLE IF NOT EXISTS document_chunks
 
     metadata jsonb,
 
-    embedding vector(1024)
+    embedding vector(384)
 );

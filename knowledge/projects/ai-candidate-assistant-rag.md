@@ -46,6 +46,11 @@ links:
 
 # Overview
 
+MVP TEMP INFO:
+
+ - A user pastes a joblisting into chat
+ - AI reponds with a match referencing relevant projects
+
 ---
 
 # Context

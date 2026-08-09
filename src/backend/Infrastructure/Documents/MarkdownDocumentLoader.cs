@@ -29,18 +29,32 @@ public class MarkdownDocumentLoader
                 continue;
             }
 
+            Console.WriteLine(
+                $"Parsing: {fileName}");
 
-            var markdown = File.ReadAllText(file);
+            var markdown =
+                File.ReadAllText(file);
 
-            var parsed = parser.Parse(markdown);
+            ParsedMarkdown parsed;
+            try
+            {
+                parsed = parser.Parse(markdown);
+            }
+            catch (Exception ex)
+            {
+                throw new InvalidOperationException(
+                    $"Failed to parse frontmatter in '{fileName}'.",
+                    ex);
+            }
 
-
-            yield return new MarkdownDocument
+            var document = new MarkdownDocument
             {
                 FileName = fileName,
                 Content = parsed.Content,
                 Metadata = parsed.Metadata
             };
+
+            yield return document;
         }
     }
 }

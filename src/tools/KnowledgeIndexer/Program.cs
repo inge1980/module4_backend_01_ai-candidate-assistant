@@ -94,6 +94,11 @@ Console.WriteLine(
 
  */
 
+
+
+
+
+/* 
 var questions = new[]
 {
     "What experience do I have with .NET and PostgreSQL?",
@@ -182,12 +187,12 @@ Console.WriteLine();
 Console.WriteLine("==============================");
 Console.WriteLine("RETRIEVAL EVALUATION COMPLETE");
 Console.WriteLine("==============================");
+ */
 
 
 
 
 
-/*
 // indexing code
 
 Console.WriteLine();
@@ -200,7 +205,8 @@ var chunker =
     new DocumentChunker();
 
 var documents =
-    loader.Load(knowledgePath);
+    loader.Load(knowledgePath)
+    .ToList();;
 
 var allChunks =
     new List<DocumentChunk>();
@@ -214,11 +220,12 @@ foreach (var document in documents)
     Console.WriteLine(
         $"Metadata fields: {document.Metadata.Count}");
 
-    foreach (var metadata in document.Metadata)
-    {
-        Console.WriteLine(
-            $"  {metadata.Key}: {metadata.Value}");
-    }
+    Console.WriteLine(JsonSerializer.Serialize(
+        document.Metadata,
+        new JsonSerializerOptions {
+            WriteIndented = true
+        }
+    ));
 
     //Console.WriteLine($"Title: {document.Metadata["title"]}");
 
@@ -304,4 +311,4 @@ if (allChunks.Any())
     Console.WriteLine(
         $"Longest chunk: {lengths.Max()}");
 }
-*/
+

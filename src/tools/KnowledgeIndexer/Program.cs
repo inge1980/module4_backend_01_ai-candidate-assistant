@@ -35,6 +35,9 @@ var knowledgePath =
 Console.WriteLine(
     $"Loading knowledge from: {knowledgePath}");
 
+Console.WriteLine();
+Console.WriteLine("==============================");
+
 var loader =
     new MarkdownDocumentLoader();
 
@@ -47,15 +50,13 @@ var documents =
 var allChunks =
     new List<DocumentChunk>();
 
-foreach (var document in documents.Take(3))
+// foreach (var document in documents.Take(3))
+foreach (var document in documents)
 {
-    Console.WriteLine();
-    Console.WriteLine("==============================");
-    Console.WriteLine(
-        $"Filename: {document.FileName}");
-
-    Console.WriteLine(
-        $"Title: {document.Metadata["title"]}");
+    //Console.WriteLine();
+    //Console.WriteLine("==============================");
+    Console.WriteLine($"Processing filename: {document.FileName}");
+    //Console.WriteLine($"Title: {document.Metadata["title"]}");
 
     var chunks =
         chunker.Chunk(
@@ -65,36 +66,33 @@ foreach (var document in documents.Take(3))
 
     allChunks.AddRange(chunks);
 
-    foreach (var chunk in chunks.Take(3))
+    // foreach (var chunk in chunks.Take(3))
+    foreach (var chunk in chunks)
     {
-        Console.WriteLine();
-        Console.WriteLine(
-            $"Section: {chunk.Section}");
+        //Console.WriteLine();
+        //Console.WriteLine($"Section: {chunk.Section}");
+        //Console.WriteLine();
 
-        Console.WriteLine();
+        //Console.WriteLine(
+        //    chunk.Content[
+        //        ..Math.Min(
+        //            200,
+        //            chunk.Content.Length)]);
 
-        Console.WriteLine(
-            chunk.Content[
-                ..Math.Min(
-                    200,
-                    chunk.Content.Length)]);
-
-        Console.WriteLine();
-        Console.WriteLine("Generating embedding...");
+        //Console.WriteLine();
+        //Console.WriteLine("Generating embedding...");
 
         var embedding =
             await embeddingService.Create(
                 chunk.Content);
 
-        Console.WriteLine(
-            $"Embedding dimensions: {embedding.Length}");
+        //Console.WriteLine($"Embedding dimensions: {embedding.Length}");
 
         await vectorStore.InsertAsync(
             chunk,
             embedding);
 
-        Console.WriteLine(
-            "Stored chunk in PostgreSQL.");
+        //Console.WriteLine("Stored chunk in PostgreSQL.");
     }
 }
 
@@ -104,10 +102,10 @@ Console.WriteLine("INDEX SUMMARY");
 Console.WriteLine("==============================");
 
 Console.WriteLine(
-    $"Total documents loaded: {documents.Count()}");
+    $"Documents loaded: {documents.Count()}");
 
 Console.WriteLine(
-    $"Documents with chunks: {allChunks
+    $"Documents indexed: {allChunks
         .Select(x => x.Source)
         .Distinct()
         .Count()}");

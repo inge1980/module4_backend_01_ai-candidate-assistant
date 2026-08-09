@@ -17,8 +17,8 @@ public class MarkdownDocumentLoader
             throw new DirectoryNotFoundException(path);
         }
 
-        foreach (var file in Directory.GetFiles(path, "*.md", SearchOption.AllDirectories).Take(3)) // Limit to 3 files for testing
-        //foreach (var file in Directory.GetFiles(path, "*.md", SearchOption.AllDirectories))
+        // foreach (var file in Directory.GetFiles(path, "*.md", SearchOption.AllDirectories).Take(3)) // Limit to 3 files for testing
+        foreach (var file in Directory.GetFiles(path, "*.md", SearchOption.AllDirectories))
         {
             var fileName = Path.GetFileName(file);
 

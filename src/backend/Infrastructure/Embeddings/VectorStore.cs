@@ -1,4 +1,5 @@
 // Embedding to vector
+
 using System.Text.Json;
 using Infrastructure.Documents;
 using Npgsql;
@@ -17,43 +18,58 @@ public class VectorStore
             ?? throw new InvalidOperationException(
                 "POSTGRES_CONNECTION environment variable is missing.");
 
-        var builder = new NpgsqlDataSourceBuilder(connectionString);
+        var builder =
+            new NpgsqlDataSourceBuilder(connectionString);
 
         builder.UseVector();
 
         _dataSource = builder.Build();
     }
 
-
     public async Task InsertAsync(
         DocumentChunk chunk,
         float[] embedding)
     {
-        await using var db = await _dataSource.OpenConnectionAsync();
+        if (embedding.Length != 384)
+        {
+            throw new ArgumentException(
+                $"Expected a 384-dimensional embedding, but received {embedding.Length} dimensions.",
+                nameof(embedding));
+        }
 
-        await using var cmd = new NpgsqlCommand(
-        """
-        INSERT INTO document_chunks
-        (
-            id,
-            source,
-            section,
-            content,
-            metadata,
-            embedding
-        )
-        VALUES
-        (
-            @id,
-            @source,
-            @section,
-            @content,
-            @metadata,
-            @embedding
-        );
-        """,
-        db);
+        await using var db =
+            await _dataSource.OpenConnectionAsync();
 
+        await using var cmd =
+            new NpgsqlCommand(
+                """
+                INSERT INTO document_chunks
+                (
+                    id,
+                    source,
+                    section,
+                    content,
+                    metadata,
+                    embedding
+                )
+                VALUES
+                (
+                    @id,
+                    @source,
+                    @section,
+                    @content,
+                    @metadata,
+                    @embedding
+                )
+                ON CONFLICT (id)
+                DO UPDATE SET
+                    source = EXCLUDED.source,
+                    section = EXCLUDED.section,
+                    content = EXCLUDED.content,
+                    metadata = EXCLUDED.metadata,
+                    embedding = EXCLUDED.embedding;
+                """,
+                db);
 
         cmd.Parameters.AddWithValue(
             "id",
@@ -79,7 +95,6 @@ public class VectorStore
         cmd.Parameters.AddWithValue(
             "embedding",
             new Vector(embedding));
-
 
         await cmd.ExecuteNonQueryAsync();
     }

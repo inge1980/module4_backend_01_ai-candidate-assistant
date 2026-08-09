@@ -64,10 +64,19 @@ foreach (var document in documents)
             document.FileName,
             document.Metadata);
 
-    allChunks.AddRange(chunks);
+    Console.WriteLine($"  Chunks produced: {chunks.Count}");
+
+    // Filter out chunks with empty content
+    var validChunks =
+        chunks
+            .Where(chunk =>
+                !string.IsNullOrWhiteSpace(chunk.Content))
+            .ToList();
+
+    allChunks.AddRange(validChunks);
 
     // foreach (var chunk in chunks.Take(3))
-    foreach (var chunk in chunks)
+    foreach (var chunk in validChunks)
     {
         //Console.WriteLine();
         //Console.WriteLine($"Section: {chunk.Section}");

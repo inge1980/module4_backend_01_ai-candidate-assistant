@@ -4,25 +4,29 @@ namespace Infrastructure.Documents;
 
 public class DocumentChunker
 {
-    public List<DocumentChunk> Chunk(string markdown, string source, Dictionary<string,string>? metadata = null)
+    public List<DocumentChunk> Chunk(string markdown, string source, Dictionary<string, string>? metadata = null)
     {
         var chunks = new List<DocumentChunk>();
         var sections = SplitIntoSections(markdown);
 
-        foreach (var section in sections)
+        for (var index = 0; index < sections.Count; index++)
         {
+            var section = sections[index];
             var content = CleanContent(section.Content);
 
             if (string.IsNullOrWhiteSpace(content))
                 continue;
 
+            var chunkId =
+                $"{source}-{index:D3}-{section.Title}";
+
             chunks.Add(new DocumentChunk
             {
-                Id = $"{source}-{section.Title}",
+                Id = chunkId,
                 Source = source,
                 Section = section.Title,
                 Content = content,
-                Metadata = metadata ?? new Dictionary<string,string>()
+                Metadata = metadata ?? new Dictionary<string, string>()
             });
 
         }

@@ -99,7 +99,7 @@ public class VectorStore
         await cmd.ExecuteNonQueryAsync();
     }
 
-    public async Task<IReadOnlyList<DocumentChunk>> SearchAsync(
+    public async Task<IReadOnlyList<SearchResult>> SearchAsync(
         float[] embedding,
         int limit = 5)
     {
@@ -129,8 +129,10 @@ public class VectorStore
                     section,
                     content,
                     metadata,
-                    embedding
+                    embedding,
+                    1 - (embedding <=> @embedding) AS similarity
                 FROM document_chunks
+                WHERE embedding IS NOT NULL
                 ORDER BY embedding <=> @embedding
                 LIMIT @limit;
                 """,
@@ -145,7 +147,7 @@ public class VectorStore
             limit);
 
         var results =
-            new List<DocumentChunk>();
+            new List<SearchResult>();
 
         await using var reader =
             await cmd.ExecuteReaderAsync();
@@ -164,7 +166,7 @@ public class VectorStore
                         metadataJson)
                       ?? new Dictionary<string, string>();
 
-            results.Add(
+            var chunk =
                 new DocumentChunk
                 {
                     Id = reader.GetString(0),
@@ -175,6 +177,16 @@ public class VectorStore
                     Embedding = reader.IsDBNull(5)
                         ? default!
                         : reader.GetFieldValue<Vector>(5)
+                };
+
+            var similarity =
+                reader.GetDouble(6);
+
+            results.Add(
+                new SearchResult
+                {
+                    Chunk = chunk,
+                    Similarity = similarity
                 });
         }
 

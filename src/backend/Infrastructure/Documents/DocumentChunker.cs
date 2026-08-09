@@ -4,7 +4,7 @@ namespace Infrastructure.Documents;
 
 public class DocumentChunker
 {
-    public List<DocumentChunk> Chunk(string markdown, string source, Dictionary<string, string>? metadata = null)
+    public List<DocumentChunk> Chunk(string markdown, string source, Dictionary<string, object?>? metadata = null)
     {
         var chunks = new List<DocumentChunk>();
         var sections = SplitIntoSections(markdown);
@@ -26,7 +26,7 @@ public class DocumentChunker
                 Source = source,
                 Section = section.Title,
                 Content = content,
-                Metadata = metadata ?? new Dictionary<string, string>()
+                Metadata = metadata ?? new Dictionary<string, object?>()
             });
 
         }

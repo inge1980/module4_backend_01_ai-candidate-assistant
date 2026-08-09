@@ -1,5 +1,6 @@
 ﻿using Infrastructure.Documents;
 using Infrastructure.Embeddings;
+using System.Text.Json;
 
 var rootDirectory =
     Directory.GetCurrentDirectory();
@@ -26,6 +27,73 @@ var embeddingService =
 var vectorStore =
     new VectorStore();
 
+
+var knowledgePath =
+    Path.Combine(
+        rootDirectory,
+        "knowledge",
+        "projects");
+
+Console.WriteLine(
+    $"Loading knowledge from: {knowledgePath}");
+/* 
+var loader =
+    new MarkdownDocumentLoader();
+
+var documents =
+    loader.Load(knowledgePath);
+
+
+var document =
+    documents.First(
+        document =>
+            document.FileName ==
+            "azure-dotnet-devops-demo.md");
+
+Console.WriteLine(
+    $"Document: {document.FileName}");
+
+Console.WriteLine();
+Console.WriteLine("Metadata:");
+
+Console.WriteLine(
+    JsonSerializer.Serialize(
+        document.Metadata,
+        new JsonSerializerOptions
+        {
+            WriteIndented = true
+        }));
+
+
+var chunker =
+    new DocumentChunker();
+
+var chunks =
+    chunker.Chunk(
+        document.Content,
+        document.FileName,
+        document.Metadata);
+
+var firstChunk =
+    chunks.First();
+
+Console.WriteLine();
+Console.WriteLine(
+    $"Chunk: {firstChunk.Section}");
+
+Console.WriteLine();
+Console.WriteLine("Chunk metadata:");
+
+Console.WriteLine(
+    JsonSerializer.Serialize(
+        firstChunk.Metadata,
+        new JsonSerializerOptions
+        {
+            WriteIndented = true
+        }));
+
+ */
+
 var questions = new[]
 {
     "What experience do I have with .NET and PostgreSQL?",
@@ -35,9 +103,11 @@ var questions = new[]
     "What experience do I have with ASP.NET Core?",
     "Have you worked with Docker?",
     "What Azure experience do you have?",
+    "How did you authenticate your Azure deployment?",
     "Have you worked with CI/CD?",
     "Have you built systems involving PostgreSQL?",
     "Have you worked with Terraform?",
+    "What experience do I have with Terraform?",
     "What projects demonstrate backend development?",
     "Have you worked with APIs and integrations?"
 };
@@ -119,14 +189,6 @@ Console.WriteLine("==============================");
 
 /*
 // indexing code
-var knowledgePath =
-    Path.Combine(
-        rootDirectory,
-        "knowledge",
-        "projects");
-
-Console.WriteLine(
-    $"Loading knowledge from: {knowledgePath}");
 
 Console.WriteLine();
 Console.WriteLine("==============================");
@@ -149,6 +211,15 @@ foreach (var document in documents)
     //Console.WriteLine();
     //Console.WriteLine("==============================");
     Console.WriteLine($"Processing filename: {document.FileName}");
+    Console.WriteLine(
+        $"Metadata fields: {document.Metadata.Count}");
+
+    foreach (var metadata in document.Metadata)
+    {
+        Console.WriteLine(
+            $"  {metadata.Key}: {metadata.Value}");
+    }
+
     //Console.WriteLine($"Title: {document.Metadata["title"]}");
 
     var chunks =

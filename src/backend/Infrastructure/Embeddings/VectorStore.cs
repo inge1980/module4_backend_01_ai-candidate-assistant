@@ -161,10 +161,10 @@ public class VectorStore
 
             var metadata =
                 string.IsNullOrWhiteSpace(metadataJson)
-                    ? new Dictionary<string, string>()
-                    : JsonSerializer.Deserialize<Dictionary<string, string>>(
+                    ? new Dictionary<string, object?>()
+                    : JsonSerializer.Deserialize<Dictionary<string, object?>>(
                         metadataJson)
-                      ?? new Dictionary<string, string>();
+                      ?? new Dictionary<string, object?>();
 
             var chunk =
                 new DocumentChunk

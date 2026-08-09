@@ -12,7 +12,7 @@ public class DocumentChunk
 
     public string Content { get; set; } = string.Empty;
 
-    public Dictionary<string,string> Metadata { get; set; } = new();
+    public Dictionary<string, object?> Metadata { get; set; } = new();
 
     public Vector Embedding { get; set; } = default!;
 }

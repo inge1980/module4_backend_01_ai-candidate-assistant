@@ -1,7 +1,18 @@
+using YamlDotNet.Serialization;
+
 namespace Infrastructure.Documents;
 
 public class FrontmatterParser
 {
+    private readonly IDeserializer _deserializer;
+
+    public FrontmatterParser()
+    {
+        _deserializer =
+            new DeserializerBuilder()
+                .Build();
+    }
+
     public ParsedMarkdown Parse(string markdown)
     {
         var result = new ParsedMarkdown();
@@ -12,13 +23,11 @@ public class FrontmatterParser
             return result;
         }
 
-
-        var endIndex = markdown.IndexOf(
-            "---",
-            3,
-            StringComparison.Ordinal
-        );
-
+        var endIndex =
+            markdown.IndexOf(
+                "\n---",
+                3,
+                StringComparison.Ordinal);
 
         if (endIndex == -1)
         {
@@ -26,31 +35,23 @@ public class FrontmatterParser
             return result;
         }
 
+        var frontmatter =
+            markdown
+                .Substring(
+                    3,
+                    endIndex - 3)
+                .Trim();
 
-        var frontmatter = markdown
-            .Substring(3, endIndex - 3)
-            .Trim();
+        var metadata =
+            _deserializer.Deserialize<Dictionary<string, object?>>(
+                frontmatter);
 
+        result.Metadata =
+            metadata ?? new Dictionary<string, object?>();
 
-        foreach (var line in frontmatter.Split(
-                     '\n',
-                     StringSplitOptions.RemoveEmptyEntries))
-        {
-            var separator = line.IndexOf(':');
-
-            if (separator == -1)
-                continue;
-
-
-            var key = line[..separator].Trim();
-
-            var value = line[(separator + 1)..].Trim();
-
-            result.Metadata[key] = value;
-        }
-
-
-        result.Content = markdown[(endIndex + 3)..].Trim();
+        result.Content =
+            markdown[(endIndex + 4)..]
+                .Trim();
 
         return result;
     }

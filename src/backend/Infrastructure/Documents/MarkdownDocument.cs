@@ -6,5 +6,5 @@ public class MarkdownDocument
 
     public string Content { get; set; } = "";
 
-    public Dictionary<string,string> Metadata { get; set; } = new();
+    public Dictionary<string, object?> Metadata { get; set; } = new();
 }

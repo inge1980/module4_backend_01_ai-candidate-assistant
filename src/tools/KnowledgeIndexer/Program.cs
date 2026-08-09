@@ -1,4 +1,21 @@
-﻿using Infrastructure.Documents;
+﻿using Infrastructure.Embeddings;
+using Infrastructure.Documents;
+
+
+
+var embeddingService = new EmbeddingService();
+
+var testEmbedding =
+    await embeddingService.Create(
+        "I have experience building applications with .NET and PostgreSQL."
+    );
+
+Console.WriteLine();
+Console.WriteLine("Embedding test");
+Console.WriteLine("==============================");
+Console.WriteLine($"Dimensions: {testEmbedding.Length}");
+Console.WriteLine($"First value: {testEmbedding[0]}");
+
 
 var rootDirectory = Directory.GetCurrentDirectory();
 

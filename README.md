@@ -1,3 +1,25 @@
+TEMP:
+
+## Setup
+
+1. Start PostgreSQL
+
+docker compose up -d
+
+2. Install Ollama
+
+ollama pull bge-small-en-v1.5
+
+3. Build knowledge index
+
+dotnet run --project src/tools/KnowledgeIndexer
+
+4. Start API
+
+dotnet run --project src/backend/Api
+
+END TEMP  ###############################
+
 # M.I.N.D - My Indexed Knowledge Directory
 
 M.I.N.D is a personal AI knowledge assistant built to represent a developer's experience, projects, technical decisions, and professional background.

@@ -191,21 +191,25 @@ Planned:
 - Vector database deployment.
 - AI service integration.
 
----
-
 # Technical Decisions
 
 ## Decision: Markdown as Knowledge Source
 
 ### Context
 
-The knowledge base needs to be easy to maintain and version control.
+The knowledge base contains project descriptions and technical documentation that should be easy to maintain, review, and version control.
+
+The content changes infrequently, but when changes are made, the system needs a predictable way to rebuild the search index.
 
 ---
 
 ### Chosen Solution
 
-Markdown documents with structured YAML frontmatter.
+The Markdown files are stored in the repository and are the single source of truth for the knowledge base.
+
+The KnowledgeIndexer processes these files and generates the searchable representation stored in PostgreSQL.
+
+The database is therefore treated as a generated search index rather than the primary source of knowledge.
 
 ---
 
@@ -213,7 +217,7 @@ Markdown documents with structured YAML frontmatter.
 
 - Database-driven content management.
 - JSON documents.
-- Manual prompt-based context.
+- Manually maintained LLM prompts with embedded context.
 
 ---
 
@@ -221,29 +225,33 @@ Markdown documents with structured YAML frontmatter.
 
 Advantages:
 
-- Human-readable.
-- Git-friendly.
+- Human-readable format.
+- Git-friendly and version controlled.
 - Easy to update.
-- Works well with developer documentation.
+- Natural format for technical documentation.
+- Allows rebuilding the vector index from source files.
 
 Disadvantages:
 
-- Requires validation of document structure.
-- Requires ingestion processing.
+- Requires indexing processing.
+- Document structure needs validation.
+- Changes require re-indexing.
 
 ---
 
-## Decision: Section-Based Chunking
+# Decision: Section-Based Chunking
 
 ### Context
 
-Large documents need to be split into smaller retrieval units.
+Documents need to be split into smaller retrieval units before generating embeddings.
+
+A complete document is usually too broad as a single retrieval unit for efficient semantic search.
 
 ---
 
 ### Chosen Solution
 
-Documents are split based on Markdown headings.
+Documents are split into chunks based on Markdown headings.
 
 Each chunk contains:
 
@@ -251,14 +259,22 @@ Each chunk contains:
 - Section title.
 - Content.
 - Metadata.
+- Generated embedding vector.
+
+The chunks are stored in PostgreSQL using the pgvector extension.
+
+The section-based approach preserves the semantic boundaries already expressed by the document structure. This makes retrieved chunks easier to understand and debug than arbitrary character-based fragments.
+
+Sections may require additional splitting later if individual sections become too large for effective retrieval.
 
 ---
 
 ### Alternatives Considered
 
-- Fixed character length chunks.
+- Fixed character-length chunks.
 - Token-based chunking.
 - Paragraph-based splitting.
+- Whole-document embeddings.
 
 ---
 
@@ -267,14 +283,171 @@ Each chunk contains:
 Advantages:
 
 - Preserves document structure.
+- Keeps related content together.
 - Better semantic grouping.
-- Easier debugging.
+- Easier debugging and inspection.
+- Allows precise retrieval of relevant sections.
 
 Disadvantages:
 
-- Depends on consistent documentation structure.
+- Depends on reasonably consistent Markdown structure.
+- Very large sections may require additional splitting.
+- Requires re-indexing when the chunking strategy changes.
 
 ---
+
+# Decision: Vector Search with pgvector
+
+### Context
+
+The RAG system needs to find knowledge that is semantically relevant to a user's question rather than relying only on exact keyword matches.
+
+Traditional SQL text matching can identify shared words, but it does not reliably identify related concepts expressed using different terminology.
+
+---
+
+### Chosen Solution
+
+Use PostgreSQL with the pgvector extension for storing and searching document embeddings.
+
+Each document chunk is converted into an embedding vector. When a user submits a question, the question is converted into an embedding using the same embedding model.
+
+The vector representation of the question is compared against the stored document vectors using vector similarity. The most semantically similar chunks are retrieved and supplied as context to the LLM.
+
+Cosine similarity is used for the initial vector search implementation.
+
+The database stores 384-dimensional vectors using the PostgreSQL column type vector(384).
+
+An HNSW index is used to make similarity searches efficient as the number of stored chunks grows.
+
+---
+
+### Alternatives Considered
+
+- PostgreSQL full-text search only.
+- Keyword-based search.
+- External vector databases.
+- Hybrid keyword and vector search.
+
+---
+
+### Trade-offs
+
+Advantages:
+
+- Semantic rather than purely lexical retrieval.
+- Keeps vector data in the existing PostgreSQL database.
+- Avoids introducing a separate vector database.
+- Supports efficient nearest-neighbor search through HNSW.
+- Easy to inspect and query during development.
+- Allows metadata and document content to be stored alongside embeddings.
+
+Disadvantages:
+
+- Retrieval quality depends heavily on the embedding model and chunking strategy.
+- Semantic search can miss exact identifiers, names, or technical terms where keyword search would perform better.
+- Vector indexes add database storage and maintenance overhead.
+- The embedding model must remain consistent between indexed documents and user queries.
+
+---
+
+# Decision: Local Embedding Model for Development
+
+### Context
+
+The system requires embeddings both when indexing documents and when processing user questions during chat.
+
+The same embedding model must be used for both operations because vector similarity only works when vectors are generated in the same embedding space.
+
+---
+
+### Chosen Solution
+
+Use BAAI bge-small-en-v1.5 locally through Ollama during development.
+
+The model produces 384-dimensional embeddings, matching the PostgreSQL vector(384) column.
+
+The embedding model is used by both the KnowledgeIndexer and the backend's runtime retrieval process.
+
+Document embeddings are generated when knowledge is indexed or updated. Query embeddings are generated when a user submits a question.
+
+This keeps the entire embedding pipeline local during development and avoids external embedding API costs.
+
+---
+
+### Alternatives Considered
+
+- Hosted embedding APIs.
+- OpenAI embedding models.
+- Azure/OpenAI managed embedding services.
+- Running a different embedding model remotely.
+
+---
+
+### Trade-offs
+
+Advantages:
+
+- No API cost during development.
+- Full control over the embedding pipeline.
+- Data remains local.
+- Easy to reproduce the development environment.
+- Good fit for a small knowledge base.
+
+Disadvantages:
+
+- Requires Ollama and the embedding model to be installed locally.
+- Local inference is slower than some managed services.
+- Changing the embedding model requires regenerating the stored document embeddings.
+
+---
+
+# Decision: Local-First RAG Development
+
+### Context
+
+The initial goal is to build and validate the complete RAG pipeline before introducing cloud deployment complexity.
+
+---
+
+### Chosen Solution
+
+All application components are developed and tested locally first.
+
+PostgreSQL and pgvector run locally through Docker Compose. The ASP.NET Core backend communicates with the local database, while the frontend communicates with the backend API.
+
+The KnowledgeIndexer is run separately when the Markdown knowledge base needs to be imported or updated. It generates the document embeddings and stores the resulting chunks in PostgreSQL.
+
+During chat, the backend generates an embedding for each user question, performs semantic vector search against the stored document chunks, and provides the retrieved context to the LLM.
+
+Cloud deployment is intentionally postponed until the complete local RAG pipeline is working.
+
+---
+
+### Alternatives Considered
+
+- Deploying directly to cloud infrastructure.
+- Using managed vector databases from the start.
+- Hosting the embedding model remotely during development.
+
+---
+
+### Trade-offs
+
+Advantages:
+
+- Faster development cycle.
+- Easier debugging.
+- Lower cost.
+- Full understanding of the complete RAG pipeline.
+- Clear separation between source documents and generated vector data.
+- Allows deployment decisions to be made after the local architecture has been validated.
+
+Disadvantages:
+
+- Requires local setup.
+- Cloud deployment decisions are postponed.
+- Production architecture may require different infrastructure or embedding providers.
 
 # Implementation
 

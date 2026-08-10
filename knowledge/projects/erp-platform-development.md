@@ -390,40 +390,6 @@ By keeping the ERP as the source of core business logic while exposing functiona
 
 ---
 
-# Interview Notes
-
-## Possible Questions
-
-### Why did you introduce a REST API instead of continuing direct database access?
-
-Direct database access created tight coupling between the online store and ERP system. The REST API created a clearer separation where each system could evolve independently while maintaining reliable communication.
-
----
-
-### How did you modernize an existing ERP system without disrupting operations?
-
-The approach was incremental. Existing workflows were preserved while improvements were introduced gradually through targeted changes, API integrations, and new user interfaces.
-
----
-
-### What was your role beyond development?
-
-The role included backend development, API integration, SQL query development, IIS administration, production troubleshooting, and maintaining stable operation of business-critical systems.
-
----
-
-## Key Talking Points
-
-- Modernized a legacy ERP integration architecture.
-- Redesigned an online store connected to an existing ERP system.
-- Replaced direct database access with REST API communication.
-- Developed SQL queries and data access logic for new functionality.
-- Built API-based integrations for future expansion.
-- Worked with IIS-hosted production environments.
-- Balanced modernization with stability requirements.
-
----
-
 # Future Improvements
 
 Possible improvements:

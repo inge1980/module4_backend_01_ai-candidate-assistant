@@ -104,18 +104,6 @@ links:
 
 ---
 
-# Interview Notes
-
-## Possible Questions
-
-### Question
-
----
-
-## Key Talking Points
-
----
-
 # Future Improvements
 
 ---

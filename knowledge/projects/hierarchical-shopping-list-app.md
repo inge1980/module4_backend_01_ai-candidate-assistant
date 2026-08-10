@@ -648,52 +648,6 @@ If rebuilding the project today, I would consider:
 
 ---
 
-# Interview Notes
-
-## Possible Questions
-
-### Why did you choose Redux instead of using SQLite directly?
-
-Redux provides predictable application state management and keeps UI logic independent from persistence mechanisms. SQLite is responsible for storage, not controlling application behavior.
-
----
-
-### Why use Reanimated instead of standard animations?
-
-Drag-and-drop requires continuous updates. Running animations closer to the UI thread reduces JavaScript workload and improves responsiveness.
-
----
-
-### How does offline synchronization work?
-
-The application updates Redux immediately, persists changes locally through SQLite, and synchronizes with Supabase when connectivity becomes available.
-
----
-
-### How did you handle database reliability?
-
-I implemented automated GitHub Actions workflows that periodically create PostgreSQL backups, upload them to external storage, notify failures, and remove expired backups.
-
----
-
-### What was the biggest technical challenge?
-
-Designing a clean offline-first architecture where local persistence, remote synchronization, and UI state could coexist without creating inconsistent data.
-
----
-
-# Key Talking Points
-
-- Designed and implemented a complete React Native application architecture.
-- Built an offline-first data flow.
-- Used Redux as Single Source of Truth.
-- Implemented performant gesture-driven interactions.
-- Optimized animations using UI-thread execution.
-- Integrated SQLite persistence with Supabase synchronization.
-- Built automated database backup workflows using GitHub Actions.
-
----
-
 # Future Improvements
 
 Possible improvements:

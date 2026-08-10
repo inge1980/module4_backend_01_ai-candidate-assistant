@@ -218,31 +218,6 @@ Include:
 
 ---
 
-# Interview Notes
-
-Information useful during interviews.
-
-## Possible Questions
-
-### Question
-
-Answer.
-
----
-
-## Key Talking Points
-
-Important details worth highlighting.
-
-Examples:
-
-- Interesting technical decisions
-- Difficult problems solved
-- Architecture discussions
-- Personal growth
-
----
-
 # Future Improvements
 
 What would you improve if you continued working on this project?

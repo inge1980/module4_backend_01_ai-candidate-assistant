@@ -356,54 +356,6 @@ Key lessons include:
 
 ---
 
-# Interview Notes
-
-## Possible Questions
-
-### Why Terraform instead of creating Azure resources manually?
-
-Terraform allows infrastructure to be version controlled, repeatable, and reproducible across environments.
-
----
-
-### Why use Docker?
-
-Docker ensures the application behaves consistently regardless of where it is deployed by packaging the application and its runtime dependencies together.
-
----
-
-### Why Managed Identity?
-
-Managed Identity removes the need for storing credentials and provides secure Azure resource access through Azure role-based permissions.
-
----
-
-### Why OpenID Connect?
-
-OIDC allows GitHub Actions to authenticate securely with Azure without storing long-lived Azure credentials inside the repository.
-
----
-
-### How does the deployment pipeline work?
-
-The pipeline authenticates with Azure using OIDC, builds the Docker image, pushes it to Azure Container Registry, connects to the Azure VM through SSH, pulls the updated image using Docker Compose, and restarts the container.
-
----
-
-# Key Talking Points
-
-- Automated complete cloud deployment pipeline.
-- Infrastructure as Code using Terraform.
-- Azure resource provisioning.
-- Docker containerization.
-- GitHub Actions CI/CD automation.
-- Secure authentication using OpenID Connect.
-- Azure Container Registry integration.
-- User Assigned Managed Identity.
-- Version-controlled infrastructure.
-
----
-
 # Future Improvements
 
 Possible future improvements:

@@ -55,7 +55,7 @@ The existing frontend had been developed over many years and followed a layout a
 
 The goal was not to redesign a single website. The CMS dynamically generated the public websites of approximately 1,300 schools, each of which could use more than 30 different modules such as navigation, news, articles, article lists, images, image galleries, video, slideshows, employees, email lists, forms, tables, calendars, search, and content blocks.
 
-A typical school had at least 30 generated pages, giving a rough baseline of approximately 39,000 dynamically generated pages across the customer base. The actual scale of content was much larger, but the important architectural point was that these pages did not need to be migrated individually. The reusable page scaffolding and CMS modules that generated them needed to be modernized.
+A typical school had at least 30 generated pages, giving a conservative baseline of approximately 39,000 dynamically generated pages across the customer base. The important architectural point was that these pages did not need to be migrated individually. The reusable page scaffolding and CMS modules that generated them needed to be modernized.
 
 I was the product owner and primary developer for the frontend modernization. Working as part of a team of developers, I personally worked through all of the 30+ CMS modules involved in the project, collaborating with the other developers when I needed input or assistance.
 
@@ -67,9 +67,9 @@ The responsive implementation covered the entire frontend architecture and the i
 
 One particularly difficult part of the project was converting approximately 1,000 existing customer column configurations. Customers had historically been allowed to enter free-form column widths, including percentages, pixel values, mixed units, incomplete configurations, and values that technically should not have worked but happened to render acceptably because of browser and CSS behavior. I analyzed the existing configurations, identified six recurring patterns, and created an algorithm to convert them into appropriate Bootstrap 12-column layouts.
 
-I also redesigned the customer-facing column configuration controls. Instead of allowing arbitrary text values, the new interface used a custom grid slider with one to three handles depending on the number of columns. Handles snapped to the 12 available Bootstrap grid steps, allowing administrators to visually configure column proportions while remaining within the constraints of the new layout system.
+I also redesigned the customer-facing column configuration controls. Instead of allowing arbitrary text values, the new interface used a multi-handle custom grid slider with one to three handles depending on the number of columns. Handles snapped to the 12 available Bootstrap grid steps, allowing administrators to visually configure column proportions while remaining within the constraints of the new layout system.
 
-The modernization was introduced through pilot customers and a gradual rollout rather than a single platform-wide migration. The team continued to maintain important bug fixes for the old frontend for a period after launch, while development focus moved to the new system. Approximately three months after implementation, all schools had been transitioned to the new design.
+The modernization was introduced through pilot customers and a gradual rollout rather than a single platform-wide migration. The team continued to maintain important bug fixes for the old frontend for a period after launch, while development focus moved to the new system. Approximately three months after the new frontend was introduced, all schools had been transitioned to the new design.
 
 The project was driven by the growing importance of mobile access to school information such as schedules and weekly plans, as well as customer retention, customer satisfaction, product modernization, competitiveness, usability, and the need to move toward universal-design and accessibility requirements.
 
@@ -482,7 +482,7 @@ The rollout could happen progressively instead of as a high-risk big-bang deploy
 
 The team could test the new frontend with real customers, identify problems, fix them, and continue expanding the rollout without putting all 1,300 schools at risk simultaneously.
 
-Approximately three months after implementation, all schools had transitioned to the new design.
+Approximately three months after the new frontend was introduced, all schools had transitioned to the new design.
 
 ---
 
@@ -529,7 +529,7 @@ The goal was to make shared application logic reusable while separating it more 
 
 This allowed the old and new frontend modes to share underlying application logic rather than requiring two completely independent applications.
 
-PHP checked the per-school frontend-mode setting and selected the appropriate presentation mode.
+The PHP rendering layer used the per-school frontend-mode setting and selected the appropriate presentation mode.
 
 ### Database
 
@@ -620,7 +620,7 @@ A frontend-mode variable was stored in each school's database.
 
 Only authorized Moava employees could access the corresponding control in the CMS administration interface.
 
-PHP checked the value when generating the public website.
+The PHP rendering layer used the set value when generating the public website.
 
 ### Trade-offs
 
@@ -656,7 +656,7 @@ However, the approach was considerably more reliable than applying one generic f
 
 ---
 
-## Decision: Replace Free-Form Column Inputs with a Bootstrap Grid Slider
+## Decision: Replace Free-Form Column Inputs with a Multi-Handle Custom Grid Slider
 
 ### Context
 
@@ -666,7 +666,7 @@ This was one of the reasons inconsistent configurations had accumulated.
 
 ### Chosen Solution
 
-The new interface used a single slider representing the Bootstrap 12-column grid.
+The new interface used a multi-handle custom slider representing the Bootstrap 12-column grid.
 
 The slider dynamically changed the number of handles based on the selected number of columns.
 
@@ -748,7 +748,7 @@ Key implementation work included:
 * Analyzing approximately 1,000 existing customer configurations.
 * Identifying six recurring legacy column-width patterns.
 * Implementing an algorithm for converting legacy values into Bootstrap grid widths.
-* Designing a Bootstrap 12-column slider for administrators.
+* Designing a multi-handle custom grid slider for administrators.
 * Dynamically changing the number of slider handles according to the number of columns.
 * Snapping slider handles to Bootstrap's 12 grid steps.
 * Preventing new invalid column configurations through the administration interface.
@@ -790,15 +790,15 @@ The main outcomes were:
 * Approximately 1,000 existing customer column configurations were analyzed.
 * Six recurring patterns were identified in the legacy column-width data.
 * An automated algorithm converted inconsistent legacy configurations into Bootstrap-compatible grid layouts.
-* The free-form column configuration interface was replaced with a constrained Bootstrap 12-column slider.
-* Slider handles snapped to valid Bootstrap grid positions.
+* The free-form column configuration interface was replaced with a constrained multi-handle custom grid slider.
+* Slider handles snapped to one of Bootstraps 12 valid grid positions.
 * New invalid column configurations could therefore be prevented through the normal administration interface.
 * The same underlying content could be used by both frontend versions.
 * Only a small number of customers initially requested to revert to the old design.
 * After configuration assistance and discussion with the team, those customers also chose to keep the new version.
 * Each customer could receive one hour of free telephone design consultation with a designer.
 * Some customers used the consultation to fine-tune column widths or request changes such as a new banner.
-* Approximately three months after implementation, all schools had transitioned to the new design.
+* Approximately three months after the new frontend was introduced, all schools had transitioned to the new design.
 
 The project allowed Moava to modernize a large legacy SaaS CMS without forcing approximately 1,300 independent school customers to manually rebuild their websites.
 
@@ -850,7 +850,7 @@ The old column system gave customers flexibility, but that flexibility allowed t
 
 The new slider-based configuration sacrificed arbitrary values in exchange for a predictable and constrained model.
 
-The Bootstrap 12-column grid became both a technical constraint and a user-facing configuration model.
+The multi-handle custom grid slider became both a technical constraint and a user-facing configuration model.
 
 ## Browser Compatibility Lessons
 
@@ -1000,7 +1000,7 @@ I needed to infer the customer's intended layout from the existing values and co
 
 I redesigned the column configuration interface.
 
-Instead of free-form text fields, the new interface used a slider representing the Bootstrap 12-column grid.
+Instead of free-form text fields, the new interface used a multi-handle custom grid slider representing the Bootstrap 12-column grid.
 
 The number of handles changed dynamically according to the number of columns.
 
@@ -1079,7 +1079,7 @@ The old frontend remained available while the new system was rolled out.
 
 We continued making important bug fixes to the old frontend for a period after the new design was introduced, while most development effort shifted to the new system.
 
-Approximately three months after implementation, all schools had been converted to the new design.
+Approximately three months after the new frontend was introduced, all schools had been converted to the new design.
 
 ### Did customers control the switch themselves?
 
@@ -1161,7 +1161,7 @@ If thousands of pages are generated dynamically from reusable CMS modules, moder
 * Analyzed approximately 1,000 existing customer column configurations.
 * Identified six recurring patterns in inconsistent legacy layout data.
 * Built an algorithm to convert legacy percentages, pixel values, and mixed configurations into Bootstrap's 12-column grid.
-* Replaced free-form column configuration with a Bootstrap-grid slider.
+* Replaced free-form column configuration with a multi-handle custom grid slider.
 * Dynamically used one to three slider handles depending on the number of columns.
 * Made the slider inactive for single-column layouts.
 * Made slider handles snap to the 12 Bootstrap grid steps.
@@ -1170,7 +1170,7 @@ If thousands of pages are generated dynamically from reusable CMS modules, moder
 * Provided a reversible rollout mechanism.
 * Offered customers one hour of free design consultation.
 * Helped customers fine-tune column widths and other visual settings.
-* Completed the transition of all schools approximately three months after implementation.
+* Completed the transition of all schools approximately three months after the new frontend was introduced.
 * Connected the technical modernization to mobile usage, customer retention, customer satisfaction, competitiveness, usability, accessibility, and universal design.
 
 ---

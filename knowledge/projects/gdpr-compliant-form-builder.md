@@ -25,8 +25,13 @@ technologies:
   - rest-api
   - json
   - aws-s3
+  - aws-sdk
+  - phpspreadsheet
+  - zipstream
   - csv
   - xls
+  - zip
+  - subversion
 
 concepts:
   - dynamic-ui
@@ -47,6 +52,14 @@ concepts:
   - data-management
   - file-storage
   - data-export
+  - data-processing
+  - streaming
+  - cloud-storage
+
+dependencies:
+  - maennchen/zipstream-php
+  - aws/aws-sdk-php
+  - phpoffice/phpspreadsheet
 
 links:
   github:
@@ -64,15 +77,23 @@ The system also handled form submissions, including viewing, deleting, respondin
 
 A central requirement was GDPR-compliant data retention. Each form could define how many days submitted data was allowed to remain stored. The system automatically identified submissions approaching their retention limit and notified the form owner by email so the data could be reviewed before deletion.
 
+The project also included a dedicated export and data-processing solution. Customers could export collected form results to CSV and XLS, including submitted files, and use the exported Excel data for further processing, analysis, consolidation, and sharing.
+
 ---
 
 # Context
 
-Moava AS operated an administration system where customers needed to create and manage dynamic forms.
+Moava AS operated an administration system where customers needed to create and manage GDPR compliant dynamic forms and questionnaires.
 
 The form builder needed to support non-technical administrators while providing enough flexibility to construct forms from reusable templates and modify individual fields without requiring developer intervention.
 
-The system also handled potentially sensitive information submitted through these forms. This created a requirement for explicit data-retention controls and automated deletion processes to reduce the amount of personal data stored on the company's servers.
+After developing a questionnaire template for the form builder, a requirement emerged to export the collected responses so customers could process and analyze the data outside the administration system.
+
+The export functionality needed to support both structured response data and uploaded files. Customers needed a practical way to receive the collected information in familiar spreadsheet formats while maintaining relationships between each response and its submitted attachments.
+
+The system also handled potentially sensitive information submitted through these forms. This created a requirement for explicit data-retention controls and automated deletion processes to reduce the amount of personal data stored by Moava AS.
+
+The underlying principle was to allow customers to take responsibility for further processing and retention of exported data while information stored by Moava AS could be deleted according to the configured retention policy and the users' consent.
 
 ---
 
@@ -93,11 +114,24 @@ The solution needed to provide:
 - Individual and bulk deletion of submissions.
 - Manual communication with form submitters.
 - CSV and XLS exports.
-- Export of submitted files together with the corresponding submission data.
+- Export of submitted files together with the submission data.
 - AWS S3 storage for uploaded files.
 - Configurable GDPR data-retention periods.
 - Email warnings to form owners before submission data reached its deletion deadline.
 - Automatic deletion of submissions and associated uploaded files after the configured retention period.
+
+A separate requirement was to implement an export solution that allowed customers to take collected form data out of the system for further processing.
+
+The export solution needed to:
+
+- Export form results to CSV.
+- Export form results to XLS.
+- Include submitted files in the export.
+- Package submitted files into a ZIP archive.
+- Provide working links from the Excel export to the corresponding submitted files.
+- Allow customers to download and process their collected data outside the administration system.
+- Reduce manual work for administrators.
+- Support GDPR-oriented data lifecycle management by allowing customers to take responsibility for further processing while stored data could subsequently be deleted according to the configured retention policy.
 
 ---
 
@@ -177,23 +211,85 @@ The system reduced the risk of retaining personal data longer than required and 
 
 ---
 
+## Challenge: Exporting and Consolidating Form Data
+
+### Problem
+
+After developing questionnaire templates for the form builder, customers needed a way to export collected responses for further processing and analysis.
+
+The raw data needed to be available in common formats such as CSV and XLS. At the same time, submissions could contain uploaded files that needed to remain associated with the corresponding response.
+
+Simply exporting database records would not provide a practical workflow for customers who needed both the structured data and the submitted attachments.
+
+### Solution
+
+I implemented the export functionality using PHPSpreadsheet for spreadsheet generation.
+
+The system supported:
+
+- CSV exports.
+- XLS exports.
+- Export of submitted files.
+- ZIP packaging of submitted files.
+- Links from the exported Excel spreadsheet to the corresponding files.
+
+The file export was designed around streaming rather than first downloading all files from S3 to the application's local filesystem.
+
+Uploaded files were stored in AWS S3 and retrieved through the AWS SDK for PHP.
+
+When an export containing files was requested, the application streamed the S3 objects directly into a ZIP archive using `maennchen/zipstream-php`. The files were compressed on the fly as part of the export process.
+
+The resulting ZIP archive could then be streamed directly to the customer's browser as a download without requiring the application server to first create a complete ZIP file on local disk.
+
+The exported XLS file contained internal links to the corresponding submitted files. After unpacking the ZIP archive, customers could open the spreadsheet and follow the links to the associated files.
+
+This approach avoided an unnecessary intermediate storage step:
+
+`AWS S3 -> streaming ZIP generation -> browser download`
+
+rather than:
+
+`AWS S3 -> local server filesystem -> ZIP file -> browser download`
+
+### Result
+
+The export functionality gave customers a practical way to work with collected form data outside the administration system.
+
+It reduced manual administrative work and avoided unnecessary local disk usage during file exports.
+
+The export package maintained a usable relationship between response data and uploaded files, allowing customers to process, analyze, consolidate, and share the collected information.
+
+The approach also supported the broader GDPR data lifecycle by allowing customers to take responsibility for further processing while limiting how long the original data needed to remain stored by Moava AS.
+
+---
+
 ## Challenge: Managing Uploaded Files
 
 ### Problem
 
 Form submissions could contain uploaded files. These files could be large and needed to be handled separately from the structured submission data.
 
-The export functionality also needed to provide administrators with the submission data and its associated files in a usable package.
+The export functionality also needed to provide administrators with the submission data and its associated files in a usable package without requiring all files to be temporarily downloaded to the application server.
 
 ### Solution
 
 Uploaded files were stored in AWS S3 rather than directly in the database.
 
-When an administrator requested an export containing uploaded files, the PHP application retrieved the files and used a PHP ZIP library to create the archive during the download process.
+The AWS SDK for PHP was used to access the S3 objects.
+
+When an administrator requested an export containing uploaded files, the application streamed the objects from S3 into a ZIP archive using `maennchen/zipstream-php`.
+
+The files were compressed on the fly rather than first being downloaded to the server's local filesystem.
 
 The archive contained the exported XLS data together with the submitted files in a folder structure. The XLS file contained internal links pointing to the corresponding submitted files.
 
-The ZIP archive was generated as part of the download process, avoiding the need to create and persist an additional archive on the server.
+The ZIP archive was generated and streamed as part of the download process, avoiding the need to create and persist a complete intermediate archive on the application server.
+
+The resulting architecture was effectively:
+
+`AWS S3 -> AWS SDK for PHP -> ZipStream -> HTTP response -> customer`
+
+This reduced temporary local storage requirements and allowed the application to process the files as a stream.
 
 Uploaded files followed the same GDPR retention period as the associated submission data.
 
@@ -201,7 +297,7 @@ Uploaded files followed the same GDPR retention period as the associated submiss
 
 File storage was separated from the relational database while still providing administrators with a practical way to export complete submission packages.
 
-Generating the ZIP during download also avoided maintaining additional archive files on the server.
+Streaming the files directly from S3 into the ZIP generation process avoided unnecessary local disk usage and eliminated the need to maintain temporary ZIP files on the application server.
 
 ---
 
@@ -256,6 +352,8 @@ The backend was responsible for:
 - Managing retention-related operations.
 - Handling uploaded files and their associated metadata.
 
+PHPSpreadsheet was used for generating spreadsheet exports.
+
 ---
 
 ### Database
@@ -274,17 +372,37 @@ Form submissions were associated with their forms and included submission dates 
 
 Uploaded files were stored in AWS S3.
 
+The AWS SDK for PHP was used to access S3 objects.
+
 The file storage was kept separate from the relational database, while the submission data maintained the relationship between a submission and its associated files.
 
 Uploaded files were subject to the same retention policy as the submission they belonged to.
 
 ---
 
-### Infrastructure
+### Export Pipeline
 
-The application used PHP and MySQL as its primary backend components, with AWS S3 used for uploaded file storage.
+The export pipeline combined structured form data with uploaded files.
 
-Export archives were generated dynamically when requested rather than being generated and stored in advance.
+The general flow was:
+
+1. Retrieve the requested form submissions.
+2. Transform the submission data into CSV or XLS output.
+3. Retrieve metadata for associated uploaded files.
+4. Open a streaming ZIP response when files were included.
+5. Stream each required file directly from AWS S3.
+6. Compress the file data on the fly using `maennchen/zipstream-php`.
+7. Add the generated spreadsheet and submitted files to the ZIP archive.
+8. Maintain relative/internal links in the spreadsheet to the corresponding files.
+9. Stream the resulting ZIP response to the customer's browser.
+10. Avoid downloading all S3 files to the application server's local disk.
+11. Avoid creating a complete persistent ZIP archive before the download begins.
+
+The resulting data flow was:
+
+`AWS S3 -> AWS SDK for PHP -> ZipStream -> HTTP response -> browser`
+
+This was preferable to first copying every S3 object to local disk and then creating a ZIP file because the latter would introduce unnecessary disk I/O, temporary storage requirements, and cleanup work.
 
 ---
 
@@ -368,6 +486,8 @@ Form submissions could include uploaded files that should not be stored directly
 
 Uploaded files were stored in AWS S3, while the application maintained the relationship between the submission and its associated files.
 
+The AWS SDK for PHP provided the integration with S3.
+
 ### Alternatives Considered
 
 Files could have been stored directly on the application server filesystem or as binary data in MySQL.
@@ -377,6 +497,72 @@ Files could have been stored directly on the application server filesystem or as
 Using S3 separated file storage from the application database and avoided placing potentially large binary objects inside MySQL.
 
 It also introduced a dependency on external object storage and required the application to manage S3 file lifecycle operations alongside the database records.
+
+---
+
+## Decision: PHPSpreadsheet for Data Export
+
+### Context
+
+Customers needed to export collected form responses in formats that could be opened and processed using common spreadsheet applications.
+
+### Chosen Solution
+
+PHPSpreadsheet was used to generate XLS exports from collected form data.
+
+CSV export was also supported for workflows where a simpler tabular representation was more appropriate.
+
+The XLS output could contain internal links to uploaded files included in the accompanying ZIP archive.
+
+### Alternatives Considered
+
+The application could have generated spreadsheet-compatible output manually or provided database-level exports.
+
+### Trade-offs
+
+Using a dedicated spreadsheet library provided more control over the generated XLS files and allowed the export to include working links to submitted files.
+
+It added a third-party dependency but significantly reduced the complexity of generating valid spreadsheet documents.
+
+---
+
+## Decision: Streaming ZIP Generation
+
+### Context
+
+Exported submissions could contain many uploaded files stored in AWS S3.
+
+Downloading all files to the application server before creating the ZIP archive would require temporary local storage and additional disk I/O.
+
+Persisting a complete ZIP archive would also create another temporary artifact that would need to be managed and removed.
+
+### Chosen Solution
+
+`maennchen/zipstream-php` was used to generate ZIP archives as a stream.
+
+The AWS SDK for PHP provided access to the S3 objects, which could then be passed through the ZIP generation process without first storing the complete files on local disk.
+
+Files were compressed as they were streamed into the ZIP response.
+
+The resulting ZIP was streamed directly to the customer's browser.
+
+### Alternatives Considered
+
+A conventional implementation could have:
+
+1. Downloaded every S3 file to the application server.
+2. Stored the files temporarily on local disk.
+3. Created a ZIP archive from those files.
+4. Served the completed ZIP file.
+5. Removed the temporary files and archive.
+
+### Trade-offs
+
+The streaming approach reduced temporary disk usage and eliminated the need for a persistent intermediate ZIP file.
+
+The implementation was more dependent on correct stream handling and required the export request to remain active while the ZIP was generated.
+
+For large exports, this also made HTTP request duration and connection reliability important operational considerations.
 
 ---
 
@@ -397,13 +583,19 @@ The form builder followed a client-server model.
 11. Administrators could view submissions in a list and delete individual submissions or all submissions.
 12. Administrators could manually contact submitters using the email address provided with the submission.
 13. Submission data could be exported as CSV or XLS.
-14. Exports containing uploaded files could be downloaded as ZIP archives.
-15. The ZIP archive was generated during the download process using a PHP ZIP library.
-16. Uploaded files were retrieved from AWS S3 as required for the export.
-17. The XLS export contained internal links to the corresponding submitted files within the archive.
-18. Each submission's date was evaluated against the retention period configured for its form.
-19. Form owners received email warnings when submissions were approaching their deletion deadline.
-20. Expired submission data and associated uploaded files were deleted according to the configured retention period.
+14. PHPSpreadsheet generated the XLS representation of the collected data.
+15. Uploaded files were stored in AWS S3.
+16. The AWS SDK for PHP provided access to the submitted files.
+17. For file-inclusive exports, the application streamed the required S3 objects instead of first downloading them to local disk.
+18. `maennchen/zipstream-php` compressed the streamed file data into a ZIP archive on the fly.
+19. The exported XLS file contained internal links to the corresponding submitted files.
+20. The spreadsheet and submitted files were packaged into the streamed ZIP response.
+21. The ZIP archive was streamed directly to the customer's browser.
+22. No complete intermediate ZIP archive needed to be persisted on the application server.
+23. No complete copy of every S3 file needed to be stored on the application server before ZIP generation.
+24. Each submission's date was evaluated against the retention period configured for its form.
+25. Form owners received email warnings when submissions were approaching their deletion deadline.
+26. Expired submission data and associated uploaded files were deleted according to the configured retention period.
 
 ---
 
@@ -413,9 +605,19 @@ The resulting system provided Moava AS with a flexible administration interface 
 
 Administrators could create forms from templates, modify fields inline, duplicate fields, and reorganize fields through drag-and-drop without developer involvement.
 
-The system also provided a complete submission-management workflow covering viewing, deletion, manual communication, structured exports, and file exports.
+The submission-management workflow covered viewing, individual and bulk deletion, manual communication, structured exports, and file exports.
+
+The export functionality gave customers a practical way to extract and consolidate collected form data in CSV and XLS formats.
+
+For submissions containing uploaded files, the system produced a ZIP package containing the exported spreadsheet and the corresponding files. The spreadsheet contained working internal links to the submitted files, making the exported dataset usable after it had been downloaded and unpacked.
+
+The file-export architecture streamed files directly from AWS S3 into the ZIP-generation process. Files did not need to be downloaded completely to the application's local filesystem before compression, reducing temporary disk usage and avoiding the need to create a persistent intermediate ZIP archive.
+
+The export workflow reduced manual administrative work and made it easier for customers to analyze, consolidate, and share collected information outside the administration system.
 
 Most importantly, GDPR data retention was integrated directly into the form and submission lifecycle. Forms could define their own retention period, owners received advance email warnings, and both structured submission data and uploaded files were removed after the applicable retention period.
+
+This allowed customers to take responsibility for further processing of exported information while limiting the amount of personal data that needed to remain stored by Moava AS.
 
 ---
 
@@ -449,7 +651,23 @@ The application still needed to treat the two as one logical submission for rete
 
 The requirement to export submission data together with uploaded files influenced how relationships between submissions and files were maintained.
 
-Generating ZIP archives only when requested avoided creating and storing additional archive artifacts that would themselves require lifecycle management.
+The use of streaming ZIP generation meant the export pipeline could work directly with objects in S3 without first materializing every file on local disk.
+
+## Streaming Is Useful for Large File Operations
+
+Streaming data from S3 through ZIP generation avoided an unnecessary intermediate copy of every file on the application server.
+
+The architecture reduced local disk requirements and allowed the application to process files incrementally as part of the HTTP response.
+
+This is particularly useful when dealing with potentially large collections of uploaded files.
+
+## Data Export Can Be Part of a Privacy Strategy
+
+Exporting data is not only a convenience feature.
+
+By giving customers a usable representation of their collected data, including its associated files, the system allowed further processing to happen outside the application while the original stored data could be removed according to the configured retention policy.
+
+This required the export process to be treated as part of the overall data lifecycle rather than as an isolated reporting feature.
 
 ---
 
@@ -462,6 +680,11 @@ Generating ZIP archives only when requested avoided creating and storing additio
 - Add more granular role-based permissions for accessing and exporting submissions.
 - Provide configurable retention policies with more explicit administrative controls and reporting.
 - Improve export scalability for very large submission datasets.
-- Move ZIP generation to a background job for very large exports.
+- Move very large export generation to background jobs instead of tying generation to a single HTTP request.
+- Add progress reporting for large exports.
 - Add stronger validation and schema handling for form field configurations.
 - Introduce automated monitoring for failed deletion or file-cleanup operations.
+- Add explicit verification that spreadsheet links remain valid after export packaging.
+- Introduce automated end-to-end tests covering the complete export workflow, including S3 files, XLS generation, ZIP streaming, and linked attachments.
+
+---

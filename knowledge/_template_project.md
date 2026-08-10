@@ -25,6 +25,9 @@ concepts:
   - synchronization
   - authentication
 
+dependencies:
+  - aws/aws-sdk-php
+
 links:
   
   github: https://github.com/username/github-repo-name

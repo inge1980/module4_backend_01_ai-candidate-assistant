@@ -7,7 +7,7 @@ role: Fullstack Developer
 
 period:
   from: 2024-10
-  to: present
+  to: Present
 
 status: active
 
@@ -45,198 +45,266 @@ concepts:
   - synchronization
   - web-authentication
 
-links:
+dependencies:
+  - react-native-gesture-handler
+  - react-native-reanimated
+  - @reduxjs/toolkit
+  - @supabase/supabase-js
+  - react-native-sqlite-storage
 
-  github: Private repository
-  live: Not available
+links:
+  github:
+  live:
 
 ---
 
 # Overview
 
-An offline-first React Native application for managing hierarchical shopping lists through intuitive drag-and-drop interactions and family collaboration.
+An offline-first React Native application for managing hierarchical shopping lists and shared family shopping data.
 
-The application allows users to organize nested shopping lists, reorder items using gesture-based interactions, and manage shared lists across multiple family members. Parents authenticate using email, while children can securely join an existing family group through a QR-based linking flow.
+The application allows family members to create nested shopping lists, reorder items through gesture-based interactions, and share lists across a household. Parents authenticate through email, while children can join an existing family through a QR-based device linking flow.
 
-The application is designed around an offline-first architecture where Redux acts as the Single Source of Truth. User actions update the application state immediately, persist locally through SQLite, and synchronize with Supabase PostgreSQL whenever connectivity becomes available.
-
-The project demonstrates production-oriented mobile application architecture, combining performant UI interactions, predictable state management, local persistence, cloud synchronization, authentication, deployment automation, and environment-aware infrastructure.
+The application is designed around Redux as the runtime Single Source of Truth, with SQLite providing local persistence and Supabase PostgreSQL providing remote synchronization. The architecture is intended to keep the application usable without network connectivity while supporting reliable synchronization when connectivity becomes available.
 
 ---
 
 # Context
 
-The project was created to explore how to design a production-oriented mobile application that remains fully functional regardless of network availability while supporting shared shopping lists across multiple users.
+The project was created as a personal exploration of how to build a production-oriented mobile application that remains useful when network connectivity is unavailable.
 
-Besides offline functionality, an important goal was making onboarding simple for families. Parents should manage accounts through traditional authentication, while children should be able to join an existing household through a simplified onboarding flow instead of completing a traditional registration process.
+The application needed to support more than a traditional single-user shopping list. Family members need to share lists, while child onboarding should be simpler than conventional account registration. At the same time, the application should avoid making network connectivity a requirement for basic interactions.
 
-Important requirements included:
+The main constraints were:
 
-- Complete offline functionality.
-- Immediate user feedback.
-- Reliable local persistence.
-- Automatic cloud synchronization.
-- Simple parent/child onboarding.
-- Predictable application state ownership.
-- Automated deployment and backup workflows.
-- Environment-specific configuration for development and production.
+- The application needed to work offline.
+- User interactions needed to feel immediate.
+- Local data needed to survive application restarts.
+- Local and remote data needed to synchronize.
+- Application state needed a clear owner.
+- Family membership needed controlled authorization.
+- Child onboarding needed to minimize unnecessary personal information.
+- Database schema changes needed to be handled safely on mobile devices.
+- Development and production environments needed separate configuration.
+- Database backups and deployment needed to be automated.
 
-The primary architectural challenge was designing a system where UI state, local storage, cloud synchronization, authentication, and deployment infrastructure could work together without creating inconsistent application state.
+The project therefore combines mobile UI architecture, local persistence, synchronization, authentication, authorization, deployment automation, and operational infrastructure.
 
 ---
 
 # Task
 
-My responsibility was designing and implementing the complete application architecture and technical solution.
+I was responsible for designing and implementing the application's architecture and technical solution.
 
-I was responsible for:
+My responsibilities included:
 
 - Designing the React Native application architecture.
-- Implementing gesture-based drag-and-drop interactions.
-- Building reusable UI components.
-- Managing global application state.
-- Designing the offline-first data flow.
-- Implementing local persistence using SQLite.
-- Integrating Supabase synchronization.
-- Designing database backup automation.
-- Making performance decisions related to animations and user interactions.
-- Designing the authentication flow.
-- Implementing QR-based family account linking.
-- Configuring environment-specific deployments.
-- Building CI/CD and database backup pipelines.
+- Defining Redux as the runtime state owner.
+- Implementing hierarchical shopping-list interactions.
+- Implementing drag-and-drop and swipe interactions.
+- Designing the offline-first persistence flow.
+- Implementing SQLite persistence.
+- Implementing the synchronization layer with Supabase.
+- Designing the family and group authorization model.
+- Implementing QR-based child/device linking.
+- Designing and implementing the local SQLite migration system.
+- Configuring development and production environments.
+- Implementing CI/CD automation.
+- Implementing automated PostgreSQL backup workflows.
+- Making performance decisions for gesture-heavy interactions.
 
-The goal was creating a maintainable architecture where the application remained fast, reliable, and predictable regardless of network conditions.
+The goal was to create a maintainable application where user interactions remained immediate and predictable regardless of network availability.
 
 ---
 
 # Challenge
 
-## Challenge: Smooth Drag-and-Drop Interaction Without UI Lag
+## Challenge: Designing an Offline-First State and Synchronization Model
 
 ### Problem
 
-Creating responsive drag-and-drop interactions in React Native can become challenging because gesture updates happen frequently. If these updates are handled mainly through the JavaScript thread, unnecessary rendering and performance issues can occur.
+The application had three potentially competing sources of data:
 
-The application needed:
+- Redux application state.
+- Local SQLite persistence.
+- Remote Supabase PostgreSQL data.
 
-- Smooth item movement.
-- Immediate visual feedback.
-- Reliable item reordering.
-- Minimal frame drops during interaction.
+Allowing UI components to read and write directly against multiple persistence layers would make ownership unclear and increase the risk of inconsistent state.
 
-A naive implementation could cause lag if every gesture update triggered JavaScript execution and React component updates.
+The application also needed to remain usable when the network was unavailable. User actions therefore could not depend on a successful remote request before being reflected in the UI.
 
 ### Solution
 
-Implemented drag-and-drop functionality using:
+I defined Redux as the runtime Single Source of Truth.
 
-- `react-native-gesture-handler` version 2.
-- `react-native-reanimated` version 3.
+The data flow is:
 
-Gesture handling and animations were moved to the UI thread where possible, reducing dependency on JavaScript execution during interactions.
+1. The user performs an action.
+2. Redux updates immediately.
+3. The updated state is persisted to SQLite.
+4. Synchronization detects local changes that need to be sent to Supabase.
+5. Remote data is synchronized when connectivity is available.
+6. Resulting state is fed back into Redux.
 
-The drag interaction allows users to:
+The UI therefore consumes application state from Redux rather than directly querying SQLite or Supabase.
 
-- Press and hold the drag handle.
-- Move items vertically.
-- Reorder items.
-- Receive immediate visual feedback.
+SQLite provides durable local persistence, while Supabase PostgreSQL acts as the remote synchronization target.
+
+This separates three responsibilities:
+
+- Redux owns active application state.
+- SQLite owns durable local state.
+- Supabase owns centralized synchronized state.
 
 ### Result
 
-The application provides smooth drag-and-drop interactions with reduced risk of animation stuttering caused by JavaScript thread workload.
+The application remains usable without network connectivity and can synchronize changes when connectivity returns.
+
+The architecture also provides a clear ownership model, reducing the risk of different UI components independently treating SQLite or Supabase as the application's source of truth.
 
 ---
 
-## Challenge: Offline-First Data Synchronization
+## Challenge: Maintaining Smooth Gesture-Based Interactions
 
 ### Problem
 
-The application needed to support offline usage while maintaining synchronization with cloud storage.
+The application relies heavily on drag-and-drop interactions for hierarchical shopping lists.
 
-The challenge was preventing multiple competing sources of truth:
+Gesture updates can occur many times per second. If every movement causes JavaScript-thread execution and React state updates, gesture-heavy interfaces can become visibly laggy.
 
-- Local SQLite storage.
-- Remote Supabase database.
-- Temporary UI state.
-
-Without a clear ownership model, inconsistent application state could occur.
+The interaction therefore needed to remain responsive while the user moved and reordered items.
 
 ### Solution
 
-Implemented an offline-first architecture where:
+I implemented the gesture system using React Native Gesture Handler and Reanimated.
 
-- Redux acts as the runtime application state owner.
-- SQLite provides durable local persistence.
-- Supabase PostgreSQL provides remote synchronization.
+Gesture processing and animation work are moved to the UI thread where possible rather than requiring every frame to pass through the JavaScript thread.
 
-Application flow:
+The interaction model supports:
 
-1. User interacts with the application.
-2. Redux state updates immediately.
-3. Changes are persisted locally.
-4. Synchronization runs when connectivity is available.
-5. Remote data is synchronized back into application state.
+- Press-and-hold dragging.
+- Vertical item movement.
+- Hierarchical item reordering.
+- Swipe-to-delete interactions.
+- Immediate visual feedback during interaction.
 
-The UI consumes data from Redux instead of directly reading from databases.
+The architecture separates high-frequency animation state from the application's persistent business state so that dragging does not unnecessarily trigger broad Redux or React updates.
 
 ### Result
 
-The application remains functional offline while maintaining cloud synchronization when connectivity returns.
+Drag-and-drop interactions remain responsive while users reorder items, with reduced dependence on JavaScript-thread execution during high-frequency gesture updates.
 
 ---
 
-## Challenge: Secure Family Account Linking With Child Privacy Controls
+## Challenge: Secure Parent and Child Family Linking
 
 ### Problem
 
-The application needed a secure onboarding flow where children could access shared family shopping lists without requiring a traditional account registration process.
+The application needed to allow children to join an existing family without requiring a traditional account-registration flow.
 
-The challenge was designing a model where:
+At the same time, simply placing account information in a QR code would create unnecessary security and privacy risks.
 
-- Parents remained responsible for account ownership and lifecycle management.
-- Children could join a family group through a simple onboarding flow.
-- Child-related personal information was minimized.
-- Invitations expired automatically.
-- QR invitations could not be reused after successful linking.
-- Multiple families could generate invitations independently.
-- Access to shared lists was controlled through group membership and roles.
+The system needed to ensure that:
 
-A simple QR code containing account information would create security and privacy issues because it could expose sensitive information and bypass proper authorization controls.
+- Parents retain ownership of the family.
+- Child devices can be linked without exposing account credentials.
+- Invitations expire.
+- Invitations cannot be reused.
+- Family membership determines access to shared lists.
+- Child-related personal information is minimized.
 
 ### Solution
 
-Implemented a secure family linking workflow based on temporary invitations, device registration, and group-based authorization.
+I implemented a temporary invitation and device-linking workflow.
 
-The solution separates authentication, linking, and authorization responsibilities:
+A parent creates an invitation for a child device. The invitation contains a unique QR token and temporary verification code rather than exposing account credentials or sensitive account information.
 
-- Parents authenticate through their own user accounts.
-- A parent creates a temporary invitation for a child profile to join the family group.
-- The invitation generates a unique QR token and temporary verification code.
-- The QR code contains only a reference to the invitation and does not expose account information.
-- The child device scans the QR code and completes the linking process.
-- After successful linking, the child uses a simplified authentication flow based on a PIN code.
-- The parent account remains responsible for ownership, permissions, and account lifecycle.
+The invitation contains lifecycle information such as:
 
-The database model supports this workflow through:
+- Unique `qr_token`.
+- Temporary verification code.
+- `expires_at`.
+- `used` state.
 
-- `device_invitations` for temporary family invitations.
-- `qr_token` for unique invitation identification.
-- `temporary_code` for additional verification.
-- `expires_at` to limit invitation lifetime.
-- `used` to prevent invitation reuse.
-- `devices` for linked device management.
-- `users` for simplified child account representation.
-- `usergroupmembership` for role-based authorization.
-- `sharedlists` for controlled list access.
+The child device scans the QR code and completes the linking process. Once linked, the child can use a simplified authentication mechanism based on a PIN rather than going through the parent's email-based authentication flow.
 
-The device model intentionally references the parent-owned account instead of storing unnecessary personal information about the child device owner. This keeps ownership and lifecycle management controlled by the parent account while minimizing stored child-related data.
+The authorization model separates authentication from family membership. Devices and users are associated with family groups, while group membership and roles determine access to shared lists.
+
+The relevant data model includes entities such as:
+
+- `device_invitations`
+- `devices`
+- `users`
+- `usergroupmembership`
+- `sharedlists`
+
+The device model references the parent-controlled account structure rather than requiring unnecessary personal information about the child device owner.
 
 ### Result
 
-The application provides a simple family onboarding experience while maintaining secure access control and privacy-aware data handling.
+Children can join an existing family with a significantly simpler onboarding flow while the system retains explicit ownership, invitation expiration, authorization, and lifecycle controls.
 
-Children can access shared lists without a complex registration process, while the system maintains clear ownership, permission management, and account lifecycle control through the parent account.
+The QR code acts as a temporary linking mechanism rather than an alternative authentication credential.
+
+---
+
+## Challenge: Evolving the Local SQLite Schema Safely
+
+### Problem
+
+An offline-first mobile application cannot assume that every installed version starts with the latest database schema.
+
+Users may upgrade from an older application version while retaining existing local data.
+
+Manually changing the schema would create inconsistent database states between application versions and could prevent the application from starting correctly.
+
+### Solution
+
+I implemented a custom SQLite migration runner.
+
+Migrations execute sequentially and maintain a record of completed versions.
+
+The migration process:
+
+1. Determines the current local schema version.
+2. Identifies migrations that have not yet been executed.
+3. Runs migrations in deterministic order.
+4. Records successfully completed migrations.
+5. Prevents completed migrations from running again.
+6. Stops initialization if a migration fails.
+
+Migration folders and steps provide an explicit ordering model for schema changes.
+
+The system intentionally focuses on controlled forward migrations. Automatic rollback is not currently implemented.
+
+### Result
+
+Local database changes can be introduced incrementally without requiring users to recreate their local data.
+
+A failed migration prevents the application from continuing with an uncertain database state rather than silently running against a partially upgraded schema.
+
+---
+
+## Challenge: Separating Development and Production Environments
+
+### Problem
+
+The application uses multiple external services, including Supabase and Vercel.
+
+Hardcoding service endpoints or manually changing configuration before deployments creates a significant risk of accidentally connecting development builds to production infrastructure or deploying incorrect configuration.
+
+### Solution
+
+I implemented environment-specific configuration using local `.env` files during development and Vercel Environment Variables for deployed environments.
+
+The application selects the appropriate service configuration based on the environment rather than embedding environment-specific endpoints directly into application code.
+
+This keeps development and production configuration separate while allowing the same application codebase to be deployed to different environments.
+
+### Result
+
+Environment-specific deployments can be configured without modifying application source code.
+
+This reduces configuration mistakes and makes deployment behavior more predictable.
 
 ---
 
@@ -244,17 +312,13 @@ Children can access shared lists without a complex registration process, while t
 
 ## Architecture
 
-## Architecture Summary
-
-Short explanation of the complete system architecture.
-
-Example:
-
-The application follows an offline-first architecture where Redux acts as the runtime state owner. SQLite provides local persistence, while Supabase PostgreSQL handles remote synchronization.
-
 ### Frontend
 
-Built using:
+The mobile application is built with React Native and TypeScript.
+
+Redux provides centralized runtime application state, while the UI is structured into reusable components for shopping lists, items, authentication, family management, and interaction controls.
+
+Important frontend technologies include:
 
 - React Native.
 - TypeScript.
@@ -262,176 +326,129 @@ Built using:
 - React Native Gesture Handler.
 - React Native Reanimated.
 
-Architecture principles:
+The application supports hierarchical shopping-list structures and gesture-based interactions such as:
 
-- Redux manages application state as the Single Source of Truth.
-- UI components consume predictable state.
-- Persistence logic is separated from presentation logic.
-- Performance-critical interactions avoid unnecessary JavaScript thread work.
-
-Implemented interaction patterns:
-
-- Hierarchical shopping lists.
 - Drag-and-drop sorting.
+- Nested item movement.
 - Swipe-to-delete.
-- Quick item creation through accessible controls.
+- Quick item creation.
+
+The UI does not directly treat SQLite or Supabase as its state source. Instead, application state flows through Redux, with persistence and synchronization handled separately.
 
 ---
 
 ### Backend
 
-Supabase provides authentication integration, PostgreSQL storage, and synchronization services.
+Supabase provides the backend services used by the application.
+
+The backend architecture includes:
+
+- Authentication.
+- PostgreSQL persistence.
+- User profiles.
+- Device registration.
+- Family groups.
+- Group membership.
+- Role-based authorization.
+- QR invitation management.
+- Shared list ownership.
+- Synchronization.
 
 A Vercel-hosted web application provides browser-based authentication flows such as email verification callbacks.
 
-The backend implements a group-based ownership model where users belong to one or more groups with role-based permissions.
-
-Implemented backend capabilities include:
-
-- User authentication.
-- User profile management.
-- Device registration.
-- QR invitation generation.
-- Time-limited invitation tokens.
-- Group membership management.
-- Shared list ownership.
-- Role-based authorization.
-- PostgreSQL persistence.
-- Cloud synchronization.
+The backend uses group membership and roles to determine which users and devices can access shared family data.
 
 ---
 
 ### Database
 
-The application uses a hybrid persistence architecture combining local SQLite storage with remote PostgreSQL through Supabase.
+The application uses a hybrid local/cloud persistence architecture.
 
-The database design separates responsibilities between:
+SQLite is used on the mobile device for durable local storage and offline functionality.
 
-- Local persistence for offline functionality.
-- Remote storage for synchronization and centralized data.
-- Redux state for active application state management.
+Supabase PostgreSQL provides centralized remote storage and synchronization.
 
-#### Local Storage
+The data model contains relationships for:
 
-SQLite is used as the local database layer.
+- Users.
+- Devices.
+- Family groups.
+- Group membership.
+- Shared lists.
+- Shopping-list items.
+- Device invitations.
 
-Purpose:
+Hierarchical shopping-list structures are represented through self-referencing relationships so that lists and items can contain nested children.
 
-- Store application data while offline.
-- Provide fast local reads and writes.
-- Ensure the application remains usable without network connectivity.
-- Act as the persistence layer between Redux state and remote synchronization.
+Timestamps and synchronization metadata are used to track local and remote state.
 
-The local database contains locally persisted application data required for offline functionality, including:
-
-- Hierarchical lists and items.
-- User-specific application state.
-- Synchronization metadata.
-- Local configuration data.
-
-The data model supports hierarchical structures through self-referencing relationships, allowing items to contain child items and nested lists.
-
-#### Database Migrations
-
-A custom SQLite migration system manages local schema evolution throughout the application's lifecycle.
-
-The migration runner:
-
-- Executes migrations sequentially.
-- Tracks completed versions.
-- Prevents duplicate execution.
-- Stops startup if a migration fails.
-
-This approach provides predictable database upgrades while keeping full control over the local persistence layer.
-
-#### Remote Storage
-
-Supabase PostgreSQL is used as the remote database.
-
-Purpose:
-
-- Store synchronized application data.
-- Provide centralized cloud persistence.
-- Support multiple environments.
-- Enable synchronization between devices.
-
-The remote database acts as the synchronization target, while Redux remains the owner of active UI state.
-
-#### Database Design Decisions
-
-Important database decisions:
-
-- SQLite was chosen because mobile applications require reliable local persistence and offline support.
-- PostgreSQL was chosen through Supabase because it provides a robust relational database for synchronized cloud data.
-- Foreign key relationships are used to maintain data integrity between related entities.
-- Hierarchical data relationships are modeled using self-referencing foreign keys, allowing nested lists and items.
-- Timestamps are stored for tracking creation and update history.
-- Synchronization flags are used to identify local changes that need to be synchronized.
-
-This database strategy allows the application to provide immediate local interactions while maintaining reliable synchronization with cloud storage.
+The local SQLite schema is managed through a custom migration system.
 
 ---
 
 ### Infrastructure
 
-The project combines managed cloud services with automated deployment and maintenance workflows.
+The project combines mobile application infrastructure with managed cloud services and automation.
 
 Infrastructure includes:
 
 - React Native mobile application.
-- Web authentication application hosted on Vercel.
-- Supabase backend services.
-- PostgreSQL database.
-- GitHub Actions automation workflows.
+- Vercel-hosted authentication web application.
+- Supabase services.
+- PostgreSQL.
+- GitHub Actions.
 - Environment-specific configuration.
+- Automated database backups.
 
-Deployment supports separate development and production environments using local `.env` files during development and Vercel Environment Variables in deployed environments.
+Development and production environments use separate configuration.
+
+Local development uses `.env` files, while deployed environments use Vercel Environment Variables.
 
 ---
 
-# Technical Decisions
+## Technical Decisions
 
-## Decision: Redux as Single Source of Truth
+## Decision: Redux as the Runtime Single Source of Truth
 
 ### Context
 
-The application had multiple data sources:
+The application has local persistence, remote persistence, and active UI state.
 
-- SQLite.
-- Supabase.
-- UI state.
-
-A clear ownership model was required to prevent inconsistent state.
+Without a clear ownership model, components could start reading directly from different data sources and produce inconsistent behavior.
 
 ### Chosen Solution
 
-Redux was selected as the central runtime application state layer.
+Redux was selected as the central runtime state layer.
 
-UI components consume Redux state, while persistence layers synchronize with that state.
+Components consume Redux state, while SQLite and Supabase act as persistence and synchronization layers around that state.
+
+This provides a predictable unidirectional state flow.
 
 ### Alternatives Considered
 
-Direct database-driven UI:
+Direct database-driven UI was considered, where components would read directly from SQLite or Supabase.
 
-- Components reading directly from SQLite or Supabase.
+This was rejected because it would couple presentation directly to persistence and make offline synchronization harder to reason about.
 
 ### Trade-offs
 
 Advantages:
 
-- Predictable state flow.
+- Clear state ownership.
+- Predictable data flow.
 - Easier debugging.
-- Clear separation of responsibilities.
-- Reduced unnecessary UI updates.
+- Separation between UI and persistence.
+- Better control over synchronization.
 
 Disadvantages:
 
-- Additional architecture complexity.
-- Synchronization logic becomes the developer's responsibility.
+- Additional application architecture.
+- Synchronization logic becomes an explicit responsibility.
+- State and persistence models must remain consistent.
 
 ---
 
-## Decision: UI Thread Animations
+## Decision: React Native Reanimated for Gesture-Driven Animation
 
 ### Context
 
@@ -439,23 +456,64 @@ Drag-and-drop interactions require frequent updates and need to remain responsiv
 
 ### Chosen Solution
 
-Used React Native Reanimated 3 to execute animations on the UI thread.
+Reanimated 3 is used together with React Native Gesture Handler so that animation and gesture work can execute on the UI thread where appropriate.
 
 ### Alternatives Considered
 
-React Native Animated API.
+React Native's traditional Animated API was an alternative.
+
+The chosen approach provided better control over high-frequency gesture interactions and reduced JavaScript-thread dependency.
 
 ### Trade-offs
 
 Advantages:
 
-- Better interaction performance.
-- Reduced JavaScript thread dependency.
-- Smoother gestures.
+- Smoother gesture interactions.
+- Reduced JavaScript-thread workload.
+- Better suitability for complex drag interactions.
 
 Disadvantages:
 
-- More complex implementation model.
+- More complex programming model.
+- Worklet/UI-thread execution introduces additional debugging considerations.
+
+---
+
+## Decision: SQLite for Local Persistence
+
+### Context
+
+Offline functionality requires data to remain available when the device has no network connection.
+
+The application also needs persistence across application restarts.
+
+### Chosen Solution
+
+SQLite is used as the mobile persistence layer.
+
+Local state is persisted independently from the remote PostgreSQL database so that the application can continue operating offline.
+
+### Alternatives Considered
+
+A purely remote data model was unsuitable because network connectivity would become a prerequisite for normal operation.
+
+A simpler key-value storage approach would also be insufficient for the relational and hierarchical data model.
+
+### Trade-offs
+
+Advantages:
+
+- Reliable local persistence.
+- Offline support.
+- Relational data model.
+- Efficient local queries.
+- Data survives application restarts.
+
+Disadvantages:
+
+- Requires schema migration management.
+- Local and remote schemas must remain compatible.
+- Synchronization becomes more complex.
 
 ---
 
@@ -463,47 +521,70 @@ Disadvantages:
 
 ### Context
 
-The application required a predictable way to evolve the local database schema as features were added.
-
-Manually changing local databases would risk schema inconsistencies between application versions.
+The application needs controlled schema evolution across installed versions.
 
 ### Chosen Solution
 
-Implemented a custom migration runner that:
+A custom migration runner executes migrations sequentially and records completed migration versions.
 
-- Executes migrations sequentially.
-- Tracks completed migration versions.
-- Prevents duplicate execution.
-- Stops initialization if a migration fails.
-
-Migration versions are organized using folder and step numbering.
-
-Example:
-
-- Migration folder: version group.
-- Migration step: execution order within that version.
-
-The current implementation focuses on controlled forward migration execution. Automatic rollback is not currently implemented.
+The current approach provides deterministic forward migration without automatic rollback.
 
 ### Alternatives Considered
 
-Using an external migration library.
+An external migration framework could provide more functionality, but a custom implementation was chosen to keep the local database lifecycle explicit and lightweight.
 
 ### Trade-offs
 
 Advantages:
 
-- Full control over SQLite lifecycle.
-- Lightweight implementation.
-- No additional dependencies.
-- Migration behavior is explicitly defined by the application.
+- Full control over migration behavior.
+- Small implementation footprint.
+- No additional migration dependency.
+- Explicit execution order.
 
 Disadvantages:
 
-- More maintenance responsibility.
-- Requires custom testing.
-- Less functionality than mature migration frameworks.
-- Advanced rollback and recovery strategies require additional implementation.
+- Migration testing is the application's responsibility.
+- Rollback and recovery mechanisms require additional implementation.
+- Long-term migration management becomes an internal maintenance responsibility.
+
+---
+
+## Decision: Temporary QR Invitations for Child Device Linking
+
+### Context
+
+Children need a simple way to join an existing family without exposing parent credentials or requiring full account registration.
+
+### Chosen Solution
+
+The application uses temporary invitations containing unique QR tokens and verification information.
+
+Invitations have expiration and single-use semantics.
+
+Authorization is then handled through family membership and roles rather than treating the QR token as a permanent credential.
+
+### Alternatives Considered
+
+Embedding account information directly in the QR code was rejected because it could expose sensitive information.
+
+Requiring children to create independent email-based accounts would also make the onboarding flow unnecessarily complex for the intended use case.
+
+### Trade-offs
+
+Advantages:
+
+- Simple onboarding.
+- Temporary invitation lifecycle.
+- Reduced exposure of account information.
+- Explicit family authorization.
+- Parent-controlled ownership.
+
+Disadvantages:
+
+- Requires invitation lifecycle management.
+- QR linking introduces an additional authentication/linking flow.
+- PIN-based child access requires careful handling and rate limiting as the system matures.
 
 ---
 
@@ -511,156 +592,252 @@ Disadvantages:
 
 ### Context
 
-The application required separate development and production environments while avoiding hardcoded configuration values.
+Development and production use different backend resources and deployment environments.
 
 ### Chosen Solution
 
-Environment-specific configuration was implemented using local `.env` files during development and Vercel Environment Variables in deployed environments.
+Local `.env` files are used during development, while deployed environments use Vercel Environment Variables.
 
-Application services automatically route requests to the correct backend depending on the current environment.
+Application configuration is resolved from the active environment.
 
 ### Alternatives Considered
 
-- Hardcoded endpoints.
-- Manual configuration before deployment.
+Hardcoded service endpoints and manually changing configuration before deployments were rejected because they increase deployment risk.
 
 ### Trade-offs
 
 Advantages:
 
-- Cleaner deployments.
-- Reduced deployment mistakes.
-- Better separation between environments.
+- Clear environment separation.
+- Lower risk of accidentally targeting production.
+- Same codebase can serve multiple environments.
+- Easier automated deployment.
 
 Disadvantages:
 
-- Additional deployment configuration.
-- More environment variables to manage.
+- Environment configuration must be maintained correctly.
+- Missing or incorrect variables can prevent deployment or runtime initialization.
 
 ---
 
-# Implementation
+## Decision: Progressive Synchronization Architecture
 
-Implemented features:
+### Context
 
-## Mobile Application
+The application must provide immediate local interaction while eventually synchronizing data with a remote database.
+
+### Chosen Solution
+
+Local changes are applied to the application state immediately and persisted locally. Synchronization with Supabase occurs separately when connectivity is available.
+
+### Alternatives Considered
+
+A remote-first approach would make user interaction dependent on network availability.
+
+A local-only architecture would not provide family-wide synchronization.
+
+### Trade-offs
+
+Advantages:
+
+- Immediate user feedback.
+- Offline functionality.
+- Centralized remote data.
+- Supports multiple devices.
+
+Disadvantages:
+
+- Conflict resolution is not yet fully sophisticated.
+- Synchronization failures require explicit handling.
+- Local and remote state can temporarily diverge.
+
+---
+
+## Implementation
+
+### Features
+
+The application currently includes:
 
 - Hierarchical shopping lists.
-- Nested drag-and-drop sorting.
+- Nested list and item structures.
+- Drag-and-drop sorting.
 - Swipe-to-delete interactions.
-- Offline-first persistence.
-- Redux Single Source of Truth architecture.
-- SQLite local persistence.
+- Offline-first operation.
+- Local SQLite persistence.
+- Redux-based application state.
 - Supabase synchronization.
-- Parent authentication flow.
-- QR-based device onboarding.
-- Family and group-based list sharing.
-- Role-based access control (Owner, Admin, Member).
-- Environment-aware configuration for development and production.
+- Parent email authentication.
+- QR-based child/device linking.
+- Temporary invitations.
+- Family and group membership.
+- Role-based access control.
+- Development and production environments.
 
-## Backend
+### APIs
 
-Implemented backend functionality including:
+The backend capabilities include:
 
-- User account management.
-- User group management.
+- User authentication.
+- User profile management.
 - Device registration.
-- QR invitation workflow.
-- Temporary invitation codes with expiration.
+- Family/group management.
+- QR invitation creation and validation.
+- Invitation expiration and single-use handling.
 - Group membership management.
-- Shared list ownership.
-- PostgreSQL data persistence.
-- Synchronization logic between local and remote storage.
+- Shared list access.
+- Role-based authorization.
+- PostgreSQL persistence.
+- Synchronization between mobile clients and remote storage.
 
-## Backup Automation
+The web authentication application handles browser-based authentication flows such as email verification callbacks.
 
-Implemented automated database backup workflows using GitHub Actions.
+### Data and Persistence
 
-Features:
+SQLite provides the local persistence layer for:
 
-- Scheduled PostgreSQL backups.
+- Shopping lists.
+- Hierarchical items.
+- Local user/application state.
+- Synchronization metadata.
+- Local configuration.
+
+Supabase PostgreSQL provides centralized cloud persistence.
+
+The local database uses sequential migrations to evolve its schema between application versions.
+
+Hierarchical relationships are represented through self-referencing database relationships.
+
+### Automation
+
+GitHub Actions is used for automation workflows including:
+
+- PostgreSQL backup scheduling.
 - Database dump generation.
 - Backup compression.
-- Cloud upload using rclone.
+- Cloud backup upload using rclone.
 - Retry handling.
 - Failure notifications.
 - Backup retention cleanup.
+- Deployment automation.
+- Environment-aware deployment validation.
 
-## Deployment Automation
+### Testing
 
-Implemented automated deployment workflows and environment configuration.
+Development and functionality are validated through application testing and deployment workflows.
 
-Features:
+Testing focuses on:
 
-- GitHub Actions based automation.
-- Separate development and production configuration.
-- Environment variable management.
-- Automated deployment validation.
+- Offline application behavior.
+- Local persistence.
+- Database migrations.
+- Authentication flows.
+- QR linking.
+- Gesture-based interactions.
+- Synchronization behavior.
+- Development and production configuration.
+
+Automated end-to-end synchronization testing and comprehensive conflict-resolution testing are not yet implemented.
 
 ---
 
 # Result
 
-The project evolved into a production-oriented mobile application demonstrating several advanced architectural patterns.
+The project has evolved into a production-oriented React Native application with a clear offline-first architecture.
 
-Key outcomes include:
+The application can operate without network connectivity while maintaining durable local state and synchronizing with Supabase PostgreSQL when connectivity is available.
 
-- Offline-first architecture.
-- Redux as a Single Source of Truth.
-- Hybrid SQLite and Supabase persistence.
-- QR-based family onboarding.
-- Privacy-aware child profile linking.
-- Smooth UI-thread driven interactions.
-- Environment-aware deployments.
+The architecture provides:
+
+- Immediate local interactions.
+- Centralized Redux application state.
+- Durable SQLite persistence.
+- Cloud synchronization.
+- Hierarchical shopping-list management.
+- Gesture-based interactions.
+- Family-based authorization.
+- QR-based child/device onboarding.
+- Environment-separated deployments.
+- Automated PostgreSQL backups.
 - Automated CI/CD workflows.
-- Automated PostgreSQL backup infrastructure.
 
-The final architecture remains responsive without network connectivity while providing reliable synchronization once connectivity returns.
+The project also provides a practical foundation for further work on synchronization conflict resolution, observability, automated testing, and production deployment.
 
 ---
 
 # Lessons Learned
 
-## Technical Lessons
+## Lesson: Offline-First Requires Explicit State Ownership
 
-- Offline-first applications require clear ownership of data state.
-- Persistence layers should not directly control UI state.
-- Mobile performance depends heavily on minimizing unnecessary JavaScript thread work.
-- Gesture-heavy applications require architecture decisions early.
+Offline-first systems become difficult when multiple persistence layers are treated as competing sources of truth.
 
-## Architectural Lessons
+Defining Redux as the runtime state owner made the architecture easier to reason about. SQLite and Supabase have different responsibilities rather than both attempting to control application state.
 
-Using Redux as the Single Source of Truth simplified application behavior because all UI state had a predictable owner.
+This changed the way I approach offline architecture: persistence and synchronization should support application state rather than become accidental state-management mechanisms themselves.
 
-The project reinforced several architectural principles:
+---
 
-- Clear ownership of application state reduces synchronization complexity.
-- Offline-first systems require careful separation between UI state, local persistence, and remote data.
-- Background synchronization should run independently from user interactions.
-- Database migrations need to be treated as part of the application's lifecycle, not as one-time changes.
+## Lesson: Gesture Performance Must Be Designed Early
 
-If rebuilding the project today, I would consider:
+Drag-and-drop interactions expose JavaScript-thread bottlenecks quickly.
 
-- More advanced conflict resolution strategies for simultaneous updates.
-- Automated end-to-end synchronization testing.
-- Better telemetry around synchronization failures.
-- More detailed monitoring of backup and recovery workflows.
+Trying to optimize gesture performance after building the entire UI would make the problem harder to solve because rendering, state updates, and animation would already be tightly coupled.
+
+Using Gesture Handler and Reanimated from the beginning allowed high-frequency interaction work to remain separate from broader application state updates.
+
+---
+
+## Lesson: Local Database Migrations Are Part of the Application Lifecycle
+
+A mobile database cannot be treated like a disposable development database.
+
+Users may have years of local data when a new application version is installed.
+
+The custom migration system reinforced the importance of deterministic schema evolution, explicit versioning, and failing safely when a migration cannot be completed.
+
+---
+
+## Lesson: Simple Onboarding Still Requires Strong Authorization
+
+QR-based onboarding can look simple from a UX perspective, but the underlying security model cannot be simplified to "scan a QR code and grant access."
+
+The QR code should identify a temporary linking operation rather than expose account credentials.
+
+Separating invitation, authentication, device registration, and authorization resulted in a clearer model and reduced unnecessary exposure of personal information.
+
+---
+
+## Lesson: Offline Synchronization Needs Conflict Strategy
+
+The current architecture handles local persistence and synchronization, but simultaneous updates from multiple devices introduce a deeper problem: what happens when two devices modify the same data before synchronizing?
+
+This is an area where the current implementation can be improved.
+
+If rebuilding the synchronization layer today, I would define conflict semantics explicitly before increasing the number of synchronized entities or clients.
+
+---
+
+## Lesson: Operational Automation Is Part of Application Architecture
+
+Backups, deployment configuration, and environment management are not separate concerns once an application depends on cloud infrastructure.
+
+Automating PostgreSQL backups and deployment workflows reduces operational mistakes and makes the development environment more representative of how the application is actually operated.
 
 ---
 
 # Future Improvements
 
-Possible improvements:
-
-- Add automated tests for synchronization logic.
-- Add conflict resolution strategies.
-- Introduce optimistic updates with rollback support.
-- Add analytics and crash monitoring.
-- Improve database indexing for larger datasets.
-- Add end-to-end testing using tools such as Detox.
-- Add automated deployment pipelines.
-- Push notifications.
-- Background synchronization services.
-- Device-to-device synchronization optimization.
+- Implement explicit conflict-resolution strategies for simultaneous updates.
+- Add automated end-to-end synchronization tests across multiple simulated devices.
+- Add telemetry for synchronization failures and retry behavior.
+- Improve observability around local/remote state divergence.
+- Add automated migration tests covering upgrade paths from previous schema versions.
+- Add comprehensive end-to-end testing using a tool such as Detox.
+- Improve database indexing for larger shopping-list datasets.
+- Add background synchronization where supported by the platform.
+- Add push notifications for relevant family/list changes.
+- Strengthen PIN security with rate limiting and additional abuse protection.
+- Add automated backup restore testing rather than validating backups only through successful dump generation.
+- Improve deployment validation and rollback procedures.
 
 ---

@@ -13,10 +13,10 @@ status: completed
 
 technologies:
   - aspnet-core
-  - azure
-  - container-registry
   - csharp
   - dotnet
+  - azure
+  - container-registry
   - docker
   - github-actions
   - linux
@@ -33,108 +33,107 @@ concepts:
   - security
   - managed-identity
 
-links:
+dependencies:
 
-  github:
-  live: Not available
+links:
+github:
+live:
 
 ---
 
 # Overview
 
-A cloud deployment project demonstrating how a modern ASP.NET Core Web API can be provisioned, containerized, deployed, and updated using Infrastructure as Code and CI/CD automation.
+An ASP.NET Core Web API deployed to Microsoft Azure through a fully automated infrastructure and CI/CD workflow.
 
-The project combines Terraform, Azure, Docker, and GitHub Actions into a complete deployment pipeline where infrastructure provisioning, container deployment, and cloud authentication workflows are automated.
+The project combines Terraform, Docker, Azure Container Registry, Azure Virtual Machines, and GitHub Actions to demonstrate how application infrastructure and deployments can be defined, version controlled, and reproduced through code.
 
-The primary goal was to gain practical experience with modern DevOps practices while reducing manual deployment steps and improving infrastructure reproducibility.
+The main objective was to gain practical experience with cloud infrastructure, containerized deployments, infrastructure as code, CI/CD automation, and secure cloud authentication.
 
 ---
 
 # Context
 
-Modern backend development requires understanding not only application code, but also infrastructure, deployment automation, security, and operational workflows.
+The project was created as a school project to explore the operational side of backend development beyond writing and running an API locally.
 
-Many developers are comfortable building APIs locally but have limited experience provisioning cloud infrastructure or creating automated deployment pipelines.
+The application needed to be deployed to Azure using reproducible infrastructure rather than manually configuring resources through the Azure Portal. The deployment process also needed to minimize manual steps and avoid storing long-lived Azure credentials in source control.
 
-The project was created to explore how modern DevOps practices can be integrated into an ASP.NET Core application while following repeatable and secure deployment principles.
+Important requirements included:
 
-Important constraints:
+- Reproducible Azure infrastructure.
+- Version-controlled infrastructure configuration.
+- Containerized application deployment.
+- Automated application updates.
+- Secure CI/CD authentication.
+- No long-lived Azure credentials stored in GitHub.
+- A deployment workflow that could be reused for future application changes.
 
-- Infrastructure should be reproducible.
-- Deployments should require minimal manual work.
-- Secrets should not be stored in source control.
-- CI/CD authentication should follow Azure security best practices.
-- The deployment pipeline should support future application updates.
-- Infrastructure configuration should remain version controlled.
+The project was intentionally kept relatively small so the focus could remain on the deployment architecture and DevOps workflow rather than application complexity.
 
 ---
 
 # Task
 
-My responsibility was designing and implementing the complete cloud deployment pipeline.
+My responsibility was implementing the backend application and the complete cloud deployment workflow.
 
-This included:
+I owned:
 
-- Designing the Azure cloud architecture.
-- Building the ASP.NET Core Web API.
-- Containerizing the application using Docker.
-- Provisioning Azure infrastructure using Terraform.
-- Creating automated GitHub Actions workflows.
-- Configuring secure CI/CD authentication using Azure OpenID Connect.
-- Configuring User Assigned Managed Identity for Azure Container Registry access.
-- Automating application deployment to Azure Virtual Machines.
+- The ASP.NET Core Web API.
+- Docker containerization.
+- Azure infrastructure definition using Terraform.
+- Azure Container Registry configuration.
+- Azure Virtual Machine deployment.
+- GitHub Actions CI/CD workflows.
+- GitHub Actions authentication to Azure using OpenID Connect.
+- User Assigned Managed Identity configuration for Azure Container Registry access.
+- Automated container deployment and updates on the Azure Virtual Machine.
 
-The objective was to create a repeatable deployment process requiring minimal manual intervention.
+The expected outcome was a reproducible deployment process where both the infrastructure and application deployment could be managed primarily through code and automation.
 
 ---
 
 # Challenge
 
-## Challenge: Secure Automated Cloud Deployment
+## Challenge: Building a Secure Automated Deployment Pipeline
 
 ### Problem
 
-Deploying applications to cloud infrastructure requires managing infrastructure provisioning, container distribution, authentication, and deployment sequencing.
+Deploying a containerized application to Azure involves several independent steps that must work together correctly:
 
-Handling these processes manually increases operational complexity and introduces opportunities for configuration errors.
+- Infrastructure must exist before the application can be deployed.
+- Container images must be built and made available to the target environment.
+- The CI/CD workflow needs authenticated access to Azure.
+- The target Virtual Machine needs authenticated access to the container registry.
+- Application updates need to replace the running container reliably.
 
-The deployment process required:
+Doing these steps manually would make deployments harder to reproduce and increase the likelihood of configuration mistakes.
 
-- Reproducible cloud infrastructure.
-- Secure authentication without storing long-lived credentials.
-- Automated container image building and distribution.
-- Reliable application updates on the target environment.
-
----
+There was also a security requirement: the CI/CD pipeline should not depend on long-lived Azure client secrets stored in the GitHub repository.
 
 ### Solution
 
-The deployment process was automated using:
+The deployment workflow was divided into infrastructure provisioning, image distribution, and application deployment.
 
-- Terraform for infrastructure provisioning.
-- Docker for application packaging.
-- GitHub Actions for CI/CD automation.
-- Azure Container Registry for container image storage.
-- Azure OpenID Connect for GitHub Actions authentication.
-- User Assigned Managed Identity for Azure Container Registry access.
+Terraform defines the Azure infrastructure, including the resource group, networking, Linux Virtual Machine, public IP, Azure Container Registry, User Assigned Managed Identity, and the required role assignment.
 
-GitHub Actions authenticates with Azure through OpenID Connect, eliminating the need to store Azure client secrets inside the repository.
+Docker packages the ASP.NET Core API into a reproducible application image.
 
-The deployment pipeline:
+GitHub Actions handles the deployment workflow. The workflow:
 
 1. Authenticates to Azure using OpenID Connect.
 2. Builds the Docker image.
 3. Pushes the image to Azure Container Registry.
 4. Connects to the Azure Virtual Machine through SSH.
-5. Uses the VM Managed Identity to authenticate against Azure Container Registry.
-6. Pulls the latest container image using Docker Compose.
-7. Restarts the application container.
+5. Uses the VM's User Assigned Managed Identity for access to Azure Container Registry.
+6. Retrieves the new container image.
+7. Updates the running application through Docker Compose.
 
----
+OpenID Connect was used for the GitHub-to-Azure trust relationship so the workflow does not require a long-lived Azure client secret stored in the repository.
+
+The Virtual Machine uses a User Assigned Managed Identity with the `AcrPull` role, separating registry access from manually managed registry credentials.
 
 ### Result
 
-The project demonstrates a repeatable deployment workflow where infrastructure and application deployments can be recreated consistently while following modern Azure authentication practices.
+The deployment process became repeatable and largely automated. Application changes can be built, published, and deployed through the CI/CD workflow without manually provisioning or configuring the Azure environment for each deployment.
 
 ---
 
@@ -144,31 +143,29 @@ The project demonstrates a repeatable deployment workflow where infrastructure a
 
 ### Backend
 
-The backend consists of an ASP.NET Core Web API packaged as a Docker container.
+The backend is an ASP.NET Core Web API written in C# and packaged as a Docker container.
 
-Responsibilities include:
+The API is responsible for:
 
 - HTTP API endpoints.
-- Business logic.
-- Dependency Injection.
-- Configuration management.
+- Application and business logic.
+- Dependency injection.
+- Configuration.
 - Containerized application execution.
 
----
+The application is intentionally small because the primary purpose of the project is demonstrating the deployment and infrastructure workflow.
 
 ### Database
 
-No persistent database was required for this demonstration.
+The project does not use a persistent database.
 
-The architecture was intentionally designed so database services could be introduced later without requiring changes to the deployment pipeline.
-
----
+The deployment architecture does not depend on a database-specific service, leaving the infrastructure workflow open for a future persistent storage component.
 
 ### Infrastructure
 
-Infrastructure is managed entirely through Terraform.
+Azure hosts the deployed application and supporting infrastructure.
 
-Provisioned Azure resources include:
+Terraform provisions:
 
 - Resource Group.
 - Virtual Network.
@@ -178,194 +175,295 @@ Provisioned Azure resources include:
 - Linux Virtual Machine.
 - Azure Container Registry.
 - User Assigned Managed Identity.
-- AcrPull role assignment.
+- `AcrPull` role assignment.
 
-Application deployment is handled through GitHub Actions.
+The application runs as a Docker container on the Linux Virtual Machine.
 
-The pipeline builds the Docker image, pushes it to Azure Container Registry, connects to the Azure Virtual Machine through SSH, retrieves the latest image using Docker Compose, and restarts the running container.
+GitHub Actions provides the CI/CD layer. It builds and publishes the container image, connects to the Virtual Machine, retrieves the updated image, and restarts the application container through Docker Compose.
 
 ---
 
-# Technical Decisions
+## Technical Decisions
 
 ## Decision: Infrastructure as Code with Terraform
 
 ### Context
 
-Cloud resources should be reproducible, version controlled, and easy to recreate.
+The Azure environment needed to be reproducible and version controlled.
 
-Manually creating infrastructure through cloud dashboards increases the risk of configuration drift.
-
----
+Manually creating resources through the Azure Portal would make the infrastructure dependent on manual configuration and increase the risk of configuration drift.
 
 ### Chosen Solution
 
-Terraform was used to define and provision all Azure infrastructure.
+Terraform was used to define the Azure infrastructure as code.
 
----
+The infrastructure configuration describes the resources, networking, identity, and permissions required to run the application.
+
+This allows the environment to be recreated from the repository rather than relying on undocumented manual configuration.
 
 ### Alternatives Considered
 
 - Azure Portal.
 - Azure CLI scripts.
 
----
+The Azure Portal was not chosen because manual provisioning is less reproducible. CLI scripting could automate provisioning, but Terraform provides a declarative infrastructure model and explicit resource state.
 
 ### Trade-offs
 
-Advantages:
+**Advantages:**
 
-- Repeatable deployments.
-- Version controlled infrastructure.
-- Easier maintenance.
-- Easier onboarding.
-- Reduced configuration drift.
+- Reproducible infrastructure.
+- Version-controlled configuration.
+- Reduced manual provisioning.
+- Easier environment recreation.
+- Clear infrastructure dependencies.
 
-Disadvantages:
+**Disadvantages:**
 
-- Additional learning curve.
-- More initial configuration work.
+- Additional tooling and configuration.
+- Terraform state must be managed correctly.
+- Infrastructure changes require understanding both Azure and Terraform.
 
 ---
 
-## Decision: OpenID Connect Authentication for CI/CD
+## Decision: OpenID Connect for CI/CD Authentication
 
 ### Context
 
-Deployment pipelines require secure authentication with Azure.
+GitHub Actions needs permission to interact with Azure during deployment.
 
-Storing long-lived credentials inside GitHub repositories creates unnecessary security risks.
-
----
+Storing a long-lived Azure client secret in GitHub would create an unnecessary credential-management and security risk.
 
 ### Chosen Solution
 
-GitHub Actions authenticates with Azure using OpenID Connect.
+GitHub Actions authenticates to Azure using OpenID Connect.
 
-This allows temporary authentication tokens to be issued during workflow execution without storing Azure client secrets.
+The GitHub workflow establishes a trusted identity relationship with Azure and receives temporary authentication credentials during workflow execution.
 
----
+This removes the need for a persistent Azure client secret in the repository.
 
 ### Alternatives Considered
 
-- Azure Client Secret authentication.
-- Publish Profiles.
+- Azure client secret authentication.
+- Publish profiles.
 
----
+These approaches were not chosen because they rely on longer-lived credentials that require additional secret storage and rotation.
 
 ### Trade-offs
 
-Advantages:
+**Advantages:**
 
-- No long-lived Azure secrets.
-- Improved security posture.
-- Easier credential management.
+- No long-lived Azure client secret in GitHub.
+- Reduced credential-management overhead.
+- Temporary credentials during workflow execution.
+- Better separation between GitHub and Azure identity management.
 
-Disadvantages:
+**Disadvantages:**
 
-- More initial Azure configuration.
-- Requires understanding of identity federation.
+- More initial identity configuration.
+- Requires understanding of workload identity federation.
+- Azure and GitHub workflow configuration must match correctly.
 
 ---
 
-## Decision: User Assigned Managed Identity for Container Access
+## Decision: User Assigned Managed Identity for Container Registry Access
 
 ### Context
 
-The deployed application environment needed secure access to Azure Container Registry without storing registry credentials.
+The Azure Virtual Machine needs permission to retrieve container images from Azure Container Registry.
 
----
+Storing registry credentials directly on the Virtual Machine would introduce another credential-management problem.
 
 ### Chosen Solution
 
-A User Assigned Managed Identity was attached to the Azure Virtual Machine and granted the `AcrPull` role.
+A User Assigned Managed Identity was provisioned with Terraform and associated with the Virtual Machine.
 
-The VM uses this identity to authenticate when pulling Docker images from Azure Container Registry.
-
----
+The identity receives the `AcrPull` role on the Azure Container Registry, allowing the VM environment to authenticate to the registry using Azure-managed identity rather than manually stored registry credentials.
 
 ### Alternatives Considered
 
-- Storing container registry credentials.
-- Using static access tokens.
+- Static container registry credentials.
+- Access tokens stored on the Virtual Machine.
 
----
+These alternatives would introduce credentials that need to be stored, protected, rotated, and potentially revoked manually.
 
 ### Trade-offs
 
-Advantages:
+**Advantages:**
 
-- No stored registry credentials.
+- No manually managed registry password.
 - Azure-managed identity lifecycle.
-- Better security model.
+- Explicit role-based access.
+- Clear separation between application deployment and registry credentials.
 
-Disadvantages:
+**Disadvantages:**
 
 - Additional Azure identity configuration.
-- Requires understanding of Azure role assignments.
+- Requires correct role assignment and identity configuration.
+- Registry authentication from the VM still needs to be integrated correctly into the deployment workflow.
 
 ---
 
-# Implementation
+## Decision: Docker-Based Application Deployment
 
-Implemented:
+### Context
+
+The application needed a consistent runtime environment between development and the Azure deployment target.
+
+### Chosen Solution
+
+The ASP.NET Core API is packaged as a Docker image and deployed to the Linux Virtual Machine.
+
+Docker Compose is used on the VM to manage the running application container and simplify application updates.
+
+### Alternatives Considered
+
+- Deploying the ASP.NET Core application directly to the VM.
+- Using Azure App Service or another managed container platform.
+
+Direct deployment was avoided because it would couple the VM more closely to the application runtime environment. Managed Azure container services were considered outside the scope of this project, which focused on understanding the underlying infrastructure and deployment process.
+
+### Trade-offs
+
+**Advantages:**
+
+- Consistent application runtime.
+- Reproducible deployment artifact.
+- Clear separation between application and host environment.
+- Simple container replacement workflow.
+
+**Disadvantages:**
+
+- The VM and Docker runtime remain operational responsibilities.
+- Container orchestration is limited compared with managed container platforms.
+- High availability and automatic scaling are not provided by this architecture.
+
+---
+
+## Implementation
+
+### Features
 
 - ASP.NET Core Web API.
-- Docker containerization.
-- Terraform-managed Azure infrastructure.
-- Azure Virtual Machine deployment.
+- Dockerized application runtime.
+- Automated Azure infrastructure provisioning.
 - Azure Container Registry integration.
-- GitHub Actions CI/CD pipeline.
-- Azure OpenID Connect authentication for workflows.
-- User Assigned Managed Identity for ACR access.
-- Automated Docker image deployment workflow.
-- Docker Compose based container updates.
+- Linux Virtual Machine deployment.
+- Automated container image publishing.
+- Automated application deployment.
+- Secure GitHub-to-Azure authentication.
+- Managed Identity-based registry access.
+- Docker Compose-based container updates.
+
+### APIs
+
+The project contains an ASP.NET Core Web API.
+
+The API provides the application runtime that is packaged into the Docker image and deployed to the Azure Virtual Machine.
+
+API functionality was intentionally kept secondary to the infrastructure and deployment objectives of the project.
+
+### Data and Persistence
+
+No persistent database was implemented.
+
+The API therefore does not require a database service as part of the deployment pipeline.
+
+### Automation
+
+GitHub Actions automates the application deployment workflow.
+
+The automation includes:
+
+- Azure authentication through OpenID Connect.
+- Docker image building.
+- Container image publishing to Azure Container Registry.
+- SSH-based connection to the deployment VM.
+- Container image retrieval.
+- Docker Compose application update.
+
+Terraform provides separate infrastructure automation for provisioning the Azure environment.
+
+### Testing
+
+Testing focused primarily on validating the deployment workflow and infrastructure configuration.
+
+The important validation areas were:
+
+- Successful Azure authentication from GitHub Actions.
+- Successful Docker image creation.
+- Successful image publication to Azure Container Registry.
+- Successful registry access from the Virtual Machine.
+- Successful container deployment.
+- Successful application startup after deployment.
+
+No automated end-to-end test suite was implemented as part of this project.
 
 ---
 
 # Result
 
-The completed solution demonstrates an end-to-end cloud deployment pipeline using modern .NET and Azure tooling.
+The project resulted in a complete demonstration of an automated ASP.NET Core deployment workflow on Azure.
 
-The project shows practical experience with:
+The final solution provides:
 
-- Infrastructure as Code.
-- Containerized applications.
-- Azure cloud provisioning.
-- CI/CD automation.
-- Secure cloud authentication.
-- Automated application deployment.
-- Version-controlled infrastructure.
+- Infrastructure defined through Terraform.
+- Containerized application deployment.
+- Azure Container Registry-based image distribution.
+- GitHub Actions CI/CD automation.
+- OpenID Connect authentication for CI/CD.
+- Managed Identity-based registry access.
+- Automated application updates on an Azure Linux Virtual Machine.
 
-Deployments can be repeated with minimal manual work while infrastructure remains defined and managed through code.
+The project achieved its primary goal of replacing a manually configured deployment process with a reproducible, version-controlled workflow.
 
 ---
 
 # Lessons Learned
 
-This project significantly improved my understanding of cloud deployment and DevOps workflows.
+## Lesson: Infrastructure Is Part of the Application
 
-Key lessons include:
+The project reinforced that deploying a backend application is not separate from engineering the application itself.
 
-- Infrastructure should be treated as code.
-- CI/CD pipelines become easier to maintain when infrastructure is automated.
-- OpenID Connect provides a more secure authentication model than stored client secrets.
-- Managed Identity reduces the need for manual credential management.
-- Docker improves deployment consistency across environments.
-- Automated deployment pipelines reduce operational errors.
+Networking, identity, permissions, compute resources, containers, and deployment workflows all affect whether the application can actually run reliably.
+
+This changed my approach toward treating infrastructure configuration as part of the application's source-controlled engineering process rather than as an external operational task.
+
+## Lesson: Authentication Architecture Matters in CI/CD
+
+Using OpenID Connect instead of long-lived client secrets demonstrated the difference between simply making a deployment work and designing a deployment workflow with a better security model.
+
+The main lesson was to avoid introducing persistent credentials when the platform already provides short-lived workload identity mechanisms.
+
+## Lesson: Managed Identity Reduces Credential Management
+
+Using a User Assigned Managed Identity for registry access showed how Azure-native identity mechanisms can remove credentials from application infrastructure.
+
+This makes permissions more explicit and reduces the number of secrets that need to be created, stored, rotated, and protected.
+
+## Lesson: Managed Services Would Be Preferable at Larger Scale
+
+The VM-based deployment was useful for learning how infrastructure, containers, networking, identity, and deployment automation fit together.
+
+However, I would not automatically choose this architecture for a production application.
+
+A managed container platform such as Azure Container Apps or Azure App Service would remove significant operational responsibility around VM maintenance, scaling, availability, and deployment management.
+
+The project therefore clarified an important distinction between **learning the underlying infrastructure** and **choosing the most operationally efficient architecture for production**.
 
 ---
 
 # Future Improvements
 
-Possible future improvements:
-
-- Deploy to Azure App Service or Azure Container Apps.
-- Introduce Kubernetes using Azure Kubernetes Service (AKS).
-- Add monitoring with Azure Monitor and Application Insights.
-- Add automated integration testing before deployment.
-- Introduce multi-environment deployments (development, staging, production).
-- Add centralized logging and alerting.
-- Add automated rollback strategies for failed deployments.
+- Introduce automated integration tests that must pass before deployment.
+- Add separate development, staging, and production environments.
+- Add deployment health checks and automated rollback.
+- Add Azure Monitor and Application Insights.
+- Add centralized logging and deployment diagnostics.
+- Introduce infrastructure validation and Terraform plan checks in CI.
+- Move the application to Azure Container Apps or App Service to reduce VM operational overhead.
+- Add persistent storage if application functionality requires it.
+- Add deployment approval gates for production environments.
+- Add stronger post-deployment verification before marking a deployment successful.
 
 ---

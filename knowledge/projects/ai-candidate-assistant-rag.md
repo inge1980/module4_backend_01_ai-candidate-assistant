@@ -6,8 +6,8 @@ organization: Personal Project
 role: Fullstack Developer
 
 period:
-from: 2026-08
-to: 2026-08
+  from: 2026-08
+  to: 2026-08
 
 status: active
 
@@ -38,6 +38,8 @@ concepts:
   - api-design
   - backend-architecture
 
+dependencies:
+
 links:
   github:
   live:
@@ -46,58 +48,74 @@ links:
 
 # Overview
 
-An AI-powered candidate assistant using Retrieval-Augmented Generation (RAG) to match job descriptions against a structured personal knowledge base.
+An AI-powered candidate assistant that uses Retrieval-Augmented Generation (RAG) to match job descriptions and candidate-oriented questions against a structured knowledge base of personal project experience.
 
-The system ingests project documentation written in Markdown, extracts structured frontmatter metadata, splits documents into semantic sections, generates embeddings, and stores the resulting searchable representation in PostgreSQL with pgvector.
+The project documentation is maintained as Markdown with YAML frontmatter containing structured information about each project, including role, technologies, concepts, organization, period, and status.
 
-The intended application workflow is:
+The system ingests these documents, extracts their metadata, divides the content into semantic sections, generates embeddings, and stores the resulting retrieval representation in PostgreSQL using pgvector.
 
-1. A user provides a job description or question.
+The current implementation focuses on building and validating the ingestion and semantic retrieval foundation. The next stage is to connect the retrieved project knowledge to an LLM and use that context to generate grounded candidate responses and job-matching results.
+
+The intended workflow is:
+
+1. A user provides a job description or candidate-oriented question.
 2. The backend generates an embedding for the query.
-3. PostgreSQL performs semantic similarity search against indexed project knowledge.
-4. Relevant project chunks are retrieved together with their metadata.
-5. Retrieved knowledge is used as context for an LLM response.
+3. PostgreSQL performs semantic similarity search against the indexed project knowledge.
+4. Relevant project sections and their metadata are retrieved.
+5. The retrieved information is supplied to an LLM.
+6. The LLM generates a response grounded in the candidate's documented project experience.
 
-The current implementation focuses on validating the ingestion and retrieval foundation before completing the LLM-powered candidate matching workflow.
+The Markdown knowledge base remains the source of truth, while PostgreSQL acts as a generated retrieval index.
 
 ---
 
 # Context
 
-A general-purpose LLM does not have reliable access to a candidate's personal project history.
+A general-purpose LLM does not reliably know the details of a candidate's personal project history.
 
-The system therefore uses a version-controlled knowledge base containing structured documentation about completed and ongoing projects.
+Using an LLM without a controlled knowledge source creates a risk of producing plausible but unsupported claims about technologies, responsibilities, architectural decisions, or project outcomes.
 
-The knowledge base is intentionally stored as Markdown rather than directly in the database. PostgreSQL is treated as a generated search index containing chunks, metadata, and embeddings.
+The project therefore uses a version-controlled knowledge base containing structured documentation of completed and ongoing projects.
 
-This creates a clear separation between:
+The knowledge base is intentionally maintained as Markdown rather than being authored directly in the database. This keeps the information human-readable, reviewable, and version controlled.
 
-* Human-maintained project knowledge.
-* Generated retrieval data.
-* Runtime semantic search.
-* Future LLM generation.
+The system separates four concerns:
+
+- Human-maintained project knowledge.
+- Generated retrieval data.
+- Runtime semantic search.
+- Future LLM response generation.
+
+The project is also intended to demonstrate a practical RAG architecture rather than simply calling an LLM with a large static prompt.
 
 ---
 
 # Task
 
-The current implementation focuses on building and validating the document ingestion and semantic retrieval pipeline.
+The current task is to build and validate the knowledge ingestion and semantic retrieval foundation for an AI-powered candidate assistant.
 
-Implemented functionality includes:
+My responsibilities include:
 
-* Recursive Markdown document discovery.
-* Template file filtering.
-* YAML frontmatter parsing.
-* Structured metadata extraction.
-* Markdown section-based chunking.
-* Metadata propagation from documents to chunks.
-* 384-dimensional embedding generation.
-* PostgreSQL persistence.
-* pgvector similarity search.
-* Query embedding generation.
-* Retrieval of the most semantically similar chunks.
+- Designing the Markdown-based knowledge representation.
+- Defining structured project metadata through YAML frontmatter.
+- Building recursive Markdown document discovery.
+- Excluding template documents from ingestion.
+- Parsing YAML frontmatter.
+- Converting Markdown documents into structured document objects.
+- Splitting documents into semantic sections.
+- Propagating project metadata to generated chunks.
+- Validating generated chunks.
+- Generating 384-dimensional embeddings locally.
+- Persisting chunks, metadata, and vectors in PostgreSQL.
+- Integrating pgvector for similarity search.
+- Generating embeddings for user queries.
+- Retrieving the most semantically relevant project sections.
+- Inspecting retrieval results and similarity scores.
+- Evaluating whether semantic retrieval is sufficient for candidate-oriented questions.
+- Identifying where metadata-aware retrieval can improve the system.
+- Designing the foundation for the later LLM-powered response-generation workflow.
 
-The system can currently ingest the project knowledge base and answer semantic queries against the resulting vector index.
+The current implementation intentionally stops before full LLM generation so that the retrieval layer can be evaluated independently.
 
 ---
 
@@ -107,238 +125,354 @@ The system can currently ingest the project knowledge base and answer semantic q
 
 ### Problem
 
-A RAG system is only useful if the retrieved knowledge is relevant and grounded in the source material.
+A RAG system is only useful if the retrieved information is relevant to the question and grounded in the underlying source material.
 
-Several problems therefore need to be controlled:
+A general-purpose vector search can retrieve semantically similar text without necessarily retrieving the project that is most appropriate for a specific candidate question.
 
-* Project documentation must have predictable structure.
-* Metadata must survive the ingestion pipeline.
-* Chunks must preserve their source and section information.
-* Document and query embeddings must use the same embedding model.
-* Similarity search must retrieve meaningful project information rather than merely matching individual keywords.
+The system therefore needs to preserve enough structure from the original project documentation to make retrieval inspectable and eventually support more sophisticated ranking.
 
-The system also needs to remain easy to inspect and rebuild during development.
+The main requirements were:
 
----
+- Project documentation must have a predictable structure.
+- Metadata must survive the ingestion pipeline.
+- Retrieved chunks must retain their source project and section.
+- Document and query embeddings must use the same embedding model.
+- Retrieval must be easy to inspect and rebuild.
+- The original Markdown documents must remain authoritative.
+- The retrieval layer must be extensible toward metadata-aware and hybrid search.
 
 ### Solution
 
-The knowledge base uses structured Markdown documents with YAML frontmatter.
+I designed the ingestion pipeline around structured Markdown documents with YAML frontmatter.
 
-The ingestion pipeline processes each document through the following stages:
+Each document is processed through a deterministic pipeline:
 
 1. Discover Markdown files recursively.
-2. Ignore template files.
+2. Exclude template files.
 3. Parse YAML frontmatter.
-4. Separate metadata from document content.
-5. Split content into Markdown sections.
-6. Attach document metadata to generated chunks.
-7. Generate embeddings for each chunk.
-8. Store chunks, metadata, and vectors in PostgreSQL.
-9. Generate embeddings for user queries.
-10. Perform vector similarity search using pgvector.
+4. Separate metadata from Markdown content.
+5. Split the content into sections based on Markdown headings.
+6. Propagate project metadata to each generated chunk.
+7. Validate the generated chunks.
+8. Generate embeddings for each chunk.
+9. Persist the chunks, metadata, and vectors in PostgreSQL.
+10. Generate an embedding for each user query.
+11. Perform vector similarity search using pgvector.
+12. Return the highest-ranked project sections for inspection.
 
-The Markdown files remain the source of truth while PostgreSQL acts as the generated retrieval index.
+The Markdown repository remains the source of truth, while PostgreSQL contains a generated representation that can be discarded and rebuilt.
 
----
+### Result
 
-# Result
+The ingestion and retrieval pipeline is operational.
 
-The ingestion and semantic retrieval pipeline is operational.
+The system can ingest the project knowledge base, generate embeddings, persist the resulting vectors, and retrieve semantically related project sections from natural-language questions.
 
-The system currently demonstrates:
-
-* Structured Markdown knowledge ingestion.
-* YAML metadata extraction.
-* Metadata propagation into generated chunks.
-* Local embedding generation.
-* PostgreSQL vector storage.
-* Semantic similarity search.
-* Retrieval of relevant project sections from natural-language questions.
-
-Example retrieval results currently return similarity scores in the approximate `0.58?0.82` range depending on the query and retrieved content.
-
-The retrieval output is inspectable through the KnowledgeIndexer, making it possible to evaluate which projects and sections are being selected for individual questions.
+The retrieval layer can be inspected independently from the future LLM generation layer, making it possible to evaluate retrieval quality before introducing generation into the workflow.
 
 ---
 
-# Architecture
+## Challenge: Preserving Project Metadata During Retrieval
 
-## Knowledge Source
+### Problem
+
+Project documentation contains important structured information that cannot safely be inferred from arbitrary text.
+
+For example, a project may explicitly declare that a technology was implemented, while the same technology might merely be mentioned in a discussion of alternatives or future improvements.
+
+The retrieval system therefore needs to preserve the project's declared metadata rather than relying exclusively on semantic interpretation of the prose.
+
+### Solution
+
+Project metadata is stored in YAML frontmatter.
+
+The metadata includes information such as:
+
+- Project title.
+- Organization.
+- Role.
+- Period.
+- Status.
+- Technologies.
+- Concepts.
+- Links.
+
+The ingestion pipeline attaches this metadata to every generated chunk originating from the project.
+
+This makes the metadata available alongside the retrieved content and creates a foundation for future filtering and ranking.
+
+### Result
+
+Retrieved chunks retain their project-level context instead of becoming anonymous pieces of text.
+
+The metadata can later be used for:
+
+- Technology filtering.
+- Role filtering.
+- Organization filtering.
+- Project status filtering.
+- Project-level ranking.
+- Retrieval explanations.
+- Candidate-to-job matching.
+
+---
+
+## Challenge: Choosing a Chunking Strategy
+
+### Problem
+
+Whole-document embeddings are too coarse for precise retrieval.
+
+A complete project document may contain an overview, several unrelated challenges, technical decisions, implementation details, results, and lessons learned.
+
+Embedding the entire document as one vector could therefore cause a query about one technical problem to retrieve a large amount of unrelated project content.
+
+At the same time, arbitrarily splitting the document by character count could break meaningful concepts across chunk boundaries.
+
+### Solution
+
+I chose Markdown headings as the initial chunk boundaries.
+
+The project documentation already uses structured headings such as:
+
+- Overview
+- Context
+- Task
+- Challenge
+- Result
+- Technical Decisions
+- Lessons Learned
+- Future Improvements
+
+These sections provide meaningful semantic boundaries and make the resulting chunks easy to inspect.
+
+Each chunk retains:
+
+- Source document.
+- Section.
+- Content.
+- Project metadata.
+- Embedding.
+
+Very large sections are intentionally left as a known limitation for a later iteration.
+
+### Result
+
+The retrieval system produces understandable project sections rather than arbitrary fragments.
+
+This makes retrieval results easier to inspect and debug while providing a reasonable initial semantic unit for embedding.
+
+---
+
+## Challenge: Choosing a Vector Storage Architecture
+
+### Problem
+
+The system needs semantic similarity search while also retaining structured project metadata.
+
+Introducing a separate vector database would add another persistence technology to a relatively small personal knowledge base.
+
+### Solution
+
+PostgreSQL was selected as the primary persistence layer, with pgvector providing vector storage and similarity search.
+
+The database stores the generated retrieval representation:
+
+- Chunk content.
+- Source document.
+- Section.
+- Project metadata.
+- Embedding vector.
+
+The original Markdown files remain outside the database as the authoritative knowledge source.
+
+### Result
+
+Structured metadata and vector data can be queried from the same database.
+
+The retrieval index can also be rebuilt from the Markdown knowledge base without treating PostgreSQL as the authoritative source of project information.
+
+---
+
+# Action
+
+## Architecture
+
+### Knowledge Source
 
 Project documentation is stored under:
 
 `knowledge/projects`
 
-Each project is represented as a Markdown document containing:
+Each project is represented by a Markdown document containing:
 
-* YAML frontmatter.
-* Project overview.
-* Context.
-* Responsibilities.
-* Technical decisions.
-* Challenges.
-* Results.
-* Interview-oriented information.
+- YAML frontmatter.
+- Project overview.
+- Context.
+- Responsibilities.
+- Challenges.
+- Technical decisions.
+- Results.
+- Lessons learned.
+- Interview-oriented information.
 
-Frontmatter contains structured information such as:
+The frontmatter provides structured project metadata such as:
 
-* Title.
-* Organization.
-* Role.
-* Period.
-* Status.
-* Technologies.
-* Concepts.
-* Links.
+- Title.
+- Organization.
+- Role.
+- Period.
+- Status.
+- Technologies.
+- Concepts.
+- Links.
 
----
-
-## Document Ingestion
-
-The `MarkdownDocumentLoader` recursively discovers Markdown documents and excludes template files.
-
-The `FrontmatterParser` extracts YAML frontmatter from each document.
-
-The resulting `MarkdownDocument` contains:
-
-* File name.
-* Markdown content.
-* Structured metadata.
-
-The metadata is then propagated to every generated chunk originating from the document.
+The Markdown documents are version controlled and remain the source of truth.
 
 ---
 
-## Chunking
+### Frontend
 
-Documents are divided into chunks based on Markdown headings.
+The intended application includes a React and TypeScript frontend.
 
-Each chunk contains:
+The current development focus is primarily on the backend ingestion and retrieval pipeline rather than a completed candidate-facing UI.
 
-* Source document.
-* Section.
-* Content.
-* Project metadata.
-* Embedding vector.
+The frontend is intended to provide the future interface for:
 
-Section-based chunking was selected because Markdown headings already represent meaningful semantic boundaries in the knowledge base.
+- Entering job descriptions.
+- Asking candidate-oriented questions.
+- Reviewing retrieved project evidence.
+- Generating candidate responses.
+- Evaluating matching results.
 
-This also makes retrieval results easier to understand and debug.
-
-Very large sections may require additional splitting in a later iteration.
+The current retrieval implementation is therefore intentionally usable independently of the final frontend workflow.
 
 ---
 
-# Database
+### Backend
 
-PostgreSQL is used as the persistence layer.
+The backend is implemented with C# and ASP.NET Core.
+
+The backend is responsible for:
+
+- Document ingestion.
+- Markdown parsing.
+- Frontmatter extraction.
+- Chunk generation.
+- Metadata propagation.
+- Embedding generation.
+- PostgreSQL persistence.
+- Query embedding generation.
+- Vector similarity search.
+- Retrieval result formatting.
+
+The backend acts as the orchestration layer between the Markdown knowledge base, embedding model, PostgreSQL/pgvector, and the future LLM generation workflow.
+
+---
+
+### Database
+
+PostgreSQL is used as the generated retrieval index.
 
 The pgvector extension provides vector storage and similarity search.
 
-The database stores the generated retrieval representation:
+The database stores each generated chunk together with:
 
-* Chunk content.
-* Source document.
-* Section.
-* Metadata.
-* Embedding vector.
+- Source document.
+- Section.
+- Project metadata.
+- Embedding vector.
 
-The Markdown documents remain the authoritative source. PostgreSQL is a generated index that can be rebuilt from the knowledge base.
+The Markdown files remain authoritative.
+
+If the chunking strategy, metadata schema, or embedding model changes, the PostgreSQL retrieval index can be regenerated from the source documents.
 
 ---
 
-# Embeddings
+### Embedding Pipeline
 
-The current development environment uses BAAI `bge-small-en-v1.5` through Ollama.
+The development environment uses BAAI `bge-small-en-v1.5` through Ollama.
 
 The model produces 384-dimensional embeddings.
 
-The same embedding model is used for:
+The same embedding model is used for both:
 
-* Document chunks during indexing.
-* User queries during semantic search.
+- Document chunks during indexing.
+- User queries during semantic retrieval.
 
-This is required because document and query vectors must exist in the same embedding space for meaningful similarity comparison.
+Using the same model ensures that document and query vectors occupy the same embedding space.
 
-Changing the embedding model requires re-indexing the existing knowledge base.
-
----
-
-# Semantic Search
-
-User questions are converted into embeddings and compared against stored document embeddings.
-
-The current search returns the top five results ranked by vector similarity.
-
-The results include:
-
-* Similarity score.
-* Source document.
-* Section.
-* Retrieved content.
-
-Current retrieval testing shows that semantically related project sections can be retrieved even when the query does not contain the exact terminology used in the source document.
-
-However, semantic similarity alone does not guarantee that a result is factually appropriate for a specific candidate question.
+Changing the embedding model requires the existing document embeddings to be regenerated.
 
 ---
 
-# Metadata
+### Semantic Retrieval
 
-Metadata is extracted from project frontmatter and propagated to every chunk belonging to the project.
+A user question is converted into an embedding and compared against the stored document embeddings using pgvector.
 
-This provides structured information that can later be used for:
+The current implementation retrieves the top five results.
 
-* Metadata filtering.
-* Technology-specific retrieval.
-* Status filtering.
-* Role filtering.
-* Organization filtering.
-* Project-level ranking.
-* Retrieval explanations.
+Each result contains:
 
-A particularly important distinction is that frontmatter represents the project's declared implemented state.
+- Similarity score.
+- Source project.
+- Section.
+- Retrieved content.
+- Associated project metadata.
 
-For example, technologies listed in the project's `technologies` metadata are treated as implemented project technologies rather than merely technologies mentioned somewhere in the document.
+The retrieval layer is intentionally exposed for inspection so that retrieval quality can be evaluated before the LLM generation stage is introduced.
 
 ---
 
-# Technical Decisions
+### Data Flow
+
+The current ingestion flow is:
+
+`Markdown files` -> `MarkdownDocumentLoader` -> `FrontmatterParser` -> `Section chunking` -> `Metadata propagation` -> `Embedding generation` -> `PostgreSQL + pgvector`
+
+The current query flow is:
+
+`User question` -> `Query embedding` -> `pgvector similarity search` -> `Top-k chunks` -> `Retrieved project context`
+
+The intended future flow is:
+
+`Job description/question` -> `Query processing` -> `Semantic + metadata retrieval` -> `Relevant project context` -> `LLM` -> `Grounded candidate response`
+
+---
+
+## Technical Decisions
 
 ## Decision: Markdown as the Source of Truth
 
 ### Context
 
-Project knowledge needs to remain easy to maintain, version controlled, and readable without requiring database tooling.
+Project knowledge needs to remain easy to maintain, version controlled, readable, and editable without database tooling.
 
 ### Chosen Solution
 
-Markdown files are maintained in the repository and processed by the KnowledgeIndexer.
+Project documentation is maintained as Markdown files in the repository.
 
-PostgreSQL contains only the generated retrieval representation.
+The KnowledgeIndexer processes these documents and generates the retrieval representation in PostgreSQL.
+
+PostgreSQL is therefore treated as a generated index rather than the authoritative knowledge store.
 
 ### Alternatives Considered
 
-* Database-driven knowledge management.
-* JSON documents.
-* Manually maintained prompt context.
+- Database-driven knowledge management.
+- JSON documents.
+- Manually maintained prompt context.
 
 ### Trade-offs
 
-Advantages:
+Markdown provides:
 
-* Human-readable.
-* Git-friendly.
-* Easy to review.
-* Easy to modify.
-* Re-indexable.
+- Human-readable documentation.
+- Git-based version control.
+- Easy review.
+- Easy editing.
+- Simple rebuilding of the retrieval index.
 
-Disadvantages:
-
-* Requires an indexing process.
-* Markdown structure must remain predictable.
-* Changes require re-indexing.
+The trade-off is that changes to the source documents require the retrieval index to be regenerated.
 
 ---
 
@@ -346,35 +480,29 @@ Disadvantages:
 
 ### Context
 
-Project descriptions contain information that should be searchable and filterable independently from prose.
+Important project information should be available independently of the prose.
+
+Technologies, roles, status, organization, and project periods should not have to be inferred from natural-language text.
 
 ### Chosen Solution
 
-Project documents use YAML frontmatter containing structured metadata such as technologies, concepts, role, status, and project period.
+YAML frontmatter is used for structured project metadata.
 
-The metadata is parsed during ingestion and attached to every generated chunk.
+The metadata is parsed during ingestion and propagated to every chunk originating from the project.
 
 ### Alternatives Considered
 
-* Extracting metadata from prose.
-* Maintaining metadata exclusively in PostgreSQL.
-* Separate JSON metadata files.
+- Extracting metadata from prose.
+- Maintaining metadata exclusively in PostgreSQL.
+- Separate JSON metadata files.
 
 ### Trade-offs
 
-Advantages:
+The approach provides explicit, version-controlled metadata that can be used by both the ingestion and retrieval layers.
 
-* Human-readable.
-* Version controlled with the project documentation.
-* Explicit rather than inferred.
-* Available to both indexing and retrieval.
-* Enables future metadata-aware ranking.
+The trade-off is that frontmatter must remain syntactically valid and changes require re-indexing.
 
-Disadvantages:
-
-* Frontmatter syntax must remain valid.
-* Metadata changes require re-indexing.
-* Schema validation is still limited.
+The metadata schema also needs stronger validation in a future iteration.
 
 ---
 
@@ -382,35 +510,26 @@ Disadvantages:
 
 ### Context
 
-Whole-document embeddings are too coarse for precise retrieval.
+Whole-document embeddings would be too broad for precise retrieval, while arbitrary fixed-size chunks could split concepts at inappropriate boundaries.
 
 ### Chosen Solution
 
-Documents are split according to Markdown headings.
+Documents are initially divided according to Markdown headings.
 
-Each section becomes a retrieval unit together with its source and metadata.
+Each section becomes a retrieval unit together with its source project and metadata.
 
 ### Alternatives Considered
 
-* Whole-document embeddings.
-* Fixed character-length chunks.
-* Token-based chunks.
-* Paragraph-based chunks.
+- Whole-document embeddings.
+- Fixed character-length chunks.
+- Token-based chunks.
+- Paragraph-based chunks.
 
 ### Trade-offs
 
-Advantages:
+Section-based chunking preserves the structure already present in the documentation and makes retrieval results easy to understand.
 
-* Preserves semantic boundaries.
-* Easy to inspect.
-* Easy to debug.
-* Produces understandable retrieval results.
-
-Disadvantages:
-
-* Large sections can still be too broad.
-* Depends on consistent Markdown structure.
-* Chunking changes require re-indexing.
+The trade-off is that very large sections may still be too broad and may require secondary splitting later.
 
 ---
 
@@ -418,35 +537,35 @@ Disadvantages:
 
 ### Context
 
-The system needs semantic similarity search without introducing an additional database product.
+The project needs semantic similarity search while also requiring structured project metadata.
+
+The current knowledge base does not justify introducing a separate vector database.
 
 ### Chosen Solution
 
-PostgreSQL stores the document chunks, metadata, and 384-dimensional embedding vectors.
+PostgreSQL stores the chunks, metadata, and embedding vectors.
 
-pgvector performs vector similarity search.
+pgvector provides vector similarity search.
 
 ### Alternatives Considered
 
-* PostgreSQL full-text search.
-* Keyword-only search.
-* Dedicated vector databases.
-* Hybrid search.
+- PostgreSQL full-text search.
+- Keyword-only search.
+- Dedicated vector databases.
+- Hybrid search.
 
 ### Trade-offs
 
-Advantages:
+Using PostgreSQL provides:
 
-* One database for structured and vector data.
-* Easy development and inspection.
-* Metadata can be stored alongside vectors.
-* Suitable for the current knowledge-base size.
+- One persistence system.
+- Structured and vector data in the same database.
+- Straightforward development and inspection.
+- Easy access to metadata during retrieval.
 
-Disadvantages:
+The main limitation is that vector similarity alone is not sufficient for every candidate-matching query.
 
-* Retrieval quality depends on embeddings and chunking.
-* Semantic search can be weaker for exact identifiers and terminology.
-* Vector indexing adds storage and maintenance requirements.
+Exact technologies, identifiers, and highly specific requirements may be better handled using metadata or lexical search.
 
 ---
 
@@ -454,156 +573,251 @@ Disadvantages:
 
 ### Context
 
-The project requires repeatable document and query embeddings during development.
+The development environment needs repeatable embeddings without introducing external API costs or sending personal project information to a hosted embedding provider.
 
 ### Chosen Solution
 
-BGE Small is run locally through Ollama.
+BAAI `bge-small-en-v1.5` is executed locally through Ollama.
 
 The same model generates both document and query embeddings.
 
 ### Alternatives Considered
 
-* Hosted embedding APIs.
-* OpenAI embeddings.
-* Azure-hosted embedding services.
+- Hosted embedding APIs.
+- OpenAI embeddings.
+- Azure-hosted embedding services.
 
 ### Trade-offs
 
-Advantages:
+Local embeddings provide:
 
-* No embedding API cost during development.
-* Data remains local.
-* Easy to reproduce.
-* Full control over the embedding pipeline.
+- No embedding API cost during development.
+- Local processing.
+- Reproducible development.
+- Control over the embedding pipeline.
 
-Disadvantages:
+The trade-offs are dependency on local model infrastructure and potentially lower inference performance depending on available hardware.
 
-* Requires local model infrastructure.
-* Inference performance depends on local hardware.
-* Changing models requires re-indexing.
+Changing the embedding model requires re-indexing the knowledge base.
 
 ---
 
-# Current Implementation
+## Decision: Keep Retrieval Separate from LLM Generation
 
-Completed:
+### Context
 
-* Markdown document loader.
-* Recursive document discovery.
-* Template file filtering.
-* YAML frontmatter parsing.
-* Structured metadata extraction.
-* Metadata propagation.
-* Markdown section chunking.
-* Chunk validation.
-* Local embedding generation.
-* PostgreSQL persistence.
-* pgvector integration.
-* Query embedding generation.
-* Semantic similarity search.
-* Retrieval result inspection.
+It is difficult to determine whether a poor AI response is caused by retrieval quality or by the generation model when both systems are introduced simultaneously.
+
+### Chosen Solution
+
+The retrieval pipeline is being implemented and evaluated independently before connecting it to the LLM.
+
+The system exposes the retrieved project sections and similarity scores so that retrieval quality can be inspected directly.
+
+### Alternatives Considered
+
+- Implementing retrieval and LLM generation simultaneously.
+- Sending large parts of the knowledge base directly into the LLM.
+- Evaluating only the final generated response.
+
+### Trade-offs
+
+Separating retrieval makes the system easier to debug and evaluate.
+
+The trade-off is that the complete candidate-assistant workflow takes longer to implement because generation is deliberately postponed until the retrieval foundation is sufficiently reliable.
 
 ---
 
-# Current Development State
+# Implementation
 
-The project has moved beyond the initial ingestion stage.
+The implementation currently covers the complete ingestion and semantic retrieval pipeline.
+
+The main implementation flow is:
+
+1. Project Markdown files are stored under `knowledge/projects`.
+2. The `MarkdownDocumentLoader` recursively discovers Markdown documents.
+3. Template files are excluded from ingestion.
+4. The `FrontmatterParser` extracts YAML metadata.
+5. The document is separated into metadata and Markdown content.
+6. The content is split into sections based on Markdown headings.
+7. Project metadata is propagated to each generated chunk.
+8. Generated chunks are validated.
+9. Each chunk is passed through the local embedding model.
+10. The resulting 384-dimensional vectors are stored in PostgreSQL.
+11. pgvector provides vector similarity search over the stored embeddings.
+12. A user question is converted into an embedding using the same model.
+13. The query vector is compared against the stored document vectors.
+14. The top five semantically similar chunks are returned.
+15. Retrieval results expose the similarity score, source document, section, content, and project metadata.
+16. The retrieved information can then be inspected before being passed to the future LLM generation layer.
 
 The current pipeline is:
 
-```text
-Markdown
-   ?
-Frontmatter parsing
-   ?
-Document loading
-   ?
-Section chunking
-   ?
-Metadata propagation
-   ?
-Embedding generation
-   ?
-PostgreSQL + pgvector
-   ?
-Query embedding
-   ?
-Similarity search
-   ?
-Top-k retrieved chunks
-```
+`Markdown` -> `Frontmatter parsing` -> `Document loading` -> `Section chunking` -> `Metadata propagation` -> `Embedding generation` -> `PostgreSQL + pgvector` -> `Query embedding` -> `Similarity search` -> `Top-k retrieved chunks`
 
-The remaining major part of the MVP is connecting retrieved knowledge to the LLM response-generation workflow.
+The current implementation intentionally does not yet treat the similarity score as a definitive relevance decision.
 
 ---
 
-# Evaluation
+# Result
 
-Retrieval quality is currently being evaluated manually using a set of candidate-oriented questions.
+The ingestion and semantic retrieval foundation is operational.
 
-The evaluation focuses on:
+The system can currently:
 
-* Whether the correct project is retrieved.
-* Whether the correct section is retrieved.
-* Similarity score distribution.
-* False-positive retrievals.
-* Whether metadata could improve ranking.
-* Whether exact technical requirements are better handled through metadata than pure vector similarity.
+- Discover Markdown project documentation recursively.
+- Exclude template files.
+- Parse YAML frontmatter.
+- Extract structured project metadata.
+- Split documents into semantic sections.
+- Propagate project metadata to generated chunks.
+- Validate generated chunks.
+- Generate 384-dimensional embeddings locally.
+- Store embeddings in PostgreSQL.
+- Perform vector similarity search using pgvector.
+- Generate embeddings for natural-language queries.
+- Retrieve semantically related project sections.
+- Inspect retrieval results independently of LLM generation.
 
-Current results show that vector search is capable of retrieving semantically relevant projects, but similarity scores alone should not be treated as a definitive relevance threshold.
+Current retrieval tests show similarity scores approximately in the `0.58-0.82` range depending on the query and retrieved content.
 
----
+These scores are useful for comparing retrieval results but should not be interpreted as probabilities or as a universal relevance threshold.
 
-# Known Limitations
+The retrieval output is inspectable through the KnowledgeIndexer, which makes it possible to determine which projects and sections are selected for individual questions.
 
-The current retrieval system is vector-only.
-
-This creates several limitations:
-
-* Exact technologies may not always rank highly enough.
-* Similar concepts can produce false positives.
-* Similarity scores are not probabilities.
-* A high score does not necessarily mean the retrieved project is the best candidate.
-* Metadata is currently available but is not yet used as a ranking signal.
-* There is no formal retrieval evaluation dataset yet.
-* There is no automated regression test for retrieval quality.
-
-These limitations are expected to guide the next retrieval iteration.
+The current system therefore provides a working retrieval foundation for the planned candidate assistant, while deliberately leaving LLM response generation as the next major stage.
 
 ---
 
-# Next Steps
+# Lessons Learned
 
-The next development priorities are:
+## Retrieval Quality Is More Important Than the LLM Layer
 
-1. Use frontmatter metadata as structured retrieval information.
-2. Introduce metadata-aware ranking or filtering.
-3. Evaluate vector-only retrieval against metadata-aware retrieval.
-4. Create a small retrieval evaluation dataset.
-5. Measure precision of the top-k results.
-6. Connect retrieved context to LLM generation.
-7. Implement the candidate/job matching workflow.
-8. Add automated indexing when knowledge documents change.
+A sophisticated LLM cannot compensate for consistently poor retrieval.
+
+If the wrong project or section is supplied as context, the generation layer can produce an answer that sounds convincing while still being unsupported by the candidate's actual experience.
+
+The retrieval layer therefore needs to be evaluated independently before relying on generated answers.
+
+---
+
+## Source Data Should Remain Human-Maintained
+
+Keeping project knowledge in Markdown makes the source material easy to read, review, update, and version control.
+
+The database can then be treated as disposable generated infrastructure.
+
+This is preferable to making the vector database the authoritative source because the complete knowledge base can be rebuilt when the indexing strategy changes.
+
+---
+
+## Metadata Should Not Be Inferred When It Can Be Declared
+
+A technology mentioned in a document does not necessarily mean that the project implemented that technology.
+
+Explicit frontmatter makes this distinction clearer.
+
+For example, the project's `technologies` field represents technologies declared as part of the project's implemented technology stack rather than technologies merely mentioned somewhere in the documentation.
+
+This provides a much stronger foundation for future technology-aware retrieval.
+
+---
+
+## Chunking Is a Retrieval Design Decision
+
+The chunking strategy directly affects retrieval quality.
+
+Whole-document embeddings provide too little precision, while overly small chunks can lose the context required to understand a technical decision or project result.
+
+Using Markdown headings as initial boundaries provides a practical balance because the documentation structure already reflects meaningful semantic units.
+
+The strategy should still evolve as retrieval evaluation produces more evidence.
+
+---
+
+## Vector Similarity Is Not a Complete Matching Strategy
+
+Semantic search is useful for finding conceptually related project experience, but it is not sufficient for every candidate-oriented question.
+
+Exact technology requirements, specific roles, organizations, project status, and other structured constraints are better represented through metadata.
+
+This makes hybrid retrieval or metadata-aware ranking a natural next step.
+
+---
+
+## Similarity Scores Are Not Probabilities
+
+A similarity score such as `0.8` does not mean that a result is 80% relevant.
+
+The value depends on the embedding model, vector distribution, query, corpus, and similarity metric.
+
+Retrieval quality should therefore be evaluated using actual questions and expected results rather than relying on an arbitrary score threshold.
+
+---
+
+## Retrieval Needs an Evaluation Dataset
+
+Manual inspection is useful during early development, but it is not sufficient for determining whether changes improve retrieval quality.
+
+A small evaluation dataset containing representative candidate questions and expected relevant projects or sections would make it possible to compare:
+
+- Different chunking strategies.
+- Different embedding models.
+- Vector-only retrieval.
+- Metadata-aware retrieval.
+- Hybrid search.
+- Reranking strategies.
+
+This is an important next step before optimizing the retrieval architecture further.
 
 ---
 
 # Future Improvements
 
-Potential future improvements include:
+## Retrieval
 
-* Hybrid lexical and vector search.
-* Metadata-aware ranking.
-* Technology-aware retrieval.
-* Project-level result aggregation.
-* Retrieval evaluation and regression tests.
-* Query rewriting.
-* Result deduplication.
-* Reranking.
-* LLM-based answer generation.
-* Job-description extraction.
-* Candidate-to-job matching.
-* Automated knowledge indexing.
-* Production deployment.
+- Introduce metadata-aware filtering.
+- Add metadata-aware ranking.
+- Compare vector-only retrieval against hybrid retrieval.
+- Add lexical search for exact technologies and identifiers.
+- Add project-level result aggregation.
+- Add result deduplication.
+- Evaluate reranking strategies.
+- Consider query rewriting where appropriate.
+
+## Evaluation
+
+- Create a representative retrieval evaluation dataset.
+- Define expected projects and sections for each test question.
+- Measure top-k retrieval precision.
+- Track false-positive retrievals.
+- Add automated retrieval regression tests.
+- Compare retrieval strategies quantitatively rather than relying only on manual inspection.
+
+## LLM Integration
+
+- Connect retrieved context to an LLM.
+- Generate grounded candidate responses.
+- Include source project references in generated answers.
+- Prevent unsupported claims when the knowledge base does not contain sufficient evidence.
+- Add job-description extraction.
+- Implement candidate-to-job matching.
+- Separate retrieval confidence from generation quality.
+
+## Knowledge Management
+
+- Add stronger frontmatter schema validation.
+- Detect invalid or incomplete project metadata during indexing.
+- Automatically re-index changed documents.
+- Detect deleted or renamed source documents.
+- Track knowledge-base versioning.
+- Add index rebuild commands.
+
+## Infrastructure
+
+- Containerize the complete development environment.
+- Add automated indexing to the development workflow.
+- Add observability around ingestion and retrieval.
+- Add production deployment when the retrieval and generation workflow is sufficiently validated.
 
 ---

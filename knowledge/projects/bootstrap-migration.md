@@ -19,12 +19,13 @@ technologies:
   - html
 
 concepts:
-  - frontend-architecture
+  - frontend-modernization
   - legacy-modernization
   - responsive-design
   - mobile-first
   - bootstrap-grid
   - cms
+  - saas
   - multi-tenant
   - backwards-compatibility
   - progressive-rollout
@@ -47,31 +48,23 @@ links:
 
 # Overview
 
-As part of a major modernization of Moava AS's school CMS, I took primary responsibility for transforming the customer-facing websites from a fixed-width, desktop-oriented design into a responsive Bootstrap 3-based frontend.
+Modernized the customer-facing frontend of Moava AS's school CMS from a fixed-width, desktop-oriented architecture to a responsive Bootstrap 3-based system.
 
-Moava provided a SaaS CMS used by approximately 1,300 schools in Norway. Teachers and principals used the CMS to create and manage their own school websites, with a high degree of autonomy. Customers generally managed their own content and configuration and only contacted Moava for support when they needed assistance.
+Moava operated a SaaS CMS used by approximately 1,300 schools in Norway. Teachers and principals managed their own public school websites through the CMS, using more than 30 reusable modules such as navigation, news, articles, images, galleries, video, forms, tables, calendars, search, and content blocks.
 
-The existing frontend had been developed over many years and followed a layout approach that was closer to the web of the late 1990s than modern responsive web development. It relied on fixed-width desktop layouts, tables for layout, fixed pixel dimensions, custom CSS, inline styling, a fixed central content area, and relatively few consistent global design rules. It also had limited consideration for modern accessibility, mobile usability, and touch interaction.
+The modernization was therefore not a redesign of a single website. It was a change to the reusable rendering architecture responsible for generating thousands of customer websites and dynamically generated pages.
 
-The goal was not to redesign a single website. The CMS dynamically generated the public websites of approximately 1,300 schools, each of which could use more than 30 different modules such as navigation, news, articles, article lists, images, image galleries, video, slideshows, employees, email lists, forms, tables, calendars, search, and content blocks.
+The existing frontend had accumulated significant technical debt. It relied on fixed-width layouts, HTML tables for layout, pixel dimensions, custom CSS, inline styling, and module-specific assumptions that were not suitable for responsive web development.
 
-A typical school had at least 30 generated pages, giving a conservative baseline of approximately 39,000 dynamically generated pages across the customer base. The important architectural point was that these pages did not need to be migrated individually. The reusable page scaffolding and CMS modules that generated them needed to be modernized.
+The modernization introduced Bootstrap 3, responsive page scaffolding, mobile navigation, responsive modules, responsive images and tables, mobile column prioritization, touch-friendly interaction, and improved accessibility and usability.
 
-I was the product owner and primary developer for the frontend modernization. Working as part of a team of developers, I personally worked through all of the 30+ CMS modules involved in the project, collaborating with the other developers when I needed input or assistance.
+A key requirement was to keep existing customer content unchanged. The old and new frontend therefore had to operate simultaneously against the same underlying customer data.
 
-The modernization required the old and new frontend to operate simultaneously. The same underlying customer content and database data had to work with both versions, so a school could remain on the old design while another school used the new responsive design.
+I implemented a per-school frontend-mode switch controlled through a restricted administration interface. This allowed the team to roll out the new frontend gradually, test it with individual schools, and immediately revert a school to the legacy frontend if required.
 
-I implemented a per-school frontend switch in the database, controlled through a restricted administration interface available to Moava employees. This allowed the team to enable the new design for individual schools, progressively roll it out, and revert a school to the old design immediately if necessary without migrating or recreating any content.
+Another significant part of the project was converting approximately 1,000 existing customer column configurations. These configurations had accumulated over years and contained percentages, pixel values, mixed units, incomplete configurations, and technically invalid combinations. I analyzed the existing data, identified six recurring patterns, and implemented an algorithm to convert the historical configurations into Bootstrap-compatible 12-column layouts.
 
-The responsive implementation covered the entire frontend architecture and the individual CMS modules. It introduced Bootstrap's 12-column grid, responsive navigation, mobile column stacking and prioritization, responsive images and tables, responsive typography, redesigned headers and banners, touch-friendly interaction, and mobile-specific module behavior.
-
-One particularly difficult part of the project was converting approximately 1,000 existing customer column configurations. Customers had historically been allowed to enter free-form column widths, including percentages, pixel values, mixed units, incomplete configurations, and values that technically should not have worked but happened to render acceptably because of browser and CSS behavior. I analyzed the existing configurations, identified six recurring patterns, and created an algorithm to convert them into appropriate Bootstrap 12-column layouts.
-
-I also redesigned the customer-facing column configuration controls. Instead of allowing arbitrary text values, the new interface used a multi-handle custom grid slider with one to three handles depending on the number of columns. Handles snapped to the 12 available Bootstrap grid steps, allowing administrators to visually configure column proportions while remaining within the constraints of the new layout system.
-
-The modernization was introduced through pilot customers and a gradual rollout rather than a single platform-wide migration. The team continued to maintain important bug fixes for the old frontend for a period after launch, while development focus moved to the new system. Approximately three months after the new frontend was introduced, all schools had been transitioned to the new design.
-
-The project was driven by the growing importance of mobile access to school information such as schedules and weekly plans, as well as customer retention, customer satisfaction, product modernization, competitiveness, usability, and the need to move toward universal-design and accessibility requirements.
+The modernization was introduced through pilot customers and a progressive rollout. Approximately three months after the new frontend was introduced, all schools had transitioned to the new design.
 
 ---
 
@@ -79,11 +72,9 @@ The project was driven by the growing importance of mobile access to school info
 
 Moava AS provided a SaaS CMS used by approximately 1,300 schools in Norway.
 
-The CMS gave schools substantial autonomy over their public websites. Teachers and principals could create and manage content themselves using the CMS, combining different reusable modules to construct their pages. Moava primarily provided the platform and support rather than manually managing the schools' content.
+Schools had substantial autonomy over their public websites. Teachers and principals could create content and configure pages themselves using reusable CMS modules.
 
-The CMS generated the public websites dynamically from customer-specific content and configuration stored in each school's database.
-
-The platform contained more than 30 different CMS modules, including:
+The platform contained more than 30 modules, including:
 
 - Navigation and menus
 - News
@@ -100,91 +91,54 @@ The platform contained more than 30 different CMS modules, including:
 - Calendars
 - Search
 - Content blocks
-- Other school-specific content modules
 
-The existing frontend had accumulated significant technical debt.
+The public websites were generated dynamically from customer-specific content and configuration.
 
-Its layout model was based primarily on:
+The existing frontend had been developed over many years and had accumulated significant technical debt. Its layout model was based primarily on:
 
-- Fixed-width desktop layouts.
-- HTML tables used for layout.
-- Fixed pixel dimensions.
-- Custom CSS.
-- Hardcoded inline CSS in some areas.
-- A fixed central content area.
-- Few consistent global design rules.
-- Hard corners and other outdated visual conventions.
-- Limited consideration for responsive design.
-- Limited consideration for modern accessibility and universal-design requirements.
+- Fixed-width desktop layouts
+- HTML tables used for layout
+- Fixed pixel dimensions
+- Custom CSS
+- Inline CSS
+- A fixed central content area
+- Module-specific layout assumptions
+- Limited responsive behavior
+- Limited consideration for touch interaction
+- Limited consideration for modern accessibility and universal-design requirements
 
-This approach had worked for years on desktop computers, but the requirements of the web had changed.
+Mobile access to school information such as schedules and weekly plans was becoming increasingly important. The platform therefore needed to support a much wider range of screen sizes and interaction methods without forcing customers to rebuild their existing websites.
 
-Mobile phones were increasingly being used by students to access school information such as schedules and weekly plans. The websites therefore needed to work for students, teachers, parents, and other visitors across a much wider range of devices and screen sizes.
+The scale of the platform made a page-by-page migration impractical.
 
-The project was driven by several goals:
+With approximately 1,300 schools and a conservative baseline of 30 generated pages per school, the platform represented at least approximately 39,000 dynamically generated pages. The actual number was higher because schools could create additional pages and combine modules in different configurations.
 
-- Improve the mobile experience.
-- Improve customer satisfaction.
-- Support customer retention.
-- Modernize the product.
-- Remain competitive.
-- Improve usability.
-- Move the platform toward universal-design requirements.
-- Improve accessibility for people with disabilities.
-- Replace the limitations of the legacy frontend architecture.
-
-The CMS generated pages dynamically, so the practical migration boundary was the page scaffolding and the reusable modules rather than individual customer pages.
-
-With approximately 1,300 schools and at least 30 generated pages per school as a conservative baseline, this represented approximately 39,000 generated pages before accounting for the much larger number of actual pages and module combinations across the platform.
-
-The goal was therefore to change how those pages were generated rather than manually rebuild them.
+The practical migration boundary was therefore the reusable rendering architecture and CMS modules that generated those pages.
 
 ---
 
 # Task
 
-I joined the development team as a new developer and took primary responsibility for the implementation of the responsive frontend modernization.
+I took primary responsibility for the implementation of the responsive frontend modernization as part of the development team.
 
-I was the product owner for the project and worked closely with the other developers on the team. Although I was responsible for driving the implementation across the frontend, I collaborated with the team and asked for assistance when needed rather than working in isolation.
+I was the product owner for the project and was responsible for driving the frontend modernization across the CMS while collaborating with the other developers when additional input or assistance was required.
 
-My responsibility covered the full frontend modernization, including the page scaffolding, the individual CMS modules, the PHP rendering architecture, responsive behavior, legacy browser compatibility, customer configuration, and rollout mechanism.
+My responsibility was to transform the existing presentation layer into a responsive system without requiring customers to recreate their content.
 
-My work included:
+The main objectives were:
 
-- Reworking the frontend architecture around Bootstrap 3.
-- Rebuilding the page scaffolding for responsive layouts.
-- Working through all 30+ CMS modules.
-- Updating the modules to generate Bootstrap-compatible HTML and CSS.
-- Introducing responsive behavior across the CMS.
-- Implementing responsive navigation.
-- Implementing mobile-specific interaction patterns.
-- Making columns stack appropriately on smaller screens.
-- Introducing configurable mobile column priority.
-- Making images responsive.
-- Making tables usable on smaller screens.
-- Adjusting typography for different screen sizes.
-- Adapting headers and banners.
-- Improving touch interaction.
-- Supporting older browsers, particularly Internet Explorer.
-- Creating legacy CSS fallbacks where necessary.
-- Refactoring existing PHP toward a more object-oriented architecture.
-- Separating shared application logic from frontend-specific rendering.
-- Allowing old and new frontend modes to use the same underlying customer content.
-- Implementing the per-school frontend-mode switch.
-- Creating a restricted administration control for switching frontend modes.
-- Designing an algorithm for converting inconsistent legacy column configurations.
-- Analyzing approximately 1,000 existing customer configurations.
-- Identifying six recurring legacy column-width patterns.
-- Creating a new Bootstrap-grid-based column configuration interface.
-- Testing locally and on remote test servers.
-- Working with pilot customers.
-- Supporting a progressive customer rollout.
-- Supporting customers during the transition.
-- Working with the design team to provide customers with configuration assistance.
+- Replace the fixed-width frontend with a responsive layout system.
+- Modernize the reusable CMS modules.
+- Preserve existing customer content and configuration where possible.
+- Support old and new frontend versions simultaneously during migration.
+- Provide a controlled rollout mechanism.
+- Maintain compatibility with important legacy browsers.
+- Improve mobile usability.
+- Improve accessibility and usability.
+- Convert incompatible legacy column configurations into the new grid model.
+- Provide administrators with a safer way to configure responsive columns.
 
-The key architectural requirement was that existing customer content had to remain valid for both frontend versions.
-
-Customers should not have to rebuild their pages or recreate their content simply because the presentation layer had changed.
+The project required changes across the frontend rendering layer, PHP presentation architecture, CMS modules, customer configuration, legacy-data conversion, and rollout process.
 
 ---
 
@@ -194,120 +148,87 @@ Customers should not have to rebuild their pages or recreate their content simpl
 
 ### Problem
 
-The project involved far more than replacing a CSS file or making one website responsive.
+The project involved approximately 1,300 schools using a shared CMS platform.
 
-Moava's CMS generated the public websites of approximately 1,300 schools. Each school could combine more than 30 reusable modules, and each module could appear in different page structures and configurations.
+Each school could combine more than 30 reusable modules to construct its public website. Those modules generated HTML, CSS, and JavaScript based on customer-specific content and configuration.
 
-The existing frontend had been built around assumptions that were fundamentally desktop-oriented.
+The existing frontend had been built around desktop-oriented assumptions, including fixed-width layouts, tables, pixel dimensions, custom CSS, and module-specific layout logic.
 
-Fixed-width layouts, tables, pixel dimensions, custom CSS, inline styles, and module-specific layout logic were spread throughout the system.
-
-Simply adding responsive CSS to the outer page container would not have solved the problem.
-
-The individual modules also generated HTML that was not designed around responsive layout principles.
-
-The challenge was therefore to modernize the entire rendering system while preserving the existing customer data.
+Simply adding responsive CSS to the outer page container would not have solved the problem because many individual modules generated markup and behavior that was themselves not responsive.
 
 ### Constraints
 
-The project had to satisfy several constraints simultaneously:
+The modernization had to:
 
-- Approximately 1,300 schools were already using the CMS.
-- Customers had substantial autonomy over their content and configuration.
-- More than 30 reusable modules could be used on customer websites.
-- Each school had many dynamically generated pages.
-- Existing customer content had to remain unchanged.
-- Existing pages could not be individually rebuilt.
-- The old and new frontend had to work simultaneously.
-- One school could use the old design while another used the new design.
-- Customers should not have to perform a migration themselves.
-- The new design needed to be reversible.
-- The frontend had to work on desktop and mobile devices.
-- Older browsers, particularly Internet Explorer, still needed to be supported.
-- The migration needed to avoid a large spike in support requests.
-- The system needed to move toward better accessibility and universal design.
+- Support approximately 1,300 existing schools.
+- Preserve existing customer content.
+- Avoid rebuilding individual pages.
+- Support more than 30 reusable CMS modules.
+- Allow old and new frontend versions to operate simultaneously.
+- Allow individual schools to migrate independently.
+- Provide an immediate rollback mechanism.
+- Support desktop and mobile devices.
+- Continue supporting important legacy browsers.
+- Avoid creating a large spike in customer support issues.
 
 ### Solution
 
 I treated the reusable rendering layer as the migration boundary.
 
-Instead of migrating individual pages, I modernized the scaffolding and the reusable CMS modules responsible for generating those pages.
+Instead of migrating individual pages, I modernized the page scaffolding and the reusable modules responsible for generating those pages.
 
 The underlying customer content remained unchanged.
 
-The application was restructured so that shared application logic could be reused while the presentation layer could produce either the legacy or responsive frontend.
+The application was structured so that shared application logic could be reused while the presentation layer could generate either the legacy or responsive frontend.
 
-A per-school database setting determined which frontend rendering mode was active.
-
-This meant that two schools could use different frontend versions while using the same underlying CMS architecture and content model.
+A per-school frontend-mode setting determined which rendering mode was used.
 
 ### Result
 
 The platform could modernize thousands of dynamically generated pages without individually rebuilding them.
 
-The same customer content could be rendered through either frontend.
-
-This made the modernization feasible at the scale of the platform and provided a foundation for a controlled rollout.
+The same customer content could be rendered using either frontend version, making the migration feasible at platform scale.
 
 ---
 
-## Challenge: Supporting More Than 30 Responsive CMS Modules
+## Challenge: Making More Than 30 CMS Modules Responsive
 
 ### Problem
 
-The CMS contained more than 30 reusable modules, each with its own HTML structure, CSS, layout assumptions, and behavior.
+Each CMS module had its own HTML structure, CSS, layout assumptions, and sometimes JavaScript behavior.
 
-Examples included:
+The modules included navigation, news, articles, images, galleries, video, slideshows, forms, tables, calendars, search, and other content types.
 
-* Navigation
-* News
-* Articles
-* Article lists
-* Images
-* Galleries
-* Video
-* Slideshows
-* Employees
-* Email lists
-* Forms
-* Tables
-* Calendars
-* Search
-* Content blocks
-
-Each module needed to work within the Bootstrap layout system and behave sensibly at different viewport sizes.
-
-Some modules also had interaction patterns that made sense on desktop but needed to be redesigned for touch devices.
+A responsive page framework alone was therefore insufficient.
 
 ### Solution
 
-I systematically worked through all of the modules and converted their generated frontend output to work with Bootstrap 3 and responsive design principles.
+I systematically reviewed and updated the 30+ CMS modules so their generated output worked within the new Bootstrap 3-based frontend.
 
-This included modifying HTML structures, CSS, JavaScript behavior, and module-specific layouts where necessary.
+The work included:
 
-The responsive behavior included:
-
-* Collapsing navigation for smaller screens.
-* Mobile navigation using modal-style interaction.
-* Supporting the browser back button when closing mobile navigation.
-* Stacking columns vertically on smaller screens.
-* Allowing administrators to configure which column received priority on mobile.
-* Using the middle/main column as the default priority.
-* Allowing the customer to change the priority.
-* Scaling images appropriately.
-* Making tables usable on narrow screens.
-* Adjusting typography.
-* Adapting module layouts to available screen width.
-* Redesigning headers and banners.
-* Improving touch interaction.
-* Supporting responsive forms and controls.
-* Adding legacy CSS fallbacks for older browsers.
+- Reworking module HTML structures.
+- Updating CSS.
+- Adjusting JavaScript behavior where required.
+- Adapting module layouts to different viewport widths.
+- Collapsing navigation on smaller screens.
+- Implementing mobile navigation.
+- Supporting browser back-button behavior for mobile navigation.
+- Stacking columns on smaller screens.
+- Introducing configurable mobile column priority.
+- Making images responsive.
+- Adapting tables for narrow screens.
+- Adjusting typography.
+- Redesigning headers and banners.
+- Improving touch interaction.
+- Adding responsive behavior to forms and controls.
+- Adding legacy CSS fallbacks.
 
 ### Result
 
-The modules became responsive building blocks rather than fixed desktop components.
+The modules became reusable responsive building blocks.
 
-Because the modules generated the pages dynamically, modernizing the modules automatically improved the responsive behavior of the large number of pages that used them.
+Because the public websites were generated from these modules, modernizing the modules automatically improved the responsive behavior of the large number of pages using them.
 
 ---
 
@@ -315,172 +236,148 @@ Because the modules generated the pages dynamically, modernizing the modules aut
 
 ### Problem
 
-One of the most technically unusual parts of the project was the existing column configuration system.
+Customers had historically configured page columns using free-form text fields.
 
-Customers could configure between one and four columns using four free-form text input fields.
+The system accepted values such as:
 
-The fields had historically allowed customers to enter arbitrary values.
+- 30%
+- 30% / 30%
+- 20% / 1024 / 20%
+- 100px / 400px / 400px / 100px
+- 30% / 800px / 30%
 
-Examples included configurations such as:
+The values could contain percentages, pixels, mixed units, incomplete configurations, and combinations that did not add up to 100%.
 
-* 30%
-* 30% / 30%
-* 20% / 1024 / 20%
-* 100px / 400px / 400px / 100px
-* 30% / 800px / 30%
+Some technically invalid configurations nevertheless appeared to work because of browser behavior, CSS quirks, or assumptions in the old rendering system.
 
+Bootstrap 3 required a much more structured 12-column grid.
 
-These values were not necessarily valid or mathematically consistent.
-
-Some configurations did not add up to 100%.
-
-Some mixed percentages and pixels.
-
-Some used values that were not really correct CSS dimensions.
-
-Nevertheless, these configurations had often appeared to work because of browser behavior, CSS quirks, or bugs and assumptions in the old system.
-
-Bootstrap 3 introduced a much more structured 12-column grid.
-
-The existing configurations could therefore not simply be copied into Bootstrap.
+The legacy configurations therefore could not simply be copied into the new system.
 
 ### Solution
 
-I analyzed approximately 1,000 existing customer configurations to understand how the free-form settings had actually been used.
+I analyzed approximately 1,000 existing customer configurations to determine how the configuration system had actually been used.
 
-Rather than assuming the legacy data was correct, I looked for recurring patterns in the real configurations.
+Rather than assuming the existing values followed a clean mathematical model, I looked for recurring patterns in the production data.
 
-I identified six recurring patterns in the existing data.
+Six recurring patterns were identified.
 
-The migration algorithm then interpreted the legacy values according to factors such as:
+The conversion algorithm considered factors such as:
 
-* Number of columns.
-* Whether values were expressed as percentages.
-* Whether values were expressed in pixels.
-* Relative numeric sizes.
-* Relationships between multiple column values.
-* Recurring combinations found in the existing customer data.
+- Number of columns.
+- Percentage-based values.
+- Pixel-based values.
+- Relative numeric sizes.
+- Relationships between multiple column values.
+- Recurring combinations in the existing data.
 
-The algorithm converted these legacy configurations into Bootstrap-compatible widths while attempting to preserve the approximate visual proportions of the original layout.
+The algorithm converted the historical configurations into Bootstrap-compatible grid widths while attempting to preserve the approximate visual proportions intended by the customer.
 
-Where the existing configuration could not be reliably mapped, standard Bootstrap widths were assigned based on the number of columns.
+Where a configuration could not be reliably interpreted, a standard Bootstrap layout was used based on the number of columns.
 
-The goal was not to preserve invalid CSS literally.
-
-The goal was to infer the layout the customer had intended and represent that layout using the Bootstrap 12-column system.
+The objective was to preserve the intended layout rather than reproduce technically invalid CSS literally.
 
 ### Result
 
-The conversion transformed a large set of inconsistent historical configuration data into predictable Bootstrap-compatible layouts without requiring developers to manually correct every customer configuration.
+Approximately 1,000 historical configurations could be converted automatically without manually correcting every customer configuration.
 
-The approach also prevented the new responsive system from continuing to depend on the accidental behavior that had allowed many of the old configurations to work.
+The new frontend no longer depended on the accidental browser and CSS behavior that had allowed many legacy configurations to work.
 
 ---
 
-## Challenge: Giving Customers a Safe Way to Configure Bootstrap Columns
+## Challenge: Preventing New Invalid Column Configurations
 
 ### Problem
 
-The old system allowed customers to type arbitrary values into text fields.
+The old administration interface allowed customers to enter arbitrary column-width values.
 
-That was incompatible with the stricter Bootstrap grid model.
-
-Simply replacing the old text fields with new numeric inputs would still have left customers responsible for understanding Bootstrap's grid system.
+Continuing with free-form inputs would have allowed new configurations to violate the constraints of the Bootstrap grid.
 
 ### Solution
 
-I redesigned the column configuration interface around the Bootstrap 12-column grid.
+I replaced the free-form configuration approach with a custom multi-handle slider representing the Bootstrap 12-column grid.
 
-The new interface used a single sliding bar.
+The number of handles depended on the number of columns:
 
-The number of handles depended dynamically on the selected number of columns:
+- One column: no handles and the slider was disabled.
+- Two columns: one handle.
+- Three columns: two handles.
+- Four columns: three handles.
 
-* One column: the slider was disabled because no division was necessary.
-* Two columns: one handle controlled the division.
-* Three columns: two handles controlled the divisions.
-* Four columns: three handles controlled the divisions.
+Handles snapped to the available Bootstrap grid positions.
 
-The handles snapped to the 12 Bootstrap grid steps.
-
-This meant that administrators could visually define the relative column widths while the interface itself prevented them from creating configurations outside the Bootstrap grid model.
+This allowed administrators to configure column proportions visually while preventing configurations outside the supported grid model.
 
 ### Result
 
-The new configuration interface made the Bootstrap grid easier for administrators to use and prevented new invalid column configurations from being introduced through the normal administration interface.
+The administration interface became easier to use and prevented new invalid column configurations from being introduced through the normal UI.
 
-It also reduced the need for customers to understand the technical details of Bootstrap's grid system.
+The system intentionally traded arbitrary flexibility for predictable responsive layouts.
 
 ---
 
-## Challenge: Maintaining Old and New Frontends Simultaneously
+## Challenge: Running Old and New Frontends Simultaneously
 
 ### Problem
 
-The entire customer base could not simply be switched to the new frontend at once.
+The entire customer base could not safely be migrated to the new frontend in a single operation.
 
-A platform-wide migration would have created unnecessary operational risk.
+At the same time, the old and new frontends needed to operate against the same customer content.
 
-At the same time, the old and new designs had to work against the same customer data.
-
-A school using the old design and a school using the new design needed to coexist on the same platform.
+A school using the old frontend and a school using the new frontend had to coexist on the same platform.
 
 ### Solution
 
-I implemented a per-school frontend-mode setting stored in each school's database.
+I implemented a per-school frontend-mode setting stored in the database.
 
-The setting was exposed through the design section of the CMS administration interface, but access was restricted to Moava employees.
+The setting was exposed through the design section of the CMS administration interface, with access restricted to Moava employees.
 
-The PHP application checked the setting when generating the public website and selected the corresponding rendering mode.
+The PHP rendering layer checked the setting and selected the corresponding frontend mode.
 
-The old and new systems were therefore not separate CMS products. They were two presentation modes operating on the same underlying customer data and application logic.
+The old and new frontends therefore shared the same underlying customer content and application logic while using different presentation modes.
 
 ### Result
 
-The team could enable the new design for individual schools without affecting other customers.
+The team could migrate individual schools without affecting other customers.
 
-If a school needed to return to the old design, the team could simply switch the setting back.
+A school could also be returned to the legacy frontend by changing the frontend-mode setting.
 
-No content migration was required.
-
-No page rebuild was required.
-
-No database conversion of the customer content was required.
-
-This provided an immediate and practical rollback mechanism during the transition.
+No content migration or page reconstruction was required.
 
 ---
 
-## Challenge: Rolling Out the New Design Safely
+## Challenge: Rolling Out the New Frontend Safely
 
 ### Problem
 
-A new responsive frontend used by approximately 1,300 schools could potentially generate a large number of customer issues if enabled everywhere at once.
+Enabling a new frontend across approximately 1,300 schools simultaneously would have created unnecessary operational risk.
 
-The system therefore needed a controlled rollout mechanism.
+Internal testing alone also could not reproduce every customer configuration.
 
 ### Solution
 
-The new frontend was tested internally using local development servers and remote test servers.
+The rollout was performed progressively.
 
-After internal testing, pilot customers were used to validate the new design in real-world environments.
+The new frontend was:
 
-The rollout was then performed gradually.
+1. Tested locally.
+2. Tested on remote test servers.
+3. Tested with pilot customers.
+4. Enabled for additional schools incrementally.
+5. Supported alongside the old frontend during the transition.
+6. Eventually enabled for the complete customer base.
 
-The team enabled the responsive design for schools individually rather than performing a single platform-wide switch.
+The per-school frontend switch provided a practical rollback mechanism.
 
-The old frontend remained operational during the transition, and important bug fixes were still made to the legacy frontend for a period after the new design launched.
+The team continued to maintain important fixes for the legacy frontend during the transition.
 
-If a customer disliked the new design or encountered a problem, the team could revert the school by changing the frontend-mode setting.
-
-Only a small number of customers ultimately requested a rollback. After discussions with the team and assistance with their settings, those customers also agreed to keep the new version.
-
-Moava also offered each customer one hour of free telephone design consultation with a designer. This allowed customers to get help adjusting settings, including column widths and visual elements such as banners.
+Moava also offered customers one hour of free telephone design consultation with a designer to help them adjust configuration and visual elements.
 
 ### Result
 
-The rollout could happen progressively instead of as a high-risk big-bang deployment.
+The rollout could be performed incrementally instead of as a high-risk big-bang migration.
 
-The team could test the new frontend with real customers, identify problems, fix them, and continue expanding the rollout without putting all 1,300 schools at risk simultaneously.
+Problems could be isolated to individual customers and corrected without affecting the entire platform.
 
 Approximately three months after the new frontend was introduced, all schools had transitioned to the new design.
 
@@ -492,32 +389,32 @@ Approximately three months after the new frontend was introduced, all schools ha
 
 ### Frontend
 
-The frontend was redesigned around Bootstrap 3 and responsive layout principles.
+The frontend was rebuilt around Bootstrap 3 and responsive layout principles.
 
-The existing fixed-width page scaffolding was replaced with a Bootstrap-based grid and responsive structure.
+The fixed-width page scaffolding was replaced with a Bootstrap-based grid and responsive structure.
 
-All 30+ CMS modules were reviewed and modified so that their generated HTML, CSS, and JavaScript worked within the new frontend.
+The 30+ CMS modules were updated to generate markup and behavior compatible with the new frontend.
 
 The frontend supported:
 
-* Bootstrap 3 grid layouts.
-* Responsive navigation.
-* Mobile navigation.
-* Modal-style mobile interactions.
-* Browser back-button behavior for mobile navigation.
-* Responsive columns.
-* Configurable mobile column priority.
-* Responsive images.
-* Responsive tables.
-* Responsive typography.
-* Responsive forms.
-* Responsive module layouts.
-* Responsive headers.
-* Responsive banners.
-* Touch-friendly controls.
-* Legacy browser fallbacks.
+- Bootstrap 3 grid layouts.
+- Responsive navigation.
+- Mobile navigation.
+- Modal-style mobile interactions.
+- Browser back-button behavior for mobile navigation.
+- Responsive columns.
+- Configurable mobile column priority.
+- Responsive images.
+- Responsive tables.
+- Responsive typography.
+- Responsive forms.
+- Responsive module layouts.
+- Responsive headers.
+- Responsive banners.
+- Touch-friendly controls.
+- Legacy browser fallbacks.
 
-The same customer content could be rendered through either the legacy or responsive frontend.
+The same customer content could be rendered using either the legacy or responsive frontend.
 
 ### Backend
 
@@ -525,108 +422,109 @@ The application was primarily PHP-based.
 
 I refactored parts of the existing PHP rendering code toward a more object-oriented architecture.
 
-The goal was to make shared application logic reusable while separating it more clearly from presentation-specific rendering.
+The goal was to separate shared application logic from presentation-specific rendering so that the legacy and responsive frontends could share underlying functionality.
 
-This allowed the old and new frontend modes to share underlying application logic rather than requiring two completely independent applications.
-
-The PHP rendering layer used the per-school frontend-mode setting and selected the appropriate presentation mode.
+The PHP rendering layer read the per-school frontend-mode setting and selected the appropriate presentation mode.
 
 ### Database
 
-Each school had its own database containing its CMS content and configuration.
+Each school had its own database containing CMS content and configuration.
 
 The modernization did not require duplicating or migrating the customer content.
 
-A per-school database variable controlled which frontend mode was active.
+A per-school frontend-mode variable controlled which presentation layer was used.
 
-The same content could therefore be rendered through either the legacy or responsive frontend.
+The same customer content could therefore be rendered through either frontend.
 
 ### Infrastructure
 
-Development and testing were performed using local development servers and remote test servers.
+Development and testing were performed using local development environments and remote test servers.
 
-Changes could be deployed to remote test environments before being committed and pushed to production.
+The responsive frontend was tested internally before being introduced to pilot customers.
 
-Pilot customers were used to validate the new system under real-world conditions.
-
-The production rollout was performed progressively.
+The production rollout was performed progressively so that individual schools could be migrated and, if necessary, reverted independently.
 
 ---
 
 ## Technical Decisions
 
-## Decision: Use Bootstrap 3 as the Responsive Layout Foundation
+## Decision: Bootstrap 3 as the Responsive Foundation
 
 ### Context
 
 The existing frontend lacked a consistent responsive grid and relied heavily on fixed-width and table-based layouts.
 
-A structured responsive system was needed across many different modules and page configurations.
+A common responsive layout system was required across many modules and customer configurations.
 
 ### Chosen Solution
 
-Bootstrap 3 was used as the foundation for the new responsive frontend.
+Bootstrap 3 was adopted as the foundation for the responsive frontend.
 
 The page scaffolding and CMS modules were adapted to use Bootstrap's grid and responsive conventions.
 
+### Alternatives Considered
+
+The existing custom CSS system could have been extended with additional responsive rules.
+
 ### Trade-offs
 
-Bootstrap provided a consistent grid and responsive model, but it also meant that the existing arbitrary customer configurations had to be normalized.
+Bootstrap provided a consistent grid and responsive model but imposed stricter layout constraints than the legacy system.
 
-The migration therefore required both frontend modernization and data-conversion logic.
+That required the existing column configurations to be normalized.
 
 ---
 
-## Decision: Keep Customer Content Independent from Frontend Presentation
+## Decision: Keep Customer Content Independent from Presentation
 
 ### Context
 
-Customers should not have to recreate their websites simply because the frontend design changed.
+Customers should not have to rebuild their websites because the presentation layer was being modernized.
 
 The same content needed to work with both frontend versions.
 
 ### Chosen Solution
 
-The old and new frontends shared the same underlying customer data.
+The legacy and responsive frontends shared the same underlying customer data.
 
-The PHP rendering layer determined which presentation mode to use based on the per-school frontend setting.
+The PHP rendering layer selected the presentation mode using the per-school frontend setting.
+
+### Alternatives Considered
+
+The team could have migrated customers to a new content model or created a separate version of the customer website.
 
 ### Trade-offs
 
-The team temporarily had to maintain two frontend presentation modes.
+Maintaining two presentation modes temporarily increased implementation and maintenance complexity.
 
-However, this provided:
-
-* Backward compatibility.
-* Progressive rollout.
-* Immediate rollback.
-* No customer content migration.
-* No page-by-page rebuilding.
-* Lower operational risk.
+However, it avoided content migration, reduced rollout risk, and provided immediate rollback.
 
 ---
 
-## Decision: Use a Per-School Feature Switch
+## Decision: Per-School Frontend Feature Switch
 
 ### Context
 
-A platform-wide frontend switch would have created too large a blast radius.
+A platform-wide frontend switch would have created a large blast radius.
 
-The team needed to migrate customers independently.
+The team needed to migrate schools independently.
 
 ### Chosen Solution
 
-A frontend-mode variable was stored in each school's database.
+A frontend-mode value was stored for each school.
 
-Only authorized Moava employees could access the corresponding control in the CMS administration interface.
+Only authorized Moava employees could change the value through the administration interface.
 
-The PHP rendering layer used the set value when generating the public website.
+The PHP rendering layer used the value to determine which frontend should be generated.
+
+### Alternatives Considered
+
+A single global configuration could have switched the entire customer base at once.
 
 ### Trade-offs
 
-The system temporarily had to support both rendering modes.
+The per-school approach introduced additional configuration and required both rendering modes to remain functional during the transition.
 
-However, the approach allowed individual schools to be enabled, tested, or reverted independently.
+In return, it provided controlled rollout and immediate rollback at customer level.
 
 ---
 
@@ -634,294 +532,293 @@ However, the approach allowed individual schools to be enabled, tested, or rever
 
 ### Context
 
-The existing column configuration system allowed free-form values such as percentages, pixels, mixed units, and technically invalid combinations.
+The existing configuration system allowed arbitrary percentages, pixel values, mixed units, and invalid combinations.
 
 Bootstrap required a 12-column grid.
 
 ### Chosen Solution
 
-Approximately 1,000 customer configurations were analyzed.
+Approximately 1,000 production configurations were analyzed.
 
 Six recurring patterns were identified and used as the basis for an automated conversion algorithm.
 
-The algorithm converted the historical configurations into Bootstrap-compatible grid widths while attempting to preserve their approximate visual structure.
+The algorithm converted legacy values into Bootstrap-compatible widths while attempting to preserve their approximate visual proportions.
+
+### Alternatives Considered
+
+Every customer configuration could have been manually reviewed and corrected.
+
+A single generic mathematical conversion could also have been applied to all configurations.
 
 ### Trade-offs
 
-Not every historical configuration could be perfectly reproduced.
+Some unusual configurations could not be reproduced perfectly.
 
-Some unusual configurations required fallback behavior.
-
-However, the approach was considerably more reliable than applying one generic formula or manually fixing every customer configuration.
+However, analyzing actual production data produced a more reliable migration than either manual correction at scale or a generic conversion formula.
 
 ---
 
-## Decision: Replace Free-Form Column Inputs with a Multi-Handle Custom Grid Slider
+## Decision: Multi-Handle Bootstrap Grid Slider
 
 ### Context
 
-The old administration interface allowed customers to enter arbitrary column-width values.
+The old administration interface allowed arbitrary text input for column widths.
 
-This was one of the reasons inconsistent configurations had accumulated.
+This flexibility had contributed to inconsistent historical configurations.
 
 ### Chosen Solution
 
-The new interface used a multi-handle custom slider representing the Bootstrap 12-column grid.
+A custom multi-handle slider represented the Bootstrap 12-column grid.
 
-The slider dynamically changed the number of handles based on the selected number of columns.
+The number of handles changed according to the number of columns:
 
-For example:
+- One column: no handles.
+- Two columns: one handle.
+- Three columns: two handles.
+- Four columns: three handles.
 
-* One column: no handles and the slider was disabled.
-* Two columns: one handle.
-* Three columns: two handles.
-* Four columns: three handles.
+Handles snapped to Bootstrap grid positions.
 
-Handles snapped to Bootstrap's 12 grid steps.
+### Alternatives Considered
 
-This made it impossible through the normal interface to create a column configuration that did not correspond to the Bootstrap grid.
+The existing free-form inputs could have been retained with validation added.
 
 ### Trade-offs
 
-The new interface was less flexible than the old free-form fields.
+The slider was less flexible than arbitrary text input.
 
-That was intentional.
-
-The old flexibility had allowed years of inconsistent and technically invalid configurations to accumulate.
-
-The new system traded arbitrary control for predictable, valid responsive layouts.
+That was intentional. The new interface enforced the constraints of the responsive layout system and prevented customers from creating configurations the frontend could not reliably support.
 
 ---
 
-## Decision: Use Progressive Customer Rollout
+## Decision: Progressive Customer Rollout
 
 ### Context
 
-Enabling the new frontend for approximately 1,300 schools simultaneously would have increased the operational risk and could have created a large spike in customer support requests.
+Migrating approximately 1,300 schools simultaneously would have increased operational risk and potentially created a large support burden.
 
 ### Chosen Solution
 
-The new design was:
+The new frontend was introduced through internal testing, remote test environments, pilot customers, and progressive customer migration.
 
-1. Developed internally.
-2. Tested on local servers.
-3. Tested on remote test servers.
-4. Tested with pilot customers.
-5. Gradually enabled for additional schools.
-6. Supported alongside the old frontend during the transition.
-7. Eventually enabled for the full customer base.
+The legacy frontend remained available during the transition.
+
+### Alternatives Considered
+
+A single platform-wide migration could have been performed after internal testing.
 
 ### Trade-offs
 
-Maintaining both frontends temporarily increased the maintenance burden.
+Maintaining two frontend modes temporarily increased maintenance overhead.
 
-However, it reduced the blast radius of problems and allowed the team to use real customer feedback throughout the rollout.
+However, it reduced the impact of defects, enabled real-world feedback, and provided a practical rollback mechanism.
 
 ---
 
 # Implementation
 
-The implementation covered the frontend architecture, PHP rendering layer, page scaffolding, more than 30 CMS modules, responsive behavior, legacy browser compatibility, customer configuration, migration logic, and rollout.
+The implementation covered the frontend rendering architecture, PHP presentation layer, page scaffolding, more than 30 CMS modules, responsive behavior, legacy browser compatibility, customer configuration, legacy-data conversion, and rollout.
 
 Key implementation work included:
 
-* Rebuilding the page scaffolding around Bootstrap 3.
-* Converting more than 30 CMS modules to responsive layouts.
-* Refactoring PHP rendering code toward a more object-oriented structure.
-* Separating shared application logic from frontend-specific presentation.
-* Supporting simultaneous legacy and responsive rendering modes.
-* Adding the per-school frontend-mode database setting.
-* Restricting the frontend switch to authorized Moava employees.
-* Implementing responsive navigation.
-* Implementing mobile navigation using modal-style interaction.
-* Supporting the browser back button for mobile navigation.
-* Making columns stack appropriately on smaller screens.
-* Implementing configurable mobile column priority.
-* Using the middle/main column as the default mobile priority.
-* Making images responsive.
-* Adapting tables for smaller screens.
-* Adjusting typography for responsive layouts.
-* Updating headers and banners.
-* Improving touch interaction.
-* Adding legacy CSS fallbacks for older browsers.
-* Supporting Internet Explorer and other major browsers of the period.
-* Analyzing approximately 1,000 existing customer configurations.
-* Identifying six recurring legacy column-width patterns.
-* Implementing an algorithm for converting legacy values into Bootstrap grid widths.
-* Designing a multi-handle custom grid slider for administrators.
-* Dynamically changing the number of slider handles according to the number of columns.
-* Snapping slider handles to Bootstrap's 12 grid steps.
-* Preventing new invalid column configurations through the administration interface.
-* Testing on local development servers.
-* Deploying to remote test servers.
-* Testing with pilot customers.
-* Rolling the new frontend out progressively.
-* Continuing limited legacy frontend bug fixes during the transition.
-* Supporting customer configuration through free design consultations.
+- Rebuilding the page scaffolding around Bootstrap 3.
+- Converting more than 30 CMS modules to responsive layouts.
+- Refactoring PHP rendering code toward a more object-oriented structure.
+- Separating shared application logic from frontend-specific presentation.
+- Supporting simultaneous legacy and responsive rendering modes.
+- Adding the per-school frontend-mode database setting.
+- Restricting the frontend switch to authorized Moava employees.
+- Implementing responsive navigation.
+- Implementing mobile navigation using modal-style interaction.
+- Supporting browser back-button behavior for mobile navigation.
+- Making columns stack appropriately on smaller screens.
+- Implementing configurable mobile column priority.
+- Using the middle/main column as the default mobile priority.
+- Making images responsive.
+- Adapting tables for smaller screens.
+- Adjusting typography for responsive layouts.
+- Updating headers and banners.
+- Improving touch interaction.
+- Adding legacy CSS fallbacks.
+- Supporting Internet Explorer and other important browsers of the period.
+- Analyzing approximately 1,000 existing customer configurations.
+- Identifying six recurring legacy column-width patterns.
+- Implementing an algorithm for converting legacy values into Bootstrap grid widths.
+- Designing a multi-handle custom grid slider.
+- Dynamically changing the number of slider handles according to the number of columns.
+- Snapping slider handles to Bootstrap's 12 grid positions.
+- Preventing new invalid column configurations through the administration interface.
+- Testing locally.
+- Testing on remote test servers.
+- Testing with pilot customers.
+- Rolling the new frontend out progressively.
+- Maintaining important legacy frontend fixes during the transition.
+- Supporting customer configuration through design consultations.
 
 ---
 
 # Result
 
-The project transformed Moava's customer-facing CMS from a fixed-width, desktop-oriented system into a responsive Bootstrap 3-based platform.
+The project transformed Moava's customer-facing CMS from a fixed-width, desktop-oriented frontend into a responsive Bootstrap 3-based system.
 
 The main outcomes were:
 
-* Approximately 1,300 schools were transitioned to the responsive frontend.
-* More than 30 CMS modules were modernized.
-* Approximately 39,000 generated pages were covered by the responsive architecture based on the conservative baseline of 30 pages per school.
-* The actual customer content was not individually migrated or rebuilt.
-* Existing customer databases and content remained usable.
-* The old and new frontend modes could operate simultaneously.
-* Individual schools could be switched between frontend modes.
-* Individual schools could be reverted without a content migration.
-* The frontend could be rolled out progressively.
-* Pilot customers could test the system before broader rollout.
-* Responsive navigation was introduced.
-* Mobile-specific navigation and interaction patterns were implemented.
-* Columns could stack vertically on mobile.
-* Customers could control mobile column priority.
-* Images became responsive.
-* Tables were adapted for smaller screens.
-* Typography and module layouts were adapted for different viewport sizes.
-* Headers and banners were redesigned for the new frontend.
-* Touch-friendly interactions were introduced.
-* Older browsers, particularly Internet Explorer, remained supported through compatibility work and legacy CSS fallbacks.
-* Approximately 1,000 existing customer column configurations were analyzed.
-* Six recurring patterns were identified in the legacy column-width data.
-* An automated algorithm converted inconsistent legacy configurations into Bootstrap-compatible grid layouts.
-* The free-form column configuration interface was replaced with a constrained multi-handle custom grid slider.
-* Slider handles snapped to one of Bootstraps 12 valid grid positions.
-* New invalid column configurations could therefore be prevented through the normal administration interface.
-* The same underlying content could be used by both frontend versions.
-* Only a small number of customers initially requested to revert to the old design.
-* After configuration assistance and discussion with the team, those customers also chose to keep the new version.
-* Each customer could receive one hour of free telephone design consultation with a designer.
-* Some customers used the consultation to fine-tune column widths or request changes such as a new banner.
-* Approximately three months after the new frontend was introduced, all schools had transitioned to the new design.
+- Approximately 1,300 schools were transitioned to the responsive frontend.
+- More than 30 CMS modules were modernized.
+- At least approximately 39,000 generated pages were covered by the responsive architecture based on the conservative baseline of 30 pages per school.
+- Customer content did not need to be individually migrated or rebuilt.
+- Existing customer databases remained usable.
+- The old and new frontend modes could operate simultaneously.
+- Individual schools could be switched between frontend modes.
+- Individual schools could be reverted without content migration.
+- The frontend could be rolled out progressively.
+- Pilot customers could validate the new frontend before broader rollout.
+- Responsive navigation was introduced.
+- Mobile-specific navigation and interaction patterns were implemented.
+- Columns could stack vertically on mobile.
+- Customers could configure mobile column priority.
+- Images became responsive.
+- Tables were adapted for smaller screens.
+- Typography and module layouts were adapted for different viewport sizes.
+- Headers and banners were redesigned for the responsive frontend.
+- Touch-friendly interactions were introduced.
+- Older browsers, particularly Internet Explorer, remained supported through compatibility work and legacy CSS fallbacks.
+- Approximately 1,000 existing column configurations were analyzed.
+- Six recurring patterns were identified in the legacy configuration data.
+- An automated conversion algorithm transformed inconsistent legacy configurations into Bootstrap-compatible layouts.
+- The free-form column configuration interface was replaced with a constrained multi-handle grid slider.
+- Slider handles snapped to Bootstrap's valid grid positions.
+- New invalid column configurations could be prevented through the administration interface.
+- The same underlying customer content could be used by both frontend versions.
+- Only a small number of customers initially requested to revert to the old design.
+- After configuration assistance and discussions with the team, those customers also chose to remain on the new version.
+- Approximately three months after the new frontend was introduced, all schools had transitioned to the new design.
 
-The project allowed Moava to modernize a large legacy SaaS CMS without forcing approximately 1,300 independent school customers to manually rebuild their websites.
+The project allowed Moava to modernize a large legacy SaaS CMS without requiring approximately 1,300 independent school customers to manually rebuild their websites.
 
 ---
 
 # Lessons Learned
 
-## Technical Lessons
+## Architecture
 
 A large CMS frontend modernization is not primarily a CSS problem.
 
-When thousands of pages are dynamically generated from reusable modules, the correct migration boundary is the rendering architecture and the reusable components that produce those pages.
+When thousands of pages are dynamically generated from reusable modules, the migration boundary should be the rendering architecture and the reusable components responsible for producing those pages.
 
-Modernizing the scaffolding and modules allowed a very large number of generated pages to become responsive without individually rebuilding them.
+Modernizing the scaffolding and modules made it possible to change the behavior of a very large number of generated pages without rebuilding the pages themselves.
 
-The project also demonstrated that legacy configuration data must be treated as real production data.
+Keeping customer content independent from presentation was also critical.
 
-Values that are technically invalid may still have worked for years because of browser behavior, CSS quirks, or implementation details.
+The same content could be rendered by either frontend mode, which significantly reduced the risk of the migration.
 
-The six legacy column patterns were discovered by analyzing real customer configurations rather than assuming that the existing data followed a clean model.
+## Legacy Data
 
-## Architectural Lessons
+Legacy configuration data must be treated as production data, even when the data model is technically poor.
 
-Keeping customer content independent from presentation made the migration significantly safer.
+The existing column values were not clean or consistent, but they represented real customer configurations that had worked for years.
 
-The same underlying content could be rendered by either frontend mode.
+Analyzing the actual production data and identifying recurring patterns produced a more reliable migration strategy than assuming that the legacy data followed a mathematically consistent model.
 
-The per-school frontend switch effectively acted as a feature flag and made progressive rollout and rollback possible.
-
-Refactoring shared PHP logic toward a more object-oriented structure also made it easier to distinguish application behavior from presentation concerns.
-
-## Responsive Design Lessons
+## Responsive Design
 
 Responsive design is not simply a matter of making a desktop layout narrower.
 
-Each module needs to be considered individually.
+Each reusable module needs to be evaluated independently.
 
 Navigation, tables, images, forms, calendars, slideshows, typography, headers, banners, and content blocks can all require different responsive behavior.
 
 Mobile information hierarchy also matters.
 
-The desktop position of a column does not necessarily represent its importance on a mobile device, which is why configurable column priority was useful.
+The desktop position of a column does not necessarily indicate its importance on a mobile device, which made configurable column priority useful.
 
-## Configuration Design Lessons
+## Configuration Design
 
-Free-form configuration can appear convenient but creates technical debt over time.
+Free-form configuration appears flexible but can create significant technical debt.
 
-The old column system gave customers flexibility, but that flexibility allowed technically invalid combinations to accumulate.
+The old column configuration system allowed arbitrary values, which eventually resulted in inconsistent and technically invalid combinations.
 
-The new slider-based configuration sacrificed arbitrary values in exchange for a predictable and constrained model.
+The new slider-based configuration deliberately reduced flexibility in exchange for predictable and valid layouts.
 
-The multi-handle custom grid slider became both a technical constraint and a user-facing configuration model.
+The configuration interface therefore became part of the technical architecture rather than simply being a UI replacement.
 
-## Browser Compatibility Lessons
+## Browser Compatibility
 
-Modern responsive behavior had to be introduced into an environment where Internet Explorer remained important.
+Modern responsive behavior had to be introduced while Internet Explorer and other older browsers were still important.
 
-This required compatibility work and legacy CSS fallbacks rather than assuming that all users had modern browsers.
+This required explicit compatibility work and legacy CSS fallbacks.
 
-The project demonstrated the practical difficulty of modernizing a legacy frontend while still supporting older environments.
+The project demonstrated that legacy-browser support can materially influence frontend architecture during modernization.
 
-## Process Lessons
+## Progressive Rollout
 
-Progressive rollout was significantly safer than a big-bang migration.
+Progressive rollout was substantially safer than a big-bang migration.
 
-Pilot customers exposed problems that internal testing alone would not necessarily have revealed.
+Pilot customers exposed issues that internal testing could not necessarily reveal.
 
-The ability to enable or disable the new frontend for individual schools meant that problems could be isolated without affecting the entire customer base.
+The per-school frontend switch made it possible to isolate problems and revert individual customers without affecting the rest of the platform.
 
-Customer support also became part of the migration process.
+Maintaining both frontend versions temporarily increased the maintenance burden, but the reduction in migration risk justified that cost.
 
-The one-hour design consultations gave customers a way to adapt their existing configurations instead of treating the frontend migration as purely a technical deployment.
+## Product and Customer Impact
 
-## Product Lessons
+The project was not only a technical modernization.
 
-The project was not purely technical.
+Mobile access had become increasingly important for students, teachers, parents, and other visitors using school websites.
 
-Mobile access had become an important part of how students interacted with school information.
+The modernization therefore addressed a real change in user behavior while also supporting broader product goals such as:
 
-The modernization therefore addressed a real change in user behavior rather than simply replacing an old visual design.
+- Customer retention.
+- Customer satisfaction.
+- Product modernization.
+- Competitiveness.
+- Mobile usability.
+- Accessibility.
+- Universal design.
 
-The project also supported broader business goals:
+Customer support was also part of the migration strategy.
 
-* Customer retention.
-* Customer satisfaction.
-* Product modernization.
-* Competitiveness.
-* Mobile usability.
-* Accessibility.
-* Universal design.
+The design consultations gave customers practical assistance in adapting their configurations rather than leaving them to deal with the visual consequences of the migration themselves.
 
 ---
 
 # What I Would Do Differently Today
 
-With modern tooling, I would keep the core architectural strategy but make the migration more observable, testable, and automated.
+With modern tooling, I would keep the core migration strategy but make the implementation significantly more observable, testable, and automated.
 
 I would add:
 
-* Automated visual regression testing for the CMS modules.
-* Component-level integration tests.
-* Automated responsive testing across a defined viewport matrix.
-* Automated browser compatibility testing.
-* Automated accessibility testing against WCAG requirements.
-* Better separation between CMS content, application logic, and presentation.
+- Automated visual regression testing for all CMS modules.
+- Component-level integration tests.
+- Automated responsive testing across a defined viewport matrix.
+- Automated cross-browser testing.
+- Automated accessibility testing against WCAG requirements.
+- Automated detection of layout regressions.
+- Better separation between CMS content, application logic, and presentation.
+- Metrics showing which modules and configurations produced the most migration problems.
+- Structured logging around frontend-mode changes and migration failures.
 
-I would want to know exactly which modules generated the most problems, and which browsers caused compatibility issues.
+I would also make the legacy-data conversion algorithm independently testable using a representative corpus of historical configurations. That would make it easier to verify that future changes did not unintentionally alter established customer layouts.
 
 ---
 
 # Future Improvements
 
-If continuing the project today, I would preserve the core architectural approach but introduce significantly stronger automated validation, observability, and testing.
+If continuing the project today, I would preserve the core architectural strategy but introduce stronger automated validation and observability.
 
 Potential improvements include:
 
-* Automated visual regression testing for the CMS modules.
-* Component-level integration tests.
-* Automated responsive testing across a defined viewport matrix.
-* Automated browser compatibility testing.
-* Automated accessibility testing against WCAG requirements.
-* Monitoring of module rendering failures.
-* Automated detection of responsive layout regressions.
-* Stronger separation between content, application logic, and presentation.
+- Automated visual regression testing for CMS modules.
+- Automated responsive testing.
+- Automated accessibility testing.
+- Automated browser compatibility testing.
+- Component-level integration tests.
+- Monitoring of module rendering failures.
+- Automated detection of responsive layout regressions.
+- Structured migration metrics.
+- Better separation between content, application logic, and presentation.
+- A formal migration test suite covering the historical column-configuration patterns.
+- Automated reporting of schools still using the legacy frontend during a transition period.
+- Removal of the legacy rendering path once the migration was complete.
 
 ---

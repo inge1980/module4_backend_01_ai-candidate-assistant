@@ -76,19 +76,11 @@ links:
 
 Developed a GDPR-compliant dynamic form builder for the administration system at Moava AS.
 
-The system allowed administrators to create forms from predefined templates, edit and duplicate individual fields inline, reorder fields using drag-and-drop, and manage form submissions without developer involvement.
+The system allowed administrators to create forms from predefined templates, edit and duplicate fields inline, reorder fields using drag-and-drop, manage submissions, configure data-retention periods, and export collected data.
 
-Form submissions could be reviewed in a list, deleted individually or in bulk, and used for manual communication with submitters through their submitted email addresses.
+The solution also handled uploaded files associated with submissions. Files were stored in AWS S3 and could be included in XLS and ZIP exports without first creating unnecessary local copies.
 
-A configurable data-retention system limited how long submissions could remain stored. Each form defined its own retention period in days. Form owners received email warnings before submissions reached their deletion deadline, allowing them to review the data before automatic deletion.
-
-The system also included a data-export workflow supporting CSV and XLS exports. Submissions containing uploaded files could be exported as ZIP packages containing the spreadsheet and associated files.
-
-Uploaded files were stored in AWS S3. During file-inclusive exports, S3 objects were streamed into the ZIP generation process without first creating complete local copies of the uploaded files or a persistent intermediate ZIP archive.
-
-A significant export challenge was representing multiple uploaded files belonging to one submission. Because each spreadsheet cell could only provide one independent hyperlink for the required use case, submissions with multiple files were represented across multiple physical rows. The non-file columns were visually grouped to preserve the appearance of one logical submission.
-
-The initial spreadsheet implementation used native cell merging, but extensive use of `mergeCells()` caused excessive memory consumption. The final implementation reproduced the visual grouping using hidden gridlines, borders, and cell styling instead.
+A major part of the project involved combining dynamic form management, privacy-oriented data retention, file lifecycle management, spreadsheet generation, and streaming exports into the existing administration platform.
 
 ---
 
@@ -98,50 +90,45 @@ Moava AS operated an administration system where customers could create and mana
 
 The form builder needed to be usable by non-technical administrators while supporting reusable templates, flexible field configuration, inline editing, duplication, and drag-and-drop ordering.
 
-The system also collected potentially sensitive or personal information. This made data retention and deletion part of the application's core data lifecycle rather than a separate administrative process.
+The system collected potentially sensitive or personal information. Data therefore needed a defined retention lifecycle, including warnings before deletion and automatic removal of expired submissions and associated uploaded files.
 
-After developing questionnaire templates, customers also needed to export collected responses for further processing, analysis, consolidation, and sharing.
+Customers also needed to export collected responses for further processing, analysis, consolidation, and sharing.
 
-The export requirement became more complex because submissions could contain uploaded files. Customers needed the exported spreadsheet to maintain the relationship between each submission and its associated files while also receiving the actual uploaded files as part of the export package.
+The export requirement became more complex when submissions contained uploaded files. Customers needed both the structured submission data and the actual files while maintaining a clear relationship between each submission and its attachments.
 
-The resulting solution combined four related concerns:
+The project therefore combined:
 
 - Dynamic form management.
 - Submission management.
-- GDPR-oriented data retention and deletion.
-- Export of structured data and associated files.
+- GDPR-oriented data retention.
+- Uploaded file lifecycle management.
+- Spreadsheet generation.
+- File-inclusive ZIP exports.
+- Cloud-based file storage.
+- Streaming and memory optimization.
 
 ---
 
 # Task
 
-The main task was to develop and integrate a dynamic form builder into the existing administration system.
+The main task was to develop and integrate the dynamic form builder into the existing administration system.
 
-The system needed to support:
+My responsibilities included:
 
-- Creating forms from predefined templates.
-- Editing individual fields inline.
-- Duplicating fields.
-- Reordering fields through drag-and-drop.
-- Detecting unsaved field changes.
-- Persisting form and field data through a PHP REST API.
-- Exchanging form data as JSON.
-- Listing form submissions.
-- Deleting individual submissions.
-- Deleting all submissions for a form.
-- Contacting submitters manually using submitted email addresses.
-- Configuring form-specific data-retention periods.
-- Warning form owners before data reached its retention deadline.
-- Automatically deleting expired submissions.
-- Automatically deleting uploaded files associated with expired submissions.
-- Exporting submission data to CSV.
-- Exporting submission data to XLS.
-- Including uploaded files in exports.
-- Providing individual file hyperlinks in XLS exports.
-- Packaging spreadsheets and uploaded files into ZIP archives.
-- Streaming files from AWS S3 during export.
-- Avoiding unnecessary temporary local storage.
-- Maintaining acceptable memory usage for larger spreadsheet exports.
+- Designing and implementing the dynamic form editing interface.
+- Implementing form and field persistence through the REST API.
+- Supporting inline editing, duplication, and drag-and-drop ordering.
+- Implementing unsaved-change detection.
+- Developing submission management functionality.
+- Implementing configurable data-retention rules.
+- Implementing automated deletion of expired submissions and uploaded files.
+- Implementing CSV and XLS exports.
+- Supporting multiple uploaded files per submission in XLS exports.
+- Integrating AWS S3 file storage.
+- Implementing streaming ZIP exports.
+- Investigating and reducing memory consumption during spreadsheet generation.
+
+The work covered both frontend and backend development as well as the integration between the administration interface, database, file storage, and export pipeline.
 
 ---
 
@@ -187,9 +174,9 @@ The editor allowed multiple fields to be modified independently. Administrators 
 
 The saved JSON representation of each field was retained as a reference state.
 
-When a field was edited, its current JSON representation was compared with this stored "ghost" version.
+When a field was edited, its current JSON representation was compared with the stored reference.
 
-If the current representation differed from the saved representation, the field was considered modified and received a faint red background.
+If the current representation differed from the saved representation, the field was considered modified and received a visual indication using a faint red background.
 
 ### Result
 
@@ -217,9 +204,9 @@ When the configured retention period was reached, the submission was deleted. Up
 
 ### Result
 
-Data retention was built into the form and submission lifecycle rather than treated as an unrelated cleanup process.
+Data retention became part of the normal form and submission lifecycle rather than an unrelated cleanup process.
 
-This reduced the amount of personal data retained by the system and provided customers with a controlled mechanism for reviewing data before deletion.
+The system provided customers with a controlled mechanism for reviewing data before deletion while reducing the amount of personal data retained by the platform.
 
 ---
 
@@ -247,9 +234,7 @@ For submissions containing multiple files:
 4. The remaining submission fields were visually grouped across the physical rows.
 5. The result appeared to the user as one logical submission containing multiple file links.
 
-This changed the spreadsheet representation rather than trying to force multiple independent hyperlinks into one cell.
-
-The resulting XLS file was packaged together with the submitted files in a ZIP archive.
+The XLS file was packaged together with the submitted files in a ZIP archive.
 
 The spreadsheet contained relative links to the exported files so that the links remained usable after the ZIP archive was unpacked.
 
@@ -257,15 +242,13 @@ The spreadsheet contained relative links to the exported files so that the links
 
 Customers could export submissions containing multiple attachments while retaining a clear relationship between each submission and its files.
 
-The exported data could be processed, analyzed, consolidated, and shared outside the administration system.
-
 ---
 
 ## Challenge: Spreadsheet Export Performance
 
 ### Problem
 
-The first implementation used PHPSpreadsheet's `mergeCells()` to vertically merge the non-file columns when one submission occupied multiple rows.
+The first implementation used PHPSpreadsheet's mergeCells() to vertically merge the non-file columns when one submission occupied multiple rows.
 
 The approach produced the desired visual result but caused excessive memory consumption when many cells were merged.
 
@@ -275,7 +258,7 @@ This became problematic for larger exports containing many submissions and uploa
 
 The implementation was changed so that actual spreadsheet cell merging was no longer required.
 
-Gridlines were disabled with `setShowGridlines(false)` and the appearance of merged cells was reproduced using borders and other PHPSpreadsheet styling APIs such as `applyFromArray()`.
+Gridlines were disabled and the appearance of merged cells was reproduced using borders and other PHPSpreadsheet styling APIs.
 
 The spreadsheet therefore used independent cells structurally while making the relevant areas appear visually grouped to the user.
 
@@ -301,15 +284,17 @@ It would also introduce intermediate copies of data that did not need to exist f
 
 Uploaded files were stored in AWS S3 and accessed through the AWS SDK for PHP.
 
-During an export, the required S3 objects were streamed into `maennchen/zipstream-php`, which compressed them as part of the ZIP generation process.
+During an export, the required S3 objects were streamed into maennchen/zipstream-php, which compressed them as part of the ZIP generation process.
 
 The ZIP response was streamed directly to the customer instead of first creating a complete archive on the application server.
 
 The effective data flow was:
-`AWS S3` -> `AWS SDK for PHP` -> `ZipStream` -> `HTTP response` -> `browser`
+
+AWS S3 -> AWS SDK for PHP -> ZipStream -> HTTP response -> browser
 
 This avoided the unnecessary intermediate flow:
-`AWS S3` -> `local filesystem` -> `ZIP file` -> `browser`
+
+AWS S3 -> local filesystem -> ZIP file -> browser
 
 ### Result
 
@@ -323,9 +308,11 @@ The trade-off was that the HTTP request remained active while the archive was ge
 
 ## Architecture
 
+The system followed a client-server architecture connecting a JavaScript administration frontend, PHP backend, MySQL database, AWS S3 file storage, and export services.
+
 ### Frontend
 
-The form builder frontend used:
+The frontend used:
 
 - Backbone.js
 - Underscore.js
@@ -334,21 +321,16 @@ The form builder frontend used:
 - HTML
 - CSS
 
-Backbone.js represented form fields as client-side models and collections based on JSON received from the backend.
+Backbone.js models and collections represented forms and fields on the client side.
 
-The frontend supported:
+The frontend provided:
 
 - Form template selection.
 - Inline field editing.
 - Field duplication.
-- Drag-and-drop field ordering.
-- Saved and unsaved field states.
-- Visual indication of unsaved changes.
+- Drag-and-drop ordering.
+- Unsaved-change detection.
 - Submission listing and management.
-
-Backbone.js was also responsible for maintaining the client-side representation used during drag-and-drop and editing operations.
-
----
 
 ### Backend
 
@@ -359,89 +341,55 @@ A self-developed REST API provided JSON-based communication between the frontend
 The backend handled:
 
 - Form and field persistence.
-- Form and field retrieval.
 - Submission management.
-- Individual and bulk submission deletion.
-- Data-retention processing.
+- Retention processing.
 - Export generation.
-- File metadata and relationships.
-- AWS S3 file access.
+- File relationships.
+- AWS S3 access.
 - CSV and XLS generation.
-
----
 
 ### Database
 
-MySQL was used for structured application data.
+MySQL stored the structured application data.
 
-Each form field was stored separately and associated with its parent form through a form ID.
+Forms, fields, submissions, and file metadata were represented as relational data.
 
-This allowed individual fields to be updated, duplicated, and reordered without storing the complete form structure as one monolithic record.
+Form fields were stored individually and associated with their parent form, allowing fields to be modified, duplicated, and reordered independently.
 
-Form submissions were associated with their forms and contained submission dates used by the retention mechanism.
-
-Uploaded files were not stored as binary data in MySQL. The database maintained the relationship between submissions and their associated files while the actual files were stored in AWS S3.
-
----
+Uploaded file contents were stored in AWS S3 rather than in MySQL.
 
 ### File Storage
 
-Uploaded files were stored in AWS S3.
+AWS S3 was used for uploaded files.
 
-The AWS SDK for PHP was used to access the objects.
+The database maintained the relationship between uploaded files and their corresponding submissions, while the AWS SDK for PHP provided access to the stored objects.
 
-S3 storage separated binary file storage from structured application data while allowing files to remain associated with individual submissions.
+Uploaded files participated in the same retention lifecycle as their associated submissions.
 
-Uploaded files followed the same retention lifecycle as the submission they belonged to.
+### Retention Processing
 
----
+Retention processing evaluated submission age against the retention period configured for the corresponding form.
 
-### Submission Management
+The lifecycle included:
 
-Administrators could view submitted results in a list.
-
-They could:
-
-- Delete individual submissions.
-- Delete all submissions for a form.
-- Manually contact submitters using the email address provided with the submission.
-- Export collected submissions.
-- Export associated uploaded files.
-
-The system did not automatically send replies to submitters. Communication was performed manually using the submitted email address.
-
----
+- Retention-period configuration.
+- Warning notifications.
+- Submission deletion.
+- Associated file deletion.
 
 ### Export Pipeline
 
-The export pipeline combined structured submission data with uploaded files.
+The export system supported:
 
-For CSV exports, the structured submission data was represented as tabular data.
+- CSV exports.
+- XLS exports.
+- Individual file hyperlinks.
+- Multiple uploaded files per submission.
+- ZIP packaging.
+- Streaming access to S3 objects.
+- Styling-based spreadsheet grouping.
 
-For XLS exports, PHPSpreadsheet was used to generate the spreadsheet and provide formatting and hyperlinks.
-
-For submissions containing multiple files, the XLS representation used multiple physical rows so that every file could have an individual hyperlink.
-
-The general XLS process was:
-
-1. Retrieve the selected submissions.
-2. Generate the submission data.
-3. Determine files associated with each submission.
-4. Create the spreadsheet row for the submission.
-5. Add additional rows for additional uploaded files.
-6. Place one file hyperlink in the file column of each relevant row.
-7. Visually group the remaining submission columns.
-8. Disable gridlines and use styling instead of native cell merging where required for performance.
-9. Generate the spreadsheet.
-10. Retrieve associated files from AWS S3.
-11. Stream the S3 objects into the ZIP generation process.
-12. Add the spreadsheet and submitted files to the ZIP archive.
-13. Stream the resulting ZIP archive to the customer's browser.
-
-The file packaging flow was:
-`AWS S3` -> `AWS SDK for PHP` -> `ZipStream` -> `HTTP response` -> `Customer browser`
-
-No complete copy of every S3 object needed to be stored on the application server before ZIP generation.
+For file-inclusive exports, S3 objects were streamed through the AWS SDK and ZipStream into the HTTP response without requiring all uploaded files to be stored locally first.
 
 ---
 
@@ -457,7 +405,7 @@ The form builder needed to manage dynamic collections of fields that could be ed
 
 Backbone.js models and collections were used to represent the form and its fields on the client.
 
-The JSON returned by the REST API could be mapped into Backbone's model structure and manipulated before changes were sent back to the backend.
+The JSON returned by the REST API could be mapped into Backbone structures and manipulated before changes were sent back to the backend.
 
 ### Alternatives Considered
 
@@ -487,7 +435,7 @@ The editor could have used traditional server-rendered HTML forms and full-page 
 
 ### Trade-offs
 
-The REST/JSON approach required more client-side implementation but enabled a more interactive editing experience and established a clear data contract between frontend and backend.
+The REST and JSON approach required more client-side implementation but enabled a more interactive editing experience and established a clear data contract between frontend and backend.
 
 ---
 
@@ -559,7 +507,7 @@ However, native cell merging created excessive memory usage at scale, which led 
 
 ---
 
-## Decision: Visual Merge Instead of Native `mergeCells()`
+## Decision: Visual Grouping Instead of Native Cell Merging
 
 ### Context
 
@@ -569,13 +517,13 @@ The non-file fields needed to appear visually as one logical result.
 
 ### Chosen Solution
 
-The first implementation used `mergeCells()` but was replaced after memory profiling showed excessive consumption.
+The first implementation used native cell merging but was replaced after memory profiling showed excessive consumption.
 
 Gridlines were disabled and borders and styles were used to create the visual appearance of merged cells without creating native merged ranges.
 
 ### Alternatives Considered
 
-Continue using `mergeCells()` for every additional file row.
+Continue using native cell merging for every additional file row.
 
 ### Trade-offs
 
@@ -595,7 +543,7 @@ Exports could contain many and potentially large uploaded files, making local te
 
 ### Chosen Solution
 
-`maennchen/zipstream-php` was used together with the AWS SDK for PHP to stream S3 objects directly into the ZIP response.
+maennchen/zipstream-php was used together with the AWS SDK for PHP to stream S3 objects directly into the ZIP response.
 
 The spreadsheet and uploaded files could therefore be added to the ZIP as part of a streaming export process without first downloading all uploaded files to local storage or creating a complete intermediate ZIP archive.
 
@@ -618,51 +566,25 @@ For extremely large exports, a background-job architecture would be more appropr
 
 ---
 
-# Implementation
-
-The system followed a client-server architecture connecting a Backbone.js frontend, a PHP backend, MySQL, and AWS S3.
-
-The main application flow was:
-
-1. An administrator selected a predefined form template.
-2. The frontend loaded the form configuration through the REST API, with PHP returning the data as JSON.
-3. Backbone.js represented forms and fields as client-side models and collections.
-4. Administrators could edit, duplicate, and reorder fields through the administration interface.
-5. Saved field state was retained so that unsaved changes could be detected and shown visually.
-6. Changes were persisted through the REST API, with individual form fields stored as separate MySQL records.
-7. Form submissions were associated with their forms and managed through the administration interface.
-8. Each form's configured retention period was used to determine when submissions and their associated uploaded files should be deleted.
-9. Submission data could be exported as CSV or XLS.
-10. PHPSpreadsheet generated XLS exports, including formatting and individual hyperlinks for uploaded files.
-11. Submissions containing multiple files were represented across multiple spreadsheet rows, with styling used to visually group the fields belonging to the same submission.
-12. For file-inclusive exports, the required S3 objects were accessed through the AWS SDK for PHP.
-13. `maennchen/zipstream-php` added the spreadsheet and S3-backed files to a ZIP archive without requiring the uploaded files to be fully materialized on the application server first.
-14. The ZIP response was streamed directly to the customer's browser.
-15. Relative file links in the spreadsheet pointed to the corresponding files within the exported ZIP package.
-
----
-
 # Result
 
-The resulting system provided a flexible administration interface for creating and managing dynamic forms.
+The resulting system provided a flexible administration interface for creating and managing dynamic forms without requiring developers to modify form definitions manually.
 
-Administrators could create forms from templates, edit and duplicate fields, reorder fields using drag-and-drop, and identify unsaved changes without developer involvement.
+Administrators could create forms from templates, edit and duplicate fields, reorder fields using drag-and-drop, and identify unsaved changes.
 
 The submission workflow supported list-based review, individual and bulk deletion, manual communication with submitters, and export of collected data.
 
-The GDPR-oriented retention mechanism allowed each form to define its own data-retention period. Form owners received email warnings before submissions reached their deletion deadline, and both submission data and associated uploaded files were deleted after the configured retention period.
+The retention mechanism allowed each form to define its own data-retention period. Form owners received warnings before submissions reached their deletion deadline, and both submission data and associated uploaded files were deleted after the configured retention period.
 
 The export functionality supported CSV and XLS formats and allowed customers to take collected data outside the administration system for further processing, analysis, consolidation, and sharing.
 
-For submissions with uploaded files, the export produced a ZIP package containing the XLS spreadsheet and corresponding files. Each uploaded file received its own hyperlink in the spreadsheet.
+For submissions with uploaded files, the export produced a ZIP package containing the spreadsheet and corresponding files. Each uploaded file received its own hyperlink in the spreadsheet.
 
-Multiple files belonging to one submission were represented using multiple spreadsheet rows. The other fields were visually grouped so that the exported data still appeared as one logical submission.
+Multiple files belonging to one submission were represented using multiple spreadsheet rows while the remaining fields were visually grouped to preserve the appearance of one logical submission.
 
-The initial use of `mergeCells()` caused excessive memory consumption for larger exports. Replacing native cell merging with gridline removal and styling-based visual grouping reduced the memory overhead while preserving the intended user-facing layout.
+The initial use of native cell merging caused excessive memory consumption for larger exports. Replacing it with styling-based visual grouping reduced memory pressure while preserving the intended user-facing layout.
 
-Uploaded files were stored in AWS S3 and streamed directly into ZIP generation. This avoided unnecessary local copies of the files and removed the need to create a complete intermediate ZIP archive on the application server.
-
-The resulting architecture combined dynamic form management, submission handling, configurable data retention, cloud-based file storage, spreadsheet generation, and streaming export into a single administration workflow.
+Uploaded files were stored in AWS S3 and streamed directly into ZIP generation. This avoided unnecessary local copies of uploaded files and removed the need to create a complete intermediate ZIP archive on the application server.
 
 ---
 
@@ -670,15 +592,9 @@ The resulting architecture combined dynamic form management, submission handling
 
 ## Dynamic UI State Should Be Explicit
 
-Backbone.js provided a useful model layer for an interface where fields could be edited, duplicated, reordered, and persisted independently.
+A model-based frontend architecture was useful for an editor where individual fields could be edited, duplicated, reordered, and persisted independently.
 
-The same model representation also made it possible to compare current and saved JSON state to identify unsaved changes.
-
-## Visual Feedback Can Prevent Data Loss
-
-The faint red background used for modified fields provided a low-friction way to communicate unsaved state.
-
-For editors with multiple independently editable objects, explicit visual state is preferable to relying on users to remember which objects they changed.
+Keeping saved and current representations separate also made unsaved changes explicit and easy to communicate visually.
 
 ## GDPR Affects the Entire Data Lifecycle
 
@@ -706,7 +622,7 @@ This preserved the required relationships while remaining compatible with the sp
 
 ## Optimize for the Actual Requirement
 
-Native `mergeCells()` was technically capable of producing the desired spreadsheet layout, but it introduced unnecessary memory overhead.
+Native cell merging was technically capable of producing the desired spreadsheet layout, but it introduced unnecessary memory overhead.
 
 The customer did not require the cells to be structurally merged. They required them to appear grouped.
 
@@ -716,19 +632,13 @@ Replacing structural merging with styling was therefore a better solution becaus
 
 The S3-to-ZIP streaming architecture avoided downloading every uploaded file to the application server before compression.
 
-The general principle is applicable beyond this specific system:
-`Remote object storage` -> `streaming transformation` -> `HTTP response`
-
-can be preferable to:
-`Remote object storage` -> `local temporary files` -> `generated artifact` -> `HTTP response`
-
-when the transformation can be performed incrementally.
+The broader principle is that remote object storage can often be connected directly to a streaming transformation and response when the transformation can be performed incrementally.
 
 ## Export Is Part of the Data Lifecycle
 
 The export feature was not only a reporting convenience.
 
-It allowed customers to obtain the collected information and continue processing it outside the administration system while the original stored data could be removed according to the configured retention policy.
+It allowed customers to obtain collected information and continue processing it outside the administration system while the original stored data could be removed according to the configured retention policy.
 
 This made export part of the overall privacy and data-management strategy rather than an isolated feature.
 
@@ -736,11 +646,13 @@ This made export part of the overall privacy and data-management strategy rather
 
 # Future Improvements
 
-- Replace the legacy Backbone.js/jQuery frontend with a modern component-based architecture.
+- Replace the legacy Backbone.js and jQuery frontend with a modern component-based architecture.
 - Move very large export generation to background jobs instead of keeping a single HTTP request open for the entire operation.
 - Add progress reporting for long-running exports.
 - Profile PHPSpreadsheet memory usage across different dataset sizes and optimize generation further.
-- Consider more modern spreadsheet-generation approaches if future export requirements exceed the capabilities or performance characteristics of PHPSpreadsheet.
-- Make export and retention processing observable through structured logging and operational metrics.
+- Evaluate more modern spreadsheet-generation approaches if future export requirements exceed the capabilities or performance characteristics of PHPSpreadsheet.
+- Add structured logging and operational metrics for retention processing and export generation.
+- Add automated integration tests around retention, file deletion, and export workflows.
+- Add automated performance tests for large spreadsheet and file-inclusive exports.
 
-----
+---

@@ -32,6 +32,9 @@ concepts:
   - item-status-management
   - search
   - filtering
+  - environment-configuration
+  - utc-timestamps
+  - api-documentation
 
 links:
 
@@ -46,7 +49,7 @@ Lost & Found is a small backend system built with ASP.NET Core Web API, PostgreS
 
 The application allows users to register found items and allows employees to mark items as claimed and returned.
 
-The system provides functionality for creating and listing found items, filtering by status and category, searching items, claiming items, returning items to their owners, and deleting available items.
+The system supports creating and listing found items, filtering items by status and category, searching items, claiming found items, returning items to owners, and deleting available items.
 
 ---
 
@@ -54,9 +57,11 @@ The system provides functionality for creating and listing found items, filterin
 
 The project is a backend system for managing found items.
 
-The application uses ASP.NET Core Web API for the API, PostgreSQL 16 for persistent storage, Entity Framework Core for database access, Docker Compose for running the application and database, and Swagger/OpenAPI for API documentation and testing.
+The application uses ASP.NET Core Web API, Entity Framework Core, PostgreSQL 16, Docker Compose, Swagger/OpenAPI, DotNetEnv, and xUnit.
 
-The application also includes automated tests using xUnit.
+PostgreSQL provides persistent storage. Docker Compose is used to run the ASP.NET Core API and PostgreSQL database together during development.
+
+The project also includes automated tests covering item creation, timestamps, item status rules, repository filtering, validation, and API responses.
 
 ---
 
@@ -76,7 +81,7 @@ The application needed to support:
 - Deleting available items
 - Persisting data in PostgreSQL
 - Validating API requests
-- Testing the application's behaviour
+- Testing application behaviour
 
 ---
 
@@ -86,25 +91,25 @@ The application needed to support:
 
 ### Problem
 
-Found items have different statuses, and operations depend on the item's current status.
+Found items have different statuses, and the available operations depend on the item's current status.
 
-The application needs to enforce rules around claiming, returning, and deleting items.
+The application needs to apply rules around claiming, returning, and deleting items.
 
 ### Solution
 
-The application includes claim rules, return rules, and delete rules.
+The application implements claim, return, and delete rules.
 
 New items are created with `Available` status.
 
-Deletion is supported for available items.
+Available items can be deleted.
 
 The test suite verifies the claim, return, and delete rules.
 
 ### Result
 
-The application provides explicit behaviour for the different operations that can be performed on found items.
+The application's item operations are covered by explicit status-related rules.
 
-The relevant rules are covered by automated tests.
+These rules are also covered by automated tests.
 
 ---
 
@@ -114,9 +119,7 @@ The relevant rules are covered by automated tests.
 
 ### Frontend
 
-No frontend application is described in the available project documentation.
-
-The project provides a backend API that can be accessed through HTTP.
+The backend exposes an HTTP API that can be explored and tested through Swagger UI.
 
 ### Backend
 
@@ -126,7 +129,7 @@ The API supports:
 
 - Creating found items
 - Listing found items
-- Filtering by status and category
+- Filtering items by status and category
 - Searching items
 - Claiming found items
 - Returning items to owners
@@ -136,29 +139,31 @@ The API is available at:
 
 `http://localhost:8080/api/items`
 
-Swagger UI is available for exploring and testing the available endpoints.
+Swagger UI is available at:
+
+`http://localhost:8080/swagger/index.html`
 
 ### Database
 
-The application uses PostgreSQL 16 for persistence.
+The application uses PostgreSQL 16 for persistent storage.
 
-Entity Framework Core is used with the PostgreSQL repository.
+Entity Framework Core is used for database access with the PostgreSQL repository.
 
 PostgreSQL runs through Docker Compose.
 
 PostgreSQL data is stored in a Docker volume so that the data survives container restarts.
 
-The application uses Entity Framework Core `EnsureCreated()` for automatic database setup during development.
+Entity Framework Core `EnsureCreated()` is used for automatic database setup during development.
 
 ### Infrastructure
 
-Docker Compose is used to run the application and its PostgreSQL database.
+Docker Compose runs the ASP.NET Core API and PostgreSQL database together.
 
-Running:
+The application can be started with:
 
 `docker compose up --build`
 
-starts:
+This starts:
 
 - ASP.NET Core API
 - PostgreSQL database
@@ -179,48 +184,36 @@ The project uses DotNetEnv for environment configuration.
 
 ### Context
 
-The application requires a persistence mechanism for storing found items.
+The application requires a persistence mechanism for storing and retrieving found items.
 
 ### Chosen Solution
 
 The application uses a repository abstraction for persistence.
 
-It provides:
+Two repository implementations are described:
 
 - An in-memory repository for fast tests
 - A PostgreSQL repository for production-like execution
 
-### Alternatives Considered
-
-The README does not document alternative persistence approaches that were considered.
-
-### Trade-offs
-
-The repository abstraction allows the application to use an in-memory repository for tests and a PostgreSQL repository for production-like execution.
-
-The README does not document additional trade-offs of this approach.
-
 ---
 
-## Decision: PostgreSQL with Docker
+## Decision: PostgreSQL with Docker Compose
 
 ### Context
 
-The application requires persistent storage for found items.
+The application requires persistent storage for found items and a development environment that includes both the API and database.
 
 ### Chosen Solution
 
 PostgreSQL 16 is used as the database.
 
-PostgreSQL runs through Docker Compose, and its data is stored in a Docker volume.
+PostgreSQL is run through Docker Compose alongside the ASP.NET Core API.
 
-### Alternatives Considered
-
-The README does not document alternative database or infrastructure approaches that were considered.
+PostgreSQL data is stored in a Docker volume.
 
 ### Trade-offs
 
-Using PostgreSQL through Docker Compose requires Docker Desktop to be running.
+Docker Desktop must be running to start the application with Docker Compose.
 
 The Docker volume allows PostgreSQL data to survive container restarts.
 
@@ -230,23 +223,25 @@ The Docker volume allows PostgreSQL data to survive container restarts.
 
 ### Context
 
-The project includes automated tests and provides a separate repository implementation for testing.
+The project includes automated tests and provides an in-memory repository specifically for fast tests.
 
 ### Chosen Solution
 
-An in-memory repository is used for fast tests.
+The in-memory repository is used for fast tests.
 
 The PostgreSQL repository is used for production-like execution.
 
-### Alternatives Considered
+---
 
-The README does not document alternative testing persistence approaches.
+## Decision: UTC Timestamps
 
-### Trade-offs
+### Context
 
-The README specifically identifies the in-memory repository as being used for fast tests.
+Found item timestamps are part of the application's tested behaviour.
 
-It does not document the limitations or additional trade-offs of the in-memory implementation.
+### Chosen Solution
+
+Found timestamps are generated in UTC.
 
 ---
 
@@ -258,17 +253,9 @@ The API needs to be available for exploration and testing.
 
 ### Chosen Solution
 
-Swagger/OpenAPI is used to document the API.
+Swagger/OpenAPI is used for API documentation.
 
-Swagger UI can be used to explore and test the available endpoints.
-
-### Alternatives Considered
-
-The README does not document alternative API documentation approaches.
-
-### Trade-offs
-
-The README does not document specific trade-offs of using Swagger/OpenAPI.
+Swagger UI provides an interface for exploring and testing the available endpoints.
 
 ---
 
@@ -276,33 +263,36 @@ The README does not document specific trade-offs of using Swagger/OpenAPI.
 
 The application is implemented as an ASP.NET Core Web API backed by PostgreSQL.
 
-Found items can be created and listed through the API.
-
-Items can be filtered by status and category and can also be searched.
-
 Users can register found items.
 
-Employees can mark items as claimed and returned.
+Employees can mark found items as claimed and returned.
 
-Available items can be deleted.
+The API supports creating and listing found items, filtering by status and category, searching items, claiming items, returning items to owners, and deleting available items.
 
 New items are created with `Available` status.
 
 Found timestamps are generated in UTC.
 
-The persistence layer uses a repository abstraction.
+The persistence layer uses a repository abstraction with:
 
-An in-memory repository is used for fast tests, while a PostgreSQL repository is used for production-like execution.
+- An in-memory repository for fast tests
+- A PostgreSQL repository for production-like execution
 
-Entity Framework Core is used for database access, with `EnsureCreated()` providing automatic database setup during development.
+Entity Framework Core is used for database access.
 
-Docker Compose starts both the ASP.NET Core API and PostgreSQL database.
+Entity Framework Core `EnsureCreated()` provides automatic database setup during development.
+
+Docker Compose starts the ASP.NET Core API and PostgreSQL database together.
 
 Database configuration is provided through environment variables.
 
-PostgreSQL data is stored in a Docker volume.
+The PostgreSQL data is stored in a Docker volume so that it survives container restarts.
 
-The API can be started with:
+The example environment configuration can be created with:
+
+`cp .env.example .env`
+
+The application can be started with:
 
 `docker compose up --build`
 
@@ -340,6 +330,10 @@ An example database query is:
 
 `SELECT * FROM "Items";`
 
+PostgreSQL can be exited with:
+
+`\q`
+
 ---
 
 # Result
@@ -360,9 +354,20 @@ The application supports:
 - Swagger/OpenAPI documentation
 - Automated testing
 
-The application can be run using Docker Compose, with the ASP.NET Core API and PostgreSQL database started together.
+The application can be run using Docker Compose, which starts the ASP.NET Core API and PostgreSQL database together.
 
-The test suite covers item creation, UTC timestamps, claim rules, return rules, delete rules, repository filtering, validation, missing resources, and relevant API responses.
+The test suite covers:
+
+- Item creation
+- `Available` status for new items
+- UTC timestamps
+- Claim rules
+- Return rules
+- Delete rules
+- Repository filtering by status
+- API validation
+- Missing resources
+- API responses for creation, return, and delete
 
 ---
 
@@ -372,40 +377,44 @@ The test suite covers item creation, UTC timestamps, claim rules, return rules, 
 
 The project uses a repository abstraction for persistence.
 
-The implementation includes an in-memory repository for fast tests and a PostgreSQL repository for production-like execution.
+The implementation provides an in-memory repository for fast tests and a PostgreSQL repository for production-like execution.
+
+This separates the documented testing persistence implementation from the PostgreSQL persistence implementation.
 
 ## Automated Testing
 
 The project uses xUnit for automated testing.
 
-The test suite verifies item creation status, UTC timestamps, claim rules, return rules, delete rules, repository filtering, validation, missing resources, and API responses.
+The test suite verifies item creation status, UTC timestamps, claim rules, return rules, delete rules, repository filtering, validation, missing resources, and relevant API responses.
+
+## Item Status Rules
+
+The application's found items have status-dependent operations.
+
+Claim, return, and delete rules are explicitly tested.
+
+New items are created with `Available` status, and deletion is supported for available items.
 
 ## Docker-Based Development
 
-Docker Compose allows the ASP.NET Core API and PostgreSQL database to be started together.
+Docker Compose runs the ASP.NET Core API and PostgreSQL database together.
 
-PostgreSQL data is stored in a Docker volume so it survives container restarts.
+PostgreSQL data is stored in a Docker volume so that it survives container restarts.
 
 ## Environment Configuration
 
 Database configuration is provided through environment variables.
 
-The project includes an example environment file that can be copied to `.env` for local configuration.
+The project provides an example environment file that can be copied to `.env`.
+
+DotNetEnv is included in the technology stack for environment configuration.
 
 ## API Documentation
 
-Swagger/OpenAPI provides a way to explore and test the available API endpoints.
+Swagger/OpenAPI provides API documentation and allows the available endpoints to be explored and tested through Swagger UI.
 
 ## Database Setup
 
 Entity Framework Core `EnsureCreated()` is used for automatic database setup during development.
-
----
-
-# Future Improvements
-
-The README does not specify planned future improvements.
-
-Potential improvements should therefore be determined from the project's requirements rather than inferred from the existing implementation.
 
 ---

@@ -1,5 +1,5 @@
 ---
-title: GDPR Compliant Dynamic Form Builder
+title: GDPR-Compliant Dynamic Form Builder and Submission Management System
 
 organization: Moava AS
 
@@ -53,8 +53,13 @@ concepts:
   - file-storage
   - data-export
   - data-processing
+  - spreadsheet-generation
+  - spreadsheet-formatting
+  - hyperlink-generation
   - streaming
   - cloud-storage
+  - performance-optimization
+  - memory-optimization
 
 dependencies:
   - maennchen/zipstream-php
@@ -75,25 +80,31 @@ The form builder allowed administrators to create forms from predefined template
 
 The system also handled form submissions, including viewing, deleting, responding to submitters, exporting results, and managing uploaded files.
 
-A central requirement was GDPR-compliant data retention. Each form could define how many days submitted data was allowed to remain stored. The system automatically identified submissions approaching their retention limit and notified the form owner by email so the data could be reviewed before deletion.
+A central requirement was GDPR-compliant data retention. Each form could define how many days submitted data was allowed to remain stored. The system notified the form owner by email when submissions were approaching their retention deadline so the data could be reviewed before deletion.
 
-The project also included a dedicated export and data-processing solution. Customers could export collected form results to CSV and XLS, including submitted files, and use the exported Excel data for further processing, analysis, consolidation, and sharing.
+The project also included a dedicated export and data-processing solution. Customers could export collected form results to CSV and XLS, including submitted files, and use the exported data for further processing, analysis, consolidation, and sharing.
+
+A technically challenging part of the export functionality was representing multiple uploaded files belonging to a single form submission. A spreadsheet cell could not provide the required representation of multiple independent file hyperlinks, so the export had to represent one logical submission across multiple physical spreadsheet rows while preserving the appearance of a single result.
+
+The export implementation also required performance optimization. The initial use of native spreadsheet cell merging caused excessive memory consumption for larger exports, leading to a styling-based alternative that reproduced the visual result without relying on large numbers of native merged-cell ranges.
 
 ---
 
 # Context
 
-Moava AS operated an administration system where customers needed to create and manage GDPR compliant dynamic forms and questionnaires.
+Moava AS operated an administration system where customers needed to create and manage dynamic forms and questionnaires.
 
 The form builder needed to support non-technical administrators while providing enough flexibility to construct forms from reusable templates and modify individual fields without requiring developer intervention.
 
-After developing a questionnaire template for the form builder, a requirement emerged to export the collected responses so customers could process and analyze the data outside the administration system.
+After developing a questionnaire template for the form builder, a requirement emerged to export collected responses so customers could process and analyze the data outside the administration system.
 
-The export functionality needed to support both structured response data and uploaded files. Customers needed a practical way to receive the collected information in familiar spreadsheet formats while maintaining relationships between each response and its submitted attachments.
+The export functionality needed to support both structured response data and uploaded files. Customers needed a practical way to receive the collected information in familiar spreadsheet formats while maintaining the relationship between each response and its submitted attachments.
+
+A single submission could contain multiple uploaded files. The exported spreadsheet therefore needed to represent multiple file links while keeping the other submission fields visually grouped as one logical result.
 
 The system also handled potentially sensitive information submitted through these forms. This created a requirement for explicit data-retention controls and automated deletion processes to reduce the amount of personal data stored by Moava AS.
 
-The underlying principle was to allow customers to take responsibility for further processing and retention of exported data while information stored by Moava AS could be deleted according to the configured retention policy and the users' consent.
+The underlying approach was to allow customers to take responsibility for further processing of exported data while information stored by Moava AS could be deleted according to the configured retention policy and applicable consent requirements.
 
 ---
 
@@ -114,24 +125,26 @@ The solution needed to provide:
 - Individual and bulk deletion of submissions.
 - Manual communication with form submitters.
 - CSV and XLS exports.
-- Export of submitted files together with the submission data.
+- Export of submitted files together with submission data.
 - AWS S3 storage for uploaded files.
 - Configurable GDPR data-retention periods.
 - Email warnings to form owners before submission data reached its deletion deadline.
 - Automatic deletion of submissions and associated uploaded files after the configured retention period.
 
-A separate requirement was to implement an export solution that allowed customers to take collected form data out of the system for further processing.
-
-The export solution needed to:
+The export functionality additionally needed to:
 
 - Export form results to CSV.
 - Export form results to XLS.
-- Include submitted files in the export.
-- Package submitted files into a ZIP archive.
-- Provide working links from the Excel export to the corresponding submitted files.
+- Support multiple uploaded files per submission.
+- Provide individual hyperlinks to exported files.
+- Package submitted files together with the spreadsheet in a ZIP archive.
+- Preserve the relationship between each submission and its uploaded files.
 - Allow customers to download and process their collected data outside the administration system.
-- Reduce manual work for administrators.
-- Support GDPR-oriented data lifecycle management by allowing customers to take responsibility for further processing while stored data could subsequently be deleted according to the configured retention policy.
+- Reduce manual administrative work.
+- Remain performant for larger exports.
+- Avoid unnecessary local disk usage when packaging S3 files.
+- Avoid excessive memory consumption during spreadsheet generation.
+- Support GDPR-oriented data lifecycle management.
 
 ---
 
@@ -217,9 +230,11 @@ The system reduced the risk of retaining personal data longer than required and 
 
 After developing questionnaire templates for the form builder, customers needed a way to export collected responses for further processing and analysis.
 
-The raw data needed to be available in common formats such as CSV and XLS. At the same time, submissions could contain uploaded files that needed to remain associated with the corresponding response.
+The data needed to be available in common formats such as CSV and XLS. At the same time, submissions could contain multiple uploaded files that needed to remain associated with the corresponding response.
 
-Simply exporting database records would not provide a practical workflow for customers who needed both the structured data and the submitted attachments.
+The spreadsheet format introduced an additional limitation: the required representation could not place multiple independent file hyperlinks into a single cell.
+
+A submission containing three uploaded files therefore needed to occupy three physical spreadsheet rows, while the remaining submission fields still needed to appear as one logical result.
 
 ### Solution
 
@@ -229,17 +244,26 @@ The system supported:
 
 - CSV exports.
 - XLS exports.
-- Export of submitted files.
+- Multiple uploaded files per submission.
+- Individual hyperlinks to submitted files.
 - ZIP packaging of submitted files.
-- Links from the exported Excel spreadsheet to the corresponding files.
+- A spreadsheet layout that visually grouped multiple file rows into one logical submission.
+
+For a submission containing multiple files, the export generated an additional spreadsheet row for each additional file.
+
+The file column contained one hyperlink per physical row.
+
+The remaining columns were visually grouped vertically across the generated rows so the multiple physical rows appeared as one logical result.
+
+This approach worked around the spreadsheet limitation by changing the representation of the data rather than attempting to force multiple independent hyperlinks into a single cell.
 
 The file export was designed around streaming rather than first downloading all files from S3 to the application's local filesystem.
 
-Uploaded files were stored in AWS S3 and retrieved through the AWS SDK for PHP.
+Uploaded files were stored in AWS S3 and accessed through the AWS SDK for PHP.
 
-When an export containing files was requested, the application streamed the S3 objects directly into a ZIP archive using `maennchen/zipstream-php`. The files were compressed on the fly as part of the export process.
+When an export containing files was requested, the application streamed the S3 objects directly into a ZIP archive using `maennchen/zipstream-php`. The files were compressed as part of the streaming process.
 
-The resulting ZIP archive could then be streamed directly to the customer's browser as a download without requiring the application server to first create a complete ZIP file on local disk.
+The resulting ZIP archive could then be streamed directly to the customer's browser without first creating a complete ZIP file on local disk.
 
 The exported XLS file contained internal links to the corresponding submitted files. After unpacking the ZIP archive, customers could open the spreadsheet and follow the links to the associated files.
 
@@ -255,11 +279,51 @@ rather than:
 
 The export functionality gave customers a practical way to work with collected form data outside the administration system.
 
-It reduced manual administrative work and avoided unnecessary local disk usage during file exports.
+It supported multiple uploaded files per submission while preserving the relationship between each file and its original response.
+
+The solution reduced manual administrative work and avoided unnecessary local disk usage during file exports.
 
 The export package maintained a usable relationship between response data and uploaded files, allowing customers to process, analyze, consolidate, and share the collected information.
 
-The approach also supported the broader GDPR data lifecycle by allowing customers to take responsibility for further processing while limiting how long the original data needed to remain stored by Moava AS.
+---
+
+## Challenge: Spreadsheet Merge Performance
+
+### Problem
+
+The initial implementation used PHPSpreadsheet's native `mergeCells()` functionality to vertically merge the non-file columns when a submission occupied multiple rows because of multiple uploaded files.
+
+Functionally, this produced the desired visual result.
+
+However, testing revealed a significant performance problem. Extensive use of `mergeCells()` caused excessive memory consumption and was not suitable for larger exports.
+
+The problem was particularly relevant because the number of generated rows increased with the number of uploaded files, while the export could contain many submissions.
+
+### Solution
+
+Instead of relying on native spreadsheet cell merging, I changed the presentation strategy.
+
+The spreadsheet gridlines were disabled using `setShowGridlines(false)`.
+
+The appearance of merged cells was then recreated through cell styling and borders using PHPSpreadsheet's styling APIs, including `applyFromArray()`.
+
+This created a visual "fake merge":
+
+- Gridlines were removed.
+- Adjacent cells were styled to visually appear as one area.
+- Borders were applied to reproduce the desired spreadsheet layout.
+- The file column could still contain independent cells and hyperlinks.
+- The other columns retained their grouped visual appearance without requiring native merge ranges.
+
+The important distinction was that the spreadsheet did not need to contain actual merged cells. It only needed to look as though the relevant cells were merged to the customer viewing the export.
+
+### Result
+
+The export implementation became significantly more memory-efficient for larger datasets.
+
+The spreadsheet retained the intended visual grouping of submission data while avoiding the memory overhead associated with extensive use of `mergeCells()`.
+
+This made the export more practical as the amount of collected data and number of uploaded files increased.
 
 ---
 
@@ -349,10 +413,11 @@ The backend was responsible for:
 - Managing form submissions.
 - Managing submission deletion.
 - Processing exports.
+- Generating CSV and XLS output.
 - Managing retention-related operations.
 - Handling uploaded files and their associated metadata.
 
-PHPSpreadsheet was used for generating spreadsheet exports.
+PHPSpreadsheet was used for spreadsheet generation.
 
 ---
 
@@ -388,21 +453,27 @@ The general flow was:
 
 1. Retrieve the requested form submissions.
 2. Transform the submission data into CSV or XLS output.
-3. Retrieve metadata for associated uploaded files.
-4. Open a streaming ZIP response when files were included.
-5. Stream each required file directly from AWS S3.
-6. Compress the file data on the fly using `maennchen/zipstream-php`.
-7. Add the generated spreadsheet and submitted files to the ZIP archive.
-8. Maintain relative/internal links in the spreadsheet to the corresponding files.
-9. Stream the resulting ZIP response to the customer's browser.
-10. Avoid downloading all S3 files to the application server's local disk.
-11. Avoid creating a complete persistent ZIP archive before the download begins.
+3. Determine the uploaded files associated with each submission.
+4. Generate one spreadsheet row for the submission.
+5. Generate additional spreadsheet rows when the submission contained multiple uploaded files.
+6. Place one file hyperlink in the file column of each relevant row.
+7. Visually group the non-file columns across the physical rows belonging to the same submission.
+8. Avoid native cell merging for large exports because of its memory cost.
+9. Disable spreadsheet gridlines and use borders and styles to reproduce the appearance of merged cells.
+10. Retrieve the associated file objects from AWS S3.
+11. Stream the S3 objects into the ZIP generation process.
+12. Compress the file data on the fly using `maennchen/zipstream-php`.
+13. Add the generated spreadsheet and submitted files to the ZIP archive.
+14. Maintain relative/internal links in the spreadsheet to the corresponding files.
+15. Stream the resulting ZIP response to the customer's browser.
+16. Avoid downloading all S3 files to the application server's local disk.
+17. Avoid creating a complete persistent ZIP archive before the download begins.
 
 The resulting data flow was:
 
 `AWS S3 -> AWS SDK for PHP -> ZipStream -> HTTP response -> browser`
 
-This was preferable to first copying every S3 object to local disk and then creating a ZIP file because the latter would introduce unnecessary disk I/O, temporary storage requirements, and cleanup work.
+This avoided unnecessary disk I/O and temporary file management compared with first downloading all S3 objects to local storage.
 
 ---
 
@@ -506,23 +577,57 @@ It also introduced a dependency on external object storage and required the appl
 
 Customers needed to export collected form responses in formats that could be opened and processed using common spreadsheet applications.
 
+The export also needed to represent multiple uploaded files belonging to one submission.
+
 ### Chosen Solution
 
 PHPSpreadsheet was used to generate XLS exports from collected form data.
 
 CSV export was also supported for workflows where a simpler tabular representation was more appropriate.
 
-The XLS output could contain internal links to uploaded files included in the accompanying ZIP archive.
+When a submission contained multiple uploaded files, the XLS output used multiple physical rows so that each uploaded file could have its own hyperlink.
 
-### Alternatives Considered
-
-The application could have generated spreadsheet-compatible output manually or provided database-level exports.
+The remaining submission fields were visually grouped across those rows to preserve the appearance of one logical result.
 
 ### Trade-offs
 
-Using a dedicated spreadsheet library provided more control over the generated XLS files and allowed the export to include working links to submitted files.
+Using a dedicated spreadsheet library provided control over cell formatting, hyperlinks, borders, and spreadsheet structure.
 
-It added a third-party dependency but significantly reduced the complexity of generating valid spreadsheet documents.
+However, extensive use of PHPSpreadsheet's native cell merging introduced significant memory overhead.
+
+The final implementation therefore avoided native merging for larger exports and reproduced the desired visual appearance through styling.
+
+---
+
+## Decision: Visual Cell Merging Instead of Native Merging
+
+### Context
+
+Multiple uploaded files could cause one logical submission to occupy multiple physical spreadsheet rows.
+
+The initial implementation used `mergeCells()` to vertically merge the non-file columns.
+
+This worked functionally but caused excessive memory consumption for larger exports.
+
+### Chosen Solution
+
+The spreadsheet gridlines were disabled using `setShowGridlines(false)`.
+
+The appearance of merged cells was then reproduced through styling and borders using PHPSpreadsheet's style APIs, including `applyFromArray()`.
+
+The result visually resembled vertically merged cells without creating large numbers of native merge ranges.
+
+### Alternatives Considered
+
+Native `mergeCells()` could have been retained and used for every additional file row.
+
+### Trade-offs
+
+Visual merging was more implementation-specific because it reproduced the appearance rather than the underlying spreadsheet merge semantics.
+
+However, it reduced the memory overhead associated with native merging and made the export more scalable.
+
+This was an example of prioritizing the actual user-visible requirement over an expensive spreadsheet feature that was not technically necessary.
 
 ---
 
@@ -562,7 +667,7 @@ The streaming approach reduced temporary disk usage and eliminated the need for 
 
 The implementation was more dependent on correct stream handling and required the export request to remain active while the ZIP was generated.
 
-For large exports, this also made HTTP request duration and connection reliability important operational considerations.
+For large exports, HTTP request duration and connection reliability therefore became important operational considerations.
 
 ---
 
@@ -584,18 +689,24 @@ The form builder followed a client-server model.
 12. Administrators could manually contact submitters using the email address provided with the submission.
 13. Submission data could be exported as CSV or XLS.
 14. PHPSpreadsheet generated the XLS representation of the collected data.
-15. Uploaded files were stored in AWS S3.
-16. The AWS SDK for PHP provided access to the submitted files.
-17. For file-inclusive exports, the application streamed the required S3 objects instead of first downloading them to local disk.
-18. `maennchen/zipstream-php` compressed the streamed file data into a ZIP archive on the fly.
-19. The exported XLS file contained internal links to the corresponding submitted files.
-20. The spreadsheet and submitted files were packaged into the streamed ZIP response.
-21. The ZIP archive was streamed directly to the customer's browser.
-22. No complete intermediate ZIP archive needed to be persisted on the application server.
-23. No complete copy of every S3 file needed to be stored on the application server before ZIP generation.
-24. Each submission's date was evaluated against the retention period configured for its form.
-25. Form owners received email warnings when submissions were approaching their deletion deadline.
-26. Expired submission data and associated uploaded files were deleted according to the configured retention period.
+15. When a submission contained multiple uploaded files, the export generated additional physical spreadsheet rows for the additional file links.
+16. One hyperlink was placed in the file column of each relevant row.
+17. The other submission columns were visually grouped across those rows.
+18. Native `mergeCells()` was initially used for this grouping.
+19. Profiling revealed excessive memory usage from extensive cell merging.
+20. The implementation was changed to disable gridlines and use borders and styling to reproduce the visual grouping without native cell merges.
+21. Uploaded files were stored in AWS S3.
+22. The AWS SDK for PHP provided access to the submitted files.
+23. For file-inclusive exports, the application streamed the required S3 objects instead of first downloading them to local disk.
+24. `maennchen/zipstream-php` compressed the streamed file data into a ZIP archive on the fly.
+25. The exported XLS file contained internal links to the corresponding submitted files.
+26. The spreadsheet and submitted files were packaged into the streamed ZIP response.
+27. The ZIP archive was streamed directly to the customer's browser.
+28. No complete intermediate ZIP archive needed to be persisted on the application server.
+29. No complete copy of every S3 file needed to be stored on the application server before ZIP generation.
+30. Each submission's date was evaluated against the retention period configured for its form.
+31. Form owners received email warnings when submissions were approaching their deletion deadline.
+32. Expired submission data and associated uploaded files were deleted according to the configured retention period.
 
 ---
 
@@ -610,6 +721,12 @@ The submission-management workflow covered viewing, individual and bulk deletion
 The export functionality gave customers a practical way to extract and consolidate collected form data in CSV and XLS formats.
 
 For submissions containing uploaded files, the system produced a ZIP package containing the exported spreadsheet and the corresponding files. The spreadsheet contained working internal links to the submitted files, making the exported dataset usable after it had been downloaded and unpacked.
+
+A submission with multiple uploaded files could be represented across multiple spreadsheet rows while retaining the appearance of a single logical result. Each file received its own independent hyperlink, while the remaining submission fields were visually grouped.
+
+The initial implementation used native spreadsheet cell merging to achieve this layout. Testing revealed that extensive use of `mergeCells()` caused excessive memory consumption, making the approach unsuitable for larger exports.
+
+The final implementation replaced native merging with a styling-based visual merge using hidden gridlines and cell borders. This preserved the intended spreadsheet appearance while reducing the memory overhead of the export process.
 
 The file-export architecture streamed files directly from AWS S3 into the ZIP-generation process. Files did not need to be downloaded completely to the application's local filesystem before compression, reducing temporary disk usage and avoiding the need to create a persistent intermediate ZIP archive.
 
@@ -647,11 +764,25 @@ Keeping uploaded files in S3 rather than MySQL allowed structured submission dat
 
 The application still needed to treat the two as one logical submission for retention and deletion purposes.
 
-## Export Requirements Can Influence Storage Design
+## Spreadsheet Limitations Sometimes Require Representation Changes
 
-The requirement to export submission data together with uploaded files influenced how relationships between submissions and files were maintained.
+The requirement for multiple file links exposed a limitation in the spreadsheet representation: multiple independent hyperlinks could not simply be placed into one cell in the required way.
 
-The use of streaming ZIP generation meant the export pipeline could work directly with objects in S3 without first materializing every file on local disk.
+Rather than forcing the data into a single cell, the export model was changed so that one logical submission could occupy multiple physical spreadsheet rows.
+
+The other columns were then visually grouped to preserve the user's perception of a single result.
+
+This is a useful example of adapting the data presentation to the constraints of the target format instead of trying to force the format to behave differently.
+
+## Native Spreadsheet Features Are Not Always the Most Efficient Solution
+
+The first implementation used `mergeCells()` because it directly represented the desired visual structure.
+
+That implementation was functionally correct but performed poorly because extensive cell merging consumed significant memory.
+
+The better solution was to reproduce the visual result with styling rather than relying on the spreadsheet's structural merge functionality.
+
+The important distinction was between semantic spreadsheet structure and visual presentation. When users only need cells to look merged, creating actual merged-cell ranges may be unnecessary overhead.
 
 ## Streaming Is Useful for Large File Operations
 
@@ -674,17 +805,8 @@ This required the export process to be treated as part of the overall data lifec
 # Future Improvements
 
 - Replace the legacy Backbone.js/jQuery frontend with a modern component-based frontend architecture.
-- Introduce automated integration tests for form editing, persistence, exports, and retention workflows.
-- Add automated tests specifically covering deletion of expired submissions and associated S3 objects.
-- Improve audit logging around access, export, and deletion of sensitive submission data.
-- Add more granular role-based permissions for accessing and exporting submissions.
-- Provide configurable retention policies with more explicit administrative controls and reporting.
-- Improve export scalability for very large submission datasets.
 - Move very large export generation to background jobs instead of tying generation to a single HTTP request.
 - Add progress reporting for large exports.
-- Add stronger validation and schema handling for form field configurations.
-- Introduce automated monitoring for failed deletion or file-cleanup operations.
-- Add explicit verification that spreadsheet links remain valid after export packaging.
-- Introduce automated end-to-end tests covering the complete export workflow, including S3 files, XLS generation, ZIP streaming, and linked attachments.
+- Profile PHPSpreadsheet memory consumption across different export sizes and optimize spreadsheet generation further where necessary.
 
 ---

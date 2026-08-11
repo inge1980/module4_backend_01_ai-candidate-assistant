@@ -48,8 +48,8 @@ concepts:
 dependencies:
   - react-native-gesture-handler
   - react-native-reanimated
-  - @reduxjs/toolkit
-  - @supabase/supabase-js
+  - "@reduxjs/toolkit"
+  - "@supabase/supabase-js"
   - react-native-sqlite-storage
 
 links:

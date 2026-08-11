@@ -51,6 +51,16 @@ var evidenceScorer =
 // TEST: Retrieval evaluation code
 var questions = new[]
 {
+    // PostgreSQL-related questions to evaluate retrieval and ranking
+    "Have you built systems involving PostgreSQL?", //	Multiple projects 
+    "What experience do I have with PostgreSQL?", // Broad knowledge and specific examples
+    "Have you used pgvector?", //	RAG-prosject ranked as nr 1, but also other projects
+    "Have you used PostgreSQL with .NET?", //	Lost & Found high ranked
+    "What databases have I worked with?", //	PostgreSQL + others
+    "Have you used PostgreSQL in production?" // Should avoid school projects and focus on real-world experience
+
+/* 
+// Initial test questions for retrieval evaluation
     // Broad technology experience
     "What experience do I have with ASP.NET Core?",
 
@@ -65,6 +75,7 @@ var questions = new[]
 
     // Broader domain experience
     "What experience do I have with ERP systems?" //,
+ */
 
     // Other specific technologies
     /* "What experience do I have with .NET and PostgreSQL?",

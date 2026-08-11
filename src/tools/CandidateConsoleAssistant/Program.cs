@@ -100,8 +100,8 @@ foreach (var question in questions)
     {
         Console.WriteLine();
         Console.WriteLine($"#{rank} Combined: {result.CombinedScore:F4}");
-        Console.WriteLine($"Vector: {result.VectorScore:F4}, Metadata: {result.MetadataScore:F4}, Evidence: {result.EvidenceScore:F4}");
-        Console.WriteLine($"Source: {result.Chunk.Source} --> {result.Chunk.Section}");
+        Console.WriteLine($"   Vector: {result.VectorScore:F4}, Metadata: {result.MetadataScore:F4}, Evidence: {result.EvidenceScore:F4}");
+        Console.WriteLine($"   Source: {result.Chunk.Source} --> {result.Chunk.Section}");
 
         var preview =
             result.Chunk.Content
@@ -115,8 +115,7 @@ foreach (var question in questions)
                 preview[..300] + "...";
         }
 
-        Console.WriteLine(
-            $"Content: {preview}");
+        Console.WriteLine($"   Content: {preview}");
 
         rank++;
     }

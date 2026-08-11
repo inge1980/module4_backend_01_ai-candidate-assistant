@@ -1,5 +1,7 @@
 ﻿using Infrastructure.Embeddings;
 
+const int retrievalLimit = 20;
+
 var rootDirectory =
     Directory.GetCurrentDirectory();
 
@@ -28,20 +30,31 @@ var vectorStore =
 // TEST: Retrieval evaluation code
 var questions = new[]
 {
-    "What experience do I have with .NET and PostgreSQL?",
-    "What projects involved React and TypeScript?",
-    "What experience do I have with ERP systems?",
-    "What experience do I have with GDPR and form builders?",
+    // Broad technology experience
     "What experience do I have with ASP.NET Core?",
+
+    // Specific implementation detail
+    "How did you authenticate your Azure deployment?",
+
+    // Known ranking problem
+    "Have you worked with CI/CD?",
+
+    // Potential false positive / noisy retrieval
+    "Have you built systems involving PostgreSQL?",
+
+    // Broader domain experience
+    "What experience do I have with ERP systems?" //,
+
+    // Other specific technologies
+    /* "What experience do I have with .NET and PostgreSQL?",
+    "What projects involved React and TypeScript?",
+    "What experience do I have with GDPR and form builders?",
     "Have you worked with Docker?",
     "What Azure experience do you have?",
-    "How did you authenticate your Azure deployment?",
-    "Have you worked with CI/CD?",
-    "Have you built systems involving PostgreSQL?",
     "Have you worked with Terraform?",
     "What experience do I have with Terraform?",
     "What projects demonstrate backend development?",
-    "Have you worked with APIs and integrations?"
+    "Have you worked with APIs and integrations?" */
 };
 
 Console.WriteLine();
@@ -71,7 +84,7 @@ foreach (var question in questions)
     var results =
         await vectorStore.SearchAsync(
             embedding,
-            limit: 5);
+            limit: retrievalLimit);
 
     Console.WriteLine();
     Console.WriteLine(
@@ -82,8 +95,10 @@ foreach (var question in questions)
     foreach (var result in results)
     {
         Console.WriteLine();
+
+
         Console.WriteLine(
-            $"#{rank} | Similarity: {result.Similarity:F4}");
+            $"#{rank} | Vector score: {result.Similarity:F4}");
 
         Console.WriteLine(
             $"Source: {result.Chunk.Source}");

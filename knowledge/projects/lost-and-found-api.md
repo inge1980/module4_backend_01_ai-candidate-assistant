@@ -20,7 +20,6 @@ technologies:
   - docker
   - xunit
   - swagger
-  - openapi
   - dotnetenv
 
 concepts:
@@ -55,7 +54,7 @@ Built a small Lost & Found backend API using ASP.NET Core Web API and PostgreSQL
 
 The system allows found items to be registered and managed through an HTTP API. Items can be searched and filtered, claimed by users, returned to their owners, and deleted while their status allows it.
 
-The project also includes automated tests, Swagger/OpenAPI documentation, Docker-based development, and separate repository implementations for production-like database access and fast in-memory testing.
+The project also includes automated tests, Swagger documentation, Docker-based development, and separate repository implementations for production-like database access and fast in-memory testing.
 
 ---
 
@@ -85,7 +84,7 @@ My responsibilities included:
 - Implementing API validation and error handling.
 - Configuring the application and database through environment variables.
 - Setting up Docker Compose for local development.
-- Documenting the API through Swagger/OpenAPI.
+- Documenting the API through Swagger.
 - Writing automated tests for core application behaviour.
 
 ---
@@ -147,7 +146,7 @@ The API depends on PostgreSQL for persistent storage. Setting up the correct dat
 
 ### Solution
 
-Docker Compose was used to run the ASP.NET Core API and PostgreSQL database together.
+Docker Compose was used to run the ASP.NET Core Web API and PostgreSQL database together.
 
 Database configuration is provided through environment variables, with an example environment file supplied for local setup.
 
@@ -180,7 +179,7 @@ The ASP.NET Core Web API exposes endpoints for:
 
 The API validates incoming requests and applies item status rules before performing state-changing operations.
 
-Swagger/OpenAPI is included for endpoint documentation and interactive API testing.
+Swagger is included for endpoint documentation and interactive API testing.
 
 ### Persistence
 
@@ -194,7 +193,7 @@ Entity Framework Core `EnsureCreated()` is used to create the database schema au
 
 ### Development Environment
 
-Docker Compose runs the ASP.NET Core API and PostgreSQL database as a single development environment.
+Docker Compose runs the ASP.NET Core Web API and PostgreSQL database as a single development environment.
 
 Database credentials and connection configuration are supplied through environment variables and loaded using DotNetEnv.
 
@@ -249,7 +248,7 @@ The application required relational persistence and a reproducible local develop
 
 #### Chosen Solution
 
-PostgreSQL 16 was selected as the database and run through Docker Compose alongside the ASP.NET Core API.
+PostgreSQL 16 was selected as the database and run through Docker Compose alongside the ASP.NET Core Web API.
 
 A Docker volume is used for database persistence.
 
@@ -295,7 +294,7 @@ UTC avoids ambiguity caused by local time zones and provides a consistent repres
 
 ---
 
-### Decision: Swagger/OpenAPI
+### Decision: Swagger
 
 #### Context
 
@@ -303,7 +302,7 @@ The API needed to be easy to inspect and test during development.
 
 #### Chosen Solution
 
-Swagger/OpenAPI was added to document the HTTP API and provide an interactive Swagger UI.
+Swagger was added to document the HTTP API and provide an interactive Swagger UI.
 
 #### Trade-offs
 
@@ -313,17 +312,17 @@ Swagger adds a development dependency and generated documentation, but significa
 
 ## Implementation
 
-The application follows a backend architecture where the ASP.NET Core API handles HTTP requests, application rules are separated from persistence, and repositories provide access to stored items.
+The application follows a backend architecture where the ASP.NET Core Web API handles HTTP requests, application rules are separated from persistence, and repositories provide access to stored items.
 
 The main flow is:
 
-1. A client sends a request to the ASP.NET Core API.
+1. A client sends a request to the ASP.NET Core Web API.
 2. The API validates the request.
 3. The application applies the relevant item status and business rules.
 4. Repository operations are used to retrieve or modify items.
-5. The PostgreSQL repository persists normal application data through Entity Framework Core.
+5. Used Entity Framework Core with PostgreSQL for persistence, with an in-memory repository for automated tests.
 6. API responses are returned to the client.
-7. Swagger/OpenAPI exposes the available endpoints for exploration and testing.
+7. Swagger exposes the available endpoints for exploration and testing.
 8. Automated tests use the in-memory repository to verify application behaviour without requiring PostgreSQL.
 
 The development environment consists of:
@@ -368,7 +367,7 @@ The system supports:
 - Status-based business rules.
 - API request validation.
 - PostgreSQL persistence.
-- Swagger/OpenAPI documentation.
+- Swagger documentation.
 - Automated testing.
 
 The application and PostgreSQL database can be started together through Docker Compose.

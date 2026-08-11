@@ -28,7 +28,7 @@ var promptPath =
         rootDirectory,
         "prompts",
         "answer",
-        "answer-prompt-v2.md");
+        "answer-prompt-v5.md");
 
 if (!File.Exists(promptPath))
 {

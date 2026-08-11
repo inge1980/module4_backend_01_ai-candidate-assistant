@@ -73,13 +73,12 @@ foreach (var question in questions)
     Console.WriteLine($"Question: {question}");
     Console.WriteLine("==============================");
     Console.WriteLine();
-    Console.WriteLine("Generating query embedding...");
+    // Console.WriteLine("Generating query embedding...");
 
     var embedding = await embeddingService.Create(question);
-    Console.WriteLine(
-        $"Embedding dimensions: {embedding.Length}");
-    Console.WriteLine();
-    Console.WriteLine("Searching PostgreSQL...");
+    // Console.WriteLine($"Embedding dimensions: {embedding.Length}");
+    // Console.WriteLine();
+    // Console.WriteLine("Searching PostgreSQL...");
 
     var results = await vectorStore.SearchAsync(embedding, limit: retrievalLimit);
     foreach (var result in results) {
@@ -92,22 +91,17 @@ foreach (var question in questions)
         )
         .ToList();
 
-    Console.WriteLine();
-    Console.WriteLine(
-        $"Results returned: {results.Count}");
+    // Console.WriteLine();
+    // Console.WriteLine($"Results returned: {results.Count}");
 
     var rank = 1;
 
     foreach (var result in results)
     {
         Console.WriteLine();
-        Console.WriteLine($"#{rank}");
-        Console.WriteLine($"Vector score:   {result.VectorScore:F4}");
-        Console.WriteLine($"Metadata score: {result.MetadataScore:F4}");
-        Console.WriteLine($"Evidence score: {result.EvidenceScore:F4}");
-        Console.WriteLine($"Combined score: {result.CombinedScore:F4}");
-        Console.WriteLine($"Source:         {result.Chunk.Source}");
-        Console.WriteLine($"Section:        {result.Chunk.Section}");
+        Console.WriteLine($"#{rank} Combined: {result.CombinedScore:F4}");
+        Console.WriteLine($"Vector: {result.VectorScore:F4}, Metadata: {result.MetadataScore:F4}, Evidence: {result.EvidenceScore:F4}");
+        Console.WriteLine($"Source: {result.Chunk.Source} --> {result.Chunk.Section}");
 
         var preview =
             result.Chunk.Content

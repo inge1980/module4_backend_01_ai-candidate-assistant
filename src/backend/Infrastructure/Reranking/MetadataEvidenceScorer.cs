@@ -117,8 +117,10 @@ public class MetadataEvidenceScorer
             "title",
             "organization",
             "role",
+            "environment",
             "technologies",
-            "concepts"
+            "concepts",
+            "dependencies"
         })
         {
             if (!metadata.TryGetValue(

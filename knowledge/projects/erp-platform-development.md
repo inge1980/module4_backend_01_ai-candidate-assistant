@@ -453,8 +453,6 @@ Testing was primarily performed through development, integration, and production
 
 The work required validating new functionality against established ERP workflows and investigating production issues when they occurred.
 
-No formal automated end-to-end testing framework is documented for this project.
-
 ---
 
 # Result

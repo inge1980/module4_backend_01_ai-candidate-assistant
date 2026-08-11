@@ -332,7 +332,7 @@ Retrieval results are currently inspected manually before considering further ch
 
 The system can now be tested not only for whether it retrieves semantically related content, but also for whether the resulting answer makes claims that are actually supported by the retrieved evidence.
 
-Initial manual tests have covered questions involving ASP.NET Core, PostgreSQL, pgvector, .NET/PostgreSQL, databases, CI/CD, Azure authentication, and ERP experience.
+Initial manual tests have covered questions involving ASP.NET Core, PostgreSQL, pgvector, databases, CI/CD, Azure authentication, and ERP experience.
 
 This evaluation is currently manual rather than an automated retrieval benchmark.
 

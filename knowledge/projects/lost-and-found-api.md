@@ -185,7 +185,7 @@ Swagger is included for endpoint documentation and interactive API testing.
 
 ### Persistence
 
-PostgreSQL 16 is used for persistent application data.
+PostgreSQL is used for persistent application data.
 
 Entity Framework Core provides database access, with a PostgreSQL-specific repository implementing the persistence layer.
 
@@ -250,7 +250,7 @@ The application required relational persistence and a reproducible local develop
 
 #### Chosen Solution
 
-PostgreSQL 16 was selected as the database and run through Docker Compose alongside the ASP.NET Core Web API.
+PostgreSQL was selected as the database and run through Docker Compose alongside the ASP.NET Core Web API.
 
 A Docker volume is used for database persistence.
 
@@ -330,7 +330,7 @@ The main flow is:
 The development environment consists of:
 
 - ASP.NET Core Web API.
-- PostgreSQL 16.
+- PostgreSQL.
 - Docker Compose.
 - Docker volume for PostgreSQL persistence.
 - Environment variables loaded through DotNetEnv.

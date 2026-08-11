@@ -5,6 +5,8 @@ organization: Moava AS
 
 role: Fullstack Developer
 
+environment: production
+
 period:
   from: 2013-11
   to: 2014-11

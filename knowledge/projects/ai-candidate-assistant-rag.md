@@ -5,6 +5,8 @@ organization: Personal Project
 
 role: Fullstack Developer
 
+environment: development
+
 period:
   from: 2026-08
   to: 2026-08
@@ -112,10 +114,12 @@ My responsibilities include:
 - Retrieving the most semantically relevant project sections.
 - Inspecting retrieval results and similarity scores.
 - Evaluating whether semantic retrieval is sufficient for candidate-oriented questions.
+- Evaluating whether retrieved evidence supports the claims made in generated answers.
+- Designing answer-generation instructions that prevent unsupported claims, including distinguishing technology usage from explicitly supported production experience.
 - Identifying where metadata-aware retrieval can improve the system.
 - Designing the foundation for the later LLM-powered response-generation workflow.
 
-The current implementation intentionally stops before full LLM generation so that the retrieval layer can be evaluated independently.
+The current implementation intentionally stops before full LLM generation so that the retrieval layer and evidence grounding can be evaluated independently.
 
 ---
 
@@ -169,6 +173,8 @@ The ingestion and retrieval pipeline is operational.
 The system can ingest the project knowledge base, generate embeddings, persist the resulting vectors, and retrieve semantically related project sections from natural-language questions.
 
 The retrieval layer can be inspected independently from the future LLM generation layer, making it possible to evaluate retrieval quality before introducing generation into the workflow.
+
+Initial manual retrieval tests have been performed using representative candidate-oriented questions. The retrieval output is inspected together with similarity scores, source documents, sections, content, and project metadata.
 
 ---
 
@@ -294,6 +300,44 @@ The retrieval index can also be rebuilt from the Markdown knowledge base without
 
 ---
 
+## Challenge: Evaluating Retrieved Evidence
+
+### Problem
+
+Semantic similarity alone does not guarantee that the retrieved evidence is sufficient to answer a candidate-oriented question correctly.
+
+A retrieved section can be semantically related to a question while still failing to establish an important detail.
+
+For example, evidence that a technology was used does not necessarily establish that it was used in production.
+
+The answer-generation layer therefore needs to distinguish between what the retrieved evidence explicitly supports and what would require an unsupported inference.
+
+### Solution
+
+I started manually testing the retrieval and answer-generation pipeline with representative candidate questions.
+
+The tests compare questions against the retrieved top-ranked sections and inspect whether the resulting answer stays within the evidence provided.
+
+The answer prompt was also strengthened with explicit instructions to:
+
+- Use retrieved context as evidence rather than repeating it mechanically.
+- Avoid inventing technologies, responsibilities, projects, or experience.
+- Avoid inferring production experience unless the retrieved evidence explicitly supports it.
+- Distinguish between evidence that a technology was used and evidence that it was used in production.
+- State clearly when the evidence is insufficient.
+
+Retrieval results are currently inspected manually before considering further changes to the retrieval strategy.
+
+### Result
+
+The system can now be tested not only for whether it retrieves semantically related content, but also for whether the resulting answer makes claims that are actually supported by the retrieved evidence.
+
+Initial manual tests have covered questions involving ASP.NET Core, PostgreSQL, pgvector, .NET/PostgreSQL, databases, CI/CD, Azure authentication, and ERP experience.
+
+This evaluation is currently manual rather than an automated retrieval benchmark.
+
+---
+
 # Action
 
 ## Architecture
@@ -410,7 +454,7 @@ Changing the embedding model requires the existing document embeddings to be reg
 
 A user question is converted into an embedding and compared against the stored document embeddings using pgvector.
 
-The current implementation retrieves the top five results.
+The retrieval output currently exposes the top-ranked results for inspection.
 
 Each result contains:
 
@@ -421,6 +465,10 @@ Each result contains:
 - Associated project metadata.
 
 The retrieval layer is intentionally exposed for inspection so that retrieval quality can be evaluated before the LLM generation stage is introduced.
+
+The current test output uses the top 10 retrieved results when evaluating whether sufficient evidence is available for an answer.
+
+The retrieval implementation does not currently treat the similarity score as a definitive relevance decision.
 
 ---
 
@@ -614,6 +662,8 @@ The retrieval pipeline is being implemented and evaluated independently before c
 
 The system exposes the retrieved project sections and similarity scores so that retrieval quality can be inspected directly.
 
+The answer-generation prompt is also designed to require the model to stay within the evidence retrieved for each question and to explicitly acknowledge insufficient evidence.
+
 #### Alternatives Considered
 
 - Implementing retrieval and LLM generation simultaneously.
@@ -647,15 +697,15 @@ The main implementation flow is:
 11. pgvector provides vector similarity search over the stored embeddings.
 12. A user question is converted into an embedding using the same model.
 13. The query vector is compared against the stored document vectors.
-14. The top five semantically similar chunks are returned.
+14. The top-ranked chunks are returned for inspection.
 15. Retrieval results expose the similarity score, source document, section, content, and project metadata.
-16. The retrieved information can then be inspected before being passed to the future LLM generation layer.
+16. Retrieved evidence can be evaluated against candidate-oriented questions before being passed to the future LLM generation layer.
 
 The current pipeline is:
 
-`Markdown` -> `Frontmatter parsing` -> `Document loading` -> `Section chunking` -> `Metadata propagation` -> `Embedding generation` -> `PostgreSQL + pgvector` -> `Query embedding` -> `Similarity search` -> `Top-k retrieved chunks`
+`Markdown` -> `Frontmatter parsing` -> `Document loading` -> `Section chunking` -> `Metadata propagation` -> `Embedding generation` -> `PostgreSQL + pgvector` -> `Query embedding` -> `Similarity search` -> `Top-N retrieved chunks`
 
-The current implementation intentionally does not yet treat the similarity score as a definitive relevance decision.
+The current implementation intentionally does not treat the similarity score as a definitive relevance decision.
 
 ---
 
@@ -678,14 +728,32 @@ The system can currently:
 - Generate embeddings for natural-language queries.
 - Retrieve semantically related project sections.
 - Inspect retrieval results independently of LLM generation.
+- Inspect similarity scores, source sections, and associated project metadata.
+- Manually evaluate whether retrieved evidence supports candidate-oriented answers.
 
 Current retrieval tests show similarity scores approximately in the `0.58-0.82` range depending on the query and retrieved content.
 
 These scores are useful for comparing retrieval results but should not be interpreted as probabilities or as a universal relevance threshold.
 
-The retrieval output is inspectable through the KnowledgeIndexer, which makes it possible to determine which projects and sections are selected for individual questions.
+The retrieval output is currently inspected using the top-ranked results, with the test workflow exposing the top 10 results for evidence evaluation.
 
-The current system therefore provides a working retrieval foundation for the planned candidate assistant, while deliberately leaving LLM response generation as the next major stage.
+Initial manual tests have been performed against multiple candidate-oriented questions, including questions about:
+
+- ASP.NET Core.
+- Azure authentication.
+- CI/CD.
+- PostgreSQL.
+- pgvector.
+- .NET with PostgreSQL.
+- Databases.
+- ERP systems.
+- PostgreSQL production usage.
+
+The answer-generation prompt has also been refined to reduce unsupported claims. In particular, it explicitly distinguishes between evidence that a technology was used and evidence that it was used in production.
+
+The current evaluation remains manual. There is not yet an automated retrieval evaluation dataset, automated top-N comparison, metadata-aware ranking implementation, hybrid search implementation, or reranking layer.
+
+The current system therefore provides a working retrieval foundation and an initial manual evaluation workflow, while deliberately leaving those retrieval optimizations for later validation.
 
 ---
 
@@ -723,6 +791,25 @@ This provides a much stronger foundation for future technology-aware retrieval.
 
 ---
 
+## Prompt-Level Evidence Constraints Matter
+
+Retrieval quality and answer quality are related but separate problems.
+
+Even when the retrieved context is relevant, an LLM can make an unsupported inference if the answer prompt does not explicitly constrain it.
+
+One example is production experience: evidence that PostgreSQL was used in a project does not by itself prove that PostgreSQL was used in a commercial production environment.
+
+The answer prompt therefore needs to distinguish between:
+
+- Evidence that a technology was used.
+- Evidence that a technology was used in production.
+- Evidence that a responsibility was actually performed.
+- Evidence that a claim is only implied rather than explicitly supported.
+
+This reduces the risk of technically plausible but unsupported candidate claims.
+
+---
+
 ## Chunking Is a Retrieval Design Decision
 
 The chunking strategy directly affects retrieval quality.
@@ -755,20 +842,15 @@ Retrieval quality should therefore be evaluated using actual questions and expec
 
 ---
 
-## Retrieval Needs an Evaluation Dataset
+## Manual Retrieval Testing Is Useful but Limited
 
-Manual inspection is useful during early development, but it is not sufficient for determining whether changes improve retrieval quality.
+Manual inspection is useful during early development because it makes it possible to see which project sections are being retrieved and whether the generated answer remains grounded in those sections.
 
-A small evaluation dataset containing representative candidate questions and expected relevant projects or sections would make it possible to compare:
+The current tests use representative candidate-oriented questions and inspect the retrieved top-ranked results before judging the generated answer.
 
-- Different chunking strategies.
-- Different embedding models.
-- Vector-only retrieval.
-- Metadata-aware retrieval.
-- Hybrid search.
-- Reranking strategies.
+However, manual testing alone is not enough to determine whether a retrieval change consistently improves the system.
 
-This is an important next step before optimizing the retrieval architecture further.
+A larger evaluation dataset and automated regression tests are therefore future improvements rather than current functionality.
 
 ---
 
@@ -784,6 +866,7 @@ This is an important next step before optimizing the retrieval architecture furt
 - Add result deduplication.
 - Evaluate reranking strategies.
 - Consider query rewriting where appropriate.
+- Evaluate different top-N values using a retrieval evaluation dataset rather than choosing top-k based only on manual inspection.
 
 ## Evaluation
 
@@ -793,6 +876,7 @@ This is an important next step before optimizing the retrieval architecture furt
 - Track false-positive retrievals.
 - Add automated retrieval regression tests.
 - Compare retrieval strategies quantitatively rather than relying only on manual inspection.
+- Evaluate whether fewer than the current top-ranked results provide sufficient evidence for specific question types.
 
 ## LLM Integration
 

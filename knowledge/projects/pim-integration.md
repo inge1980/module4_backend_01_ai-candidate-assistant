@@ -5,6 +5,8 @@ organization: Episteme AS
 
 role: Fullstack Developer
 
+environment: development
+
 period:
   from: 2022-01
   to: 2025-01

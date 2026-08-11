@@ -5,6 +5,8 @@ organization: School Project
 
 role: Backend Developer
 
+environment: development
+
 period:
   from: 2026-07
   to: 2026-07
@@ -36,8 +38,8 @@ concepts:
 dependencies:
 
 links:
-github:
-live:
+  github:
+  live:
 
 ---
 

@@ -5,6 +5,8 @@ organization: Personal Project
 
 role: Frontend Developer
 
+environment: production
+
 period:
   from: 2022-10
   to: Present

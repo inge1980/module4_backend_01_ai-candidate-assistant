@@ -5,6 +5,8 @@ organization: Company Name | Personal Project | School Project | Open Source | F
 
 role: Fullstack Developer | Frontend Developer | Backend Developer
 
+environment: development | production
+
 period:
   from: YYYY-MM
   to: YYYY-MM | Present

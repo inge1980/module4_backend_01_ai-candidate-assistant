@@ -5,6 +5,8 @@ organization: Personal Project
 
 role: Fullstack Developer
 
+environment: development
+
 period:
   from: 2024-10
   to: Present

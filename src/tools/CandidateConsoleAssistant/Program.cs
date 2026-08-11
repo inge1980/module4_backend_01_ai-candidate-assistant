@@ -2,6 +2,7 @@
 using Infrastructure.Reranking;
 
 const int retrievalLimit = 10; // Limit the number of results retrieved from the vector store
+const int promptContextLimit = 5;
 
 var rootDirectory =
     Directory.GetCurrentDirectory();
@@ -21,6 +22,22 @@ DotNetEnv.Env.Load(envPath);
 
 Console.WriteLine(
     $"Loaded environment from: {envPath}");
+
+var promptPath =
+    Path.Combine(
+        rootDirectory,
+        "prompts",
+        "answer",
+        "answer-prompt-v2.md");
+
+if (!File.Exists(promptPath))
+{
+    throw new FileNotFoundException(
+        $"Could not find answer prompt at: {promptPath}");
+}
+
+var answerPromptTemplate =
+    await File.ReadAllTextAsync(promptPath);
 
 var embeddingService =
     new EmbeddingService();
@@ -121,6 +138,34 @@ foreach (var question in questions)
 
         rank++;
     }
+
+    var context =
+        string.Join(
+            "\n\n",
+            results
+                .Take(promptContextLimit)
+                .Select(
+                    (result, index) =>
+                        $"[{index + 1}] {result.Chunk.Source}\n" +
+                        $"Heading: {result.Chunk.HeadingPath}\n" +
+                        $"Semantic Type: {result.Chunk.SemanticType}\n" +
+                        $"Content: {result.Chunk.Content}"));
+
+    var prompt =
+        answerPromptTemplate
+            .Replace("{{question}}", question)
+            .Replace("{{context}}", context);
+
+    Console.WriteLine();
+    Console.WriteLine("==============================");
+    Console.WriteLine("GENERATED ANSWER PROMPT");
+    Console.WriteLine("==============================");
+    Console.WriteLine();
+    Console.WriteLine(prompt);
+    Console.WriteLine();
+    Console.WriteLine("==============================");
+    Console.WriteLine("GENERATED ANSWER PROMPT COMPLETE");
+    Console.WriteLine("==============================");
 }
 
 Console.WriteLine();

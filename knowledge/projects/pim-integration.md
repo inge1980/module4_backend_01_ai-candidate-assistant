@@ -243,25 +243,25 @@ The integration therefore extended the existing production platform rather than 
 
 ## Technical Decisions
 
-## Decision: Use the ERP as the Central Product Information Source
+### Decision: Use the ERP as the Central Product Information Source
 
-### Context
+#### Context
 
 Product information was required by both internal ERP functionality and the online store.
 
 Maintaining separate product information in each system would create unnecessary duplication and increase the risk of inconsistent data.
 
-### Chosen Solution
+#### Chosen Solution
 
 The ERP was extended with PIM capabilities and used as the central source for product information.
 
 The online store consumed the relevant product information through the integration layer rather than becoming an independent source of product data.
 
-### Alternatives Considered
+#### Alternatives Considered
 
 Maintaining product information independently in the online store was a possible alternative, but this would have introduced duplicated data and additional synchronization requirements.
 
-### Trade-offs
+#### Trade-offs
 
 Advantages:
 
@@ -279,25 +279,25 @@ Disadvantages:
 
 ---
 
-## Decision: REST API as the Integration Boundary
+### Decision: REST API as the Integration Boundary
 
-### Context
+#### Context
 
 The online store needed access to ERP product information without tightly coupling its implementation directly to the ERP database.
 
 A defined integration boundary was needed to separate internal ERP data management from the customer-facing application.
 
-### Chosen Solution
+#### Chosen Solution
 
 A REST API was introduced as the communication layer between the ERP/PIM functionality and the online store.
 
 The API exposed the product information required by the storefront while keeping database access inside the ERP/backend layer.
 
-### Alternatives Considered
+#### Alternatives Considered
 
 Direct database access from the online store was an existing integration approach, but it created tighter coupling between the systems and exposed internal database structures to the external application.
 
-### Trade-offs
+#### Trade-offs
 
 Advantages:
 
@@ -315,27 +315,27 @@ Disadvantages:
 
 ---
 
-## Decision: Incremental Extension of the Existing ERP
+### Decision: Incremental Extension of the Existing ERP
 
-### Context
+#### Context
 
 The ERP was already an established business-critical system with existing data, functionality, and workflows.
 
 Replacing the ERP or introducing a completely separate PIM platform would increase migration complexity and operational risk.
 
-### Chosen Solution
+#### Chosen Solution
 
 PIM functionality was implemented as an extension of the existing ERP platform.
 
 The existing application, database, infrastructure, and business logic were reused where appropriate.
 
-### Alternatives Considered
+#### Alternatives Considered
 
 - Introducing a separate dedicated PIM platform.
 - Rebuilding the product management functionality as a standalone application.
 - Continuing without centralized product information management.
 
-### Trade-offs
+#### Trade-offs
 
 Advantages:
 

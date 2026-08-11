@@ -442,13 +442,13 @@ The intended future flow is:
 
 ## Technical Decisions
 
-## Decision: Markdown as the Source of Truth
+### Decision: Markdown as the Source of Truth
 
-### Context
+#### Context
 
 Project knowledge needs to remain easy to maintain, version controlled, readable, and editable without database tooling.
 
-### Chosen Solution
+#### Chosen Solution
 
 Project documentation is maintained as Markdown files in the repository.
 
@@ -456,13 +456,13 @@ The KnowledgeIndexer processes these documents and generates the retrieval repre
 
 PostgreSQL is therefore treated as a generated index rather than the authoritative knowledge store.
 
-### Alternatives Considered
+#### Alternatives Considered
 
 - Database-driven knowledge management.
 - JSON documents.
 - Manually maintained prompt context.
 
-### Trade-offs
+#### Trade-offs
 
 Markdown provides:
 
@@ -476,27 +476,27 @@ The trade-off is that changes to the source documents require the retrieval inde
 
 ---
 
-## Decision: YAML Frontmatter for Structured Metadata
+### Decision: YAML Frontmatter for Structured Metadata
 
-### Context
+#### Context
 
 Important project information should be available independently of the prose.
 
 Technologies, roles, status, organization, and project periods should not have to be inferred from natural-language text.
 
-### Chosen Solution
+#### Chosen Solution
 
 YAML frontmatter is used for structured project metadata.
 
 The metadata is parsed during ingestion and propagated to every chunk originating from the project.
 
-### Alternatives Considered
+#### Alternatives Considered
 
 - Extracting metadata from prose.
 - Maintaining metadata exclusively in PostgreSQL.
 - Separate JSON metadata files.
 
-### Trade-offs
+#### Trade-offs
 
 The approach provides explicit, version-controlled metadata that can be used by both the ingestion and retrieval layers.
 
@@ -506,26 +506,26 @@ The metadata schema also needs stronger validation in a future iteration.
 
 ---
 
-## Decision: Section-Based Chunking
+### Decision: Section-Based Chunking
 
-### Context
+#### Context
 
 Whole-document embeddings would be too broad for precise retrieval, while arbitrary fixed-size chunks could split concepts at inappropriate boundaries.
 
-### Chosen Solution
+#### Chosen Solution
 
 Documents are initially divided according to Markdown headings.
 
 Each section becomes a retrieval unit together with its source project and metadata.
 
-### Alternatives Considered
+#### Alternatives Considered
 
 - Whole-document embeddings.
 - Fixed character-length chunks.
 - Token-based chunks.
 - Paragraph-based chunks.
 
-### Trade-offs
+#### Trade-offs
 
 Section-based chunking preserves the structure already present in the documentation and makes retrieval results easy to understand.
 
@@ -533,28 +533,28 @@ The trade-off is that very large sections may still be too broad and may require
 
 ---
 
-## Decision: PostgreSQL with pgvector
+### Decision: PostgreSQL with pgvector
 
-### Context
+#### Context
 
 The project needs semantic similarity search while also requiring structured project metadata.
 
 The current knowledge base does not justify introducing a separate vector database.
 
-### Chosen Solution
+#### Chosen Solution
 
 PostgreSQL stores the chunks, metadata, and embedding vectors.
 
 pgvector provides vector similarity search.
 
-### Alternatives Considered
+#### Alternatives Considered
 
 - PostgreSQL full-text search.
 - Keyword-only search.
 - Dedicated vector databases.
 - Hybrid search.
 
-### Trade-offs
+#### Trade-offs
 
 Using PostgreSQL provides:
 
@@ -569,25 +569,25 @@ Exact technologies, identifiers, and highly specific requirements may be better 
 
 ---
 
-## Decision: Local Embeddings During Development
+### Decision: Local Embeddings During Development
 
-### Context
+#### Context
 
 The development environment needs repeatable embeddings without introducing external API costs or sending personal project information to a hosted embedding provider.
 
-### Chosen Solution
+#### Chosen Solution
 
 BAAI `bge-small-en-v1.5` is executed locally through Ollama.
 
 The same model generates both document and query embeddings.
 
-### Alternatives Considered
+#### Alternatives Considered
 
 - Hosted embedding APIs.
 - OpenAI embeddings.
 - Azure-hosted embedding services.
 
-### Trade-offs
+#### Trade-offs
 
 Local embeddings provide:
 
@@ -602,25 +602,25 @@ Changing the embedding model requires re-indexing the knowledge base.
 
 ---
 
-## Decision: Keep Retrieval Separate from LLM Generation
+### Decision: Keep Retrieval Separate from LLM Generation
 
-### Context
+#### Context
 
 It is difficult to determine whether a poor AI response is caused by retrieval quality or by the generation model when both systems are introduced simultaneously.
 
-### Chosen Solution
+#### Chosen Solution
 
 The retrieval pipeline is being implemented and evaluated independently before connecting it to the LLM.
 
 The system exposes the retrieved project sections and similarity scores so that retrieval quality can be inspected directly.
 
-### Alternatives Considered
+#### Alternatives Considered
 
 - Implementing retrieval and LLM generation simultaneously.
 - Sending large parts of the knowledge base directly into the LLM.
 - Evaluating only the final generated response.
 
-### Trade-offs
+#### Trade-offs
 
 Separating retrieval makes the system easier to debug and evaluate.
 
@@ -628,7 +628,7 @@ The trade-off is that the complete candidate-assistant workflow takes longer to 
 
 ---
 
-# Implementation
+## Implementation
 
 The implementation currently covers the complete ingestion and semantic retrieval pipeline.
 

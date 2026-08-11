@@ -185,15 +185,15 @@ GitHub Actions provides the CI/CD layer. It builds and publishes the container i
 
 ## Technical Decisions
 
-## Decision: Infrastructure as Code with Terraform
+### Decision: Infrastructure as Code with Terraform
 
-### Context
+#### Context
 
 The Azure environment needed to be reproducible and version controlled.
 
 Manually creating resources through the Azure Portal would make the infrastructure dependent on manual configuration and increase the risk of configuration drift.
 
-### Chosen Solution
+#### Chosen Solution
 
 Terraform was used to define the Azure infrastructure as code.
 
@@ -201,14 +201,14 @@ The infrastructure configuration describes the resources, networking, identity, 
 
 This allows the environment to be recreated from the repository rather than relying on undocumented manual configuration.
 
-### Alternatives Considered
+#### Alternatives Considered
 
 - Azure Portal.
 - Azure CLI scripts.
 
 The Azure Portal was not chosen because manual provisioning is less reproducible. CLI scripting could automate provisioning, but Terraform provides a declarative infrastructure model and explicit resource state.
 
-### Trade-offs
+#### Trade-offs
 
 **Advantages:**
 
@@ -226,15 +226,15 @@ The Azure Portal was not chosen because manual provisioning is less reproducible
 
 ---
 
-## Decision: OpenID Connect for CI/CD Authentication
+### Decision: OpenID Connect for CI/CD Authentication
 
-### Context
+#### Context
 
 GitHub Actions needs permission to interact with Azure during deployment.
 
 Storing a long-lived Azure client secret in GitHub would create an unnecessary credential-management and security risk.
 
-### Chosen Solution
+#### Chosen Solution
 
 GitHub Actions authenticates to Azure using OpenID Connect.
 
@@ -242,14 +242,14 @@ The GitHub workflow establishes a trusted identity relationship with Azure and r
 
 This removes the need for a persistent Azure client secret in the repository.
 
-### Alternatives Considered
+#### Alternatives Considered
 
 - Azure client secret authentication.
 - Publish profiles.
 
 These approaches were not chosen because they rely on longer-lived credentials that require additional secret storage and rotation.
 
-### Trade-offs
+#### Trade-offs
 
 **Advantages:**
 
@@ -266,28 +266,28 @@ These approaches were not chosen because they rely on longer-lived credentials t
 
 ---
 
-## Decision: User Assigned Managed Identity for Container Registry Access
+### Decision: User Assigned Managed Identity for Container Registry Access
 
-### Context
+#### Context
 
 The Azure Virtual Machine needs permission to retrieve container images from Azure Container Registry.
 
 Storing registry credentials directly on the Virtual Machine would introduce another credential-management problem.
 
-### Chosen Solution
+#### Chosen Solution
 
 A User Assigned Managed Identity was provisioned with Terraform and associated with the Virtual Machine.
 
 The identity receives the `AcrPull` role on the Azure Container Registry, allowing the VM environment to authenticate to the registry using Azure-managed identity rather than manually stored registry credentials.
 
-### Alternatives Considered
+#### Alternatives Considered
 
 - Static container registry credentials.
 - Access tokens stored on the Virtual Machine.
 
 These alternatives would introduce credentials that need to be stored, protected, rotated, and potentially revoked manually.
 
-### Trade-offs
+#### Trade-offs
 
 **Advantages:**
 
@@ -304,26 +304,26 @@ These alternatives would introduce credentials that need to be stored, protected
 
 ---
 
-## Decision: Docker-Based Application Deployment
+### Decision: Docker-Based Application Deployment
 
-### Context
+#### Context
 
 The application needed a consistent runtime environment between development and the Azure deployment target.
 
-### Chosen Solution
+#### Chosen Solution
 
 The ASP.NET Core API is packaged as a Docker image and deployed to the Linux Virtual Machine.
 
 Docker Compose is used on the VM to manage the running application container and simplify application updates.
 
-### Alternatives Considered
+#### Alternatives Considered
 
 - Deploying the ASP.NET Core application directly to the VM.
 - Using Azure App Service or another managed container platform.
 
 Direct deployment was avoided because it would couple the VM more closely to the application runtime environment. Managed Azure container services were considered outside the scope of this project, which focused on understanding the underlying infrastructure and deployment process.
 
-### Trade-offs
+#### Trade-offs
 
 **Advantages:**
 

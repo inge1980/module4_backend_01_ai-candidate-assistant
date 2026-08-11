@@ -67,31 +67,31 @@ public class MetadataEvidenceScorer
         var contentTerms =
             Tokenize(chunk.Content);
 
-        var sectionTerms =
-            Tokenize(chunk.Section);
+        var headingPathTerms =
+            Tokenize(chunk.HeadingPath);
 
         var contentMatches =
             queryTerms
                 .Count(contentTerms.Contains);
 
-        var sectionMatches =
+        var headingPathMatches =
             queryTerms
-                .Count(sectionTerms.Contains);
+                .Count(headingPathTerms.Contains);
 
         var contentScore =
             queryTerms.Count == 0
                 ? 0
                 : (double)contentMatches / queryTerms.Count;
 
-        var sectionScore =
+        var headingPathScore  =
             queryTerms.Count == 0
                 ? 0
-                : (double)sectionMatches / queryTerms.Count;
+                : (double)headingPathMatches / queryTerms.Count;
 
         return Math.Min(
             1.0,
             (contentScore * 0.7) +
-            (sectionScore * 0.3));
+            (headingPathScore * 0.3));
     }
 
     private double CalculateCombinedScore(

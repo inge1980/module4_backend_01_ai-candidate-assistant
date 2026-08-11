@@ -395,23 +395,23 @@ For file-inclusive exports, S3 objects were streamed through the AWS SDK and Zip
 
 ## Technical Decisions
 
-## Decision: Backbone.js for Dynamic Form Management
+### Decision: Backbone.js for Dynamic Form Management
 
-### Context
+#### Context
 
 The form builder needed to manage dynamic collections of fields that could be edited, duplicated, reordered, and persisted.
 
-### Chosen Solution
+#### Chosen Solution
 
 Backbone.js models and collections were used to represent the form and its fields on the client.
 
 The JSON returned by the REST API could be mapped into Backbone structures and manipulated before changes were sent back to the backend.
 
-### Alternatives Considered
+#### Alternatives Considered
 
 A simpler jQuery-based implementation could have manipulated DOM elements and JSON objects directly.
 
-### Trade-offs
+#### Trade-offs
 
 Backbone.js introduced additional client-side structure but provided a consistent model for dynamic form data and UI state.
 
@@ -419,65 +419,65 @@ For this type of editor, the model layer made operations such as reordering, dup
 
 ---
 
-## Decision: JSON REST API
+### Decision: JSON REST API
 
-### Context
+#### Context
 
 The frontend needed to exchange dynamic form configuration with the PHP backend.
 
-### Chosen Solution
+#### Chosen Solution
 
 A self-developed REST API was used to exchange JSON between Backbone.js and PHP.
 
-### Alternatives Considered
+#### Alternatives Considered
 
 The editor could have used traditional server-rendered HTML forms and full-page requests.
 
-### Trade-offs
+#### Trade-offs
 
 The REST and JSON approach required more client-side implementation but enabled a more interactive editing experience and established a clear data contract between frontend and backend.
 
 ---
 
-## Decision: Per-Form Retention Period
+### Decision: Per-Form Retention Period
 
-### Context
+#### Context
 
 Different forms could have different requirements for how long their submissions should be retained.
 
-### Chosen Solution
+#### Chosen Solution
 
 Each form defined its own retention period in days.
 
 The submission date was evaluated against the configured period to determine when a submission should be reviewed and deleted.
 
-### Alternatives Considered
+#### Alternatives Considered
 
 A single global retention period could have been applied to all forms.
 
-### Trade-offs
+#### Trade-offs
 
 Per-form configuration added lifecycle logic but allowed retention to be defined according to the requirements of each individual form.
 
 ---
 
-## Decision: AWS S3 for Uploaded Files
+### Decision: AWS S3 for Uploaded Files
 
-### Context
+#### Context
 
 Submissions could contain uploaded files that should not be stored directly in the relational database.
 
-### Chosen Solution
+#### Chosen Solution
 
 Files were stored in AWS S3 while the application maintained their relationship to the corresponding submission.
 
 The AWS SDK for PHP provided access to the stored objects.
 
-### Alternatives Considered
+#### Alternatives Considered
 
 Files could have been stored on the application server filesystem or as binary data in MySQL.
 
-### Trade-offs
+#### Trade-offs
 
 S3 separated binary storage from relational application data and avoided storing potentially large files in MySQL.
 
@@ -485,21 +485,21 @@ It also introduced an external storage dependency and required the application t
 
 ---
 
-## Decision: PHPSpreadsheet for XLS Export
+### Decision: PHPSpreadsheet for XLS Export
 
-### Context
+#### Context
 
 Customers needed spreadsheet exports that could be opened and processed using common spreadsheet applications.
 
 The export also needed to support multiple uploaded files per submission.
 
-### Chosen Solution
+#### Chosen Solution
 
 PHPSpreadsheet was used to generate XLS files with formatting and hyperlinks.
 
 Submissions containing multiple files were represented across multiple physical rows, with one hyperlink per file.
 
-### Trade-offs
+#### Trade-offs
 
 PHPSpreadsheet provided the required spreadsheet generation and formatting capabilities.
 
@@ -507,25 +507,25 @@ However, native cell merging created excessive memory usage at scale, which led 
 
 ---
 
-## Decision: Visual Grouping Instead of Native Cell Merging
+### Decision: Visual Grouping Instead of Native Cell Merging
 
-### Context
+#### Context
 
 Multiple files belonging to one submission required multiple physical spreadsheet rows.
 
 The non-file fields needed to appear visually as one logical result.
 
-### Chosen Solution
+#### Chosen Solution
 
 The first implementation used native cell merging but was replaced after memory profiling showed excessive consumption.
 
 Gridlines were disabled and borders and styles were used to create the visual appearance of merged cells without creating native merged ranges.
 
-### Alternatives Considered
+#### Alternatives Considered
 
 Continue using native cell merging for every additional file row.
 
-### Trade-offs
+#### Trade-offs
 
 The styling-based solution did not create actual merged spreadsheet cells, so the structure differed from a true merged-cell representation.
 
@@ -533,21 +533,21 @@ However, the customer primarily needed the visual presentation. Reproducing that
 
 ---
 
-## Decision: Streaming ZIP Generation
+### Decision: Streaming ZIP Generation
 
-### Context
+#### Context
 
 The export process needed to package files stored in S3 without unnecessarily consuming local disk space or creating an intermediate archive.
 
 Exports could contain many and potentially large uploaded files, making local temporary storage undesirable.
 
-### Chosen Solution
+#### Chosen Solution
 
 maennchen/zipstream-php was used together with the AWS SDK for PHP to stream S3 objects directly into the ZIP response.
 
 The spreadsheet and uploaded files could therefore be added to the ZIP as part of a streaming export process without first downloading all uploaded files to local storage or creating a complete intermediate ZIP archive.
 
-### Alternatives Considered
+#### Alternatives Considered
 
 A conventional temporary-file approach would:
 
@@ -556,7 +556,7 @@ A conventional temporary-file approach would:
 3. Serve the completed archive.
 4. Delete the temporary files and archive.
 
-### Trade-offs
+#### Trade-offs
 
 Streaming reduced local disk usage and avoided persistent intermediate files.
 

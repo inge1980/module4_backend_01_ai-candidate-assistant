@@ -41,8 +41,12 @@ Console.WriteLine(
 var loader =
     new MarkdownDocumentLoader();
 
+var semanticTypeResolver =
+    new SemanticTypeResolver();
+
 var chunker =
-    new DocumentChunker();
+    new DocumentChunker(
+        semanticTypeResolver);
 
 var documents =
     loader.Load(knowledgePath)

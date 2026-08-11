@@ -246,28 +246,28 @@ https://inge1980.github.io/portfolio/
 
 ---
 
-# Technical Decisions
+## Technical Decisions
 
-## Decision: React for the Portfolio Application
+### Decision: React for the Portfolio Application
 
-### Context
+#### Context
 
 The portfolio needed dynamic navigation, reusable UI components, and enough flexibility to demonstrate frontend engineering practices rather than functioning as a collection of static HTML pages.
 
-### Chosen Solution
+#### Chosen Solution
 
 React was used as the primary frontend framework.
 
 The application is structured as reusable components with React Router providing client-side navigation.
 
-### Alternatives Considered
+#### Alternatives Considered
 
 - Static HTML pages.
 - A server-rendered application.
 
 A static HTML implementation would have reduced technical complexity but would provide less opportunity for reusable component architecture and dynamic navigation.
 
-### Trade-offs
+#### Trade-offs
 
 Advantages:
 
@@ -285,26 +285,26 @@ Disadvantages:
 
 ---
 
-## Decision: Client-Side Routing
+### Decision: Client-Side Routing
 
-### Context
+#### Context
 
 The portfolio contains multiple sections and project-oriented content that should be navigable without full page reloads.
 
-### Chosen Solution
+#### Chosen Solution
 
 React Router was used to manage client-side navigation.
 
 This allows the application to treat different portfolio sections as navigable application views while maintaining the single-page application model.
 
-### Alternatives Considered
+#### Alternatives Considered
 
 - Separate static HTML pages.
 - Manual navigation using browser APIs.
 
 React Router provides a more structured approach to navigation and route management.
 
-### Trade-offs
+#### Trade-offs
 
 Advantages:
 
@@ -320,19 +320,19 @@ Disadvantages:
 
 ---
 
-## Decision: Static Deployment Through GitHub Pages
+### Decision: Static Deployment Through GitHub Pages
 
-### Context
+#### Context
 
 The portfolio primarily consists of frontend content and does not require a dedicated backend or database.
 
 The deployment solution therefore needed to be simple and inexpensive while providing a publicly accessible website.
 
-### Chosen Solution
+#### Chosen Solution
 
 The React application is deployed as a static website through GitHub Pages.
 
-### Alternatives Considered
+#### Alternatives Considered
 
 - Traditional web hosting.
 - A dedicated application server.
@@ -340,7 +340,7 @@ The React application is deployed as a static website through GitHub Pages.
 
 These alternatives would introduce infrastructure that is unnecessary for the current application requirements.
 
-### Trade-offs
+#### Trade-offs
 
 Advantages:
 
@@ -357,24 +357,24 @@ Disadvantages:
 
 ---
 
-## Decision: Component-Based UI Architecture
+### Decision: Component-Based UI Architecture
 
-### Context
+#### Context
 
 The portfolio contains repeated presentation patterns for projects, skills, navigation, and other content.
 
 Implementing each section independently would increase duplication and make visual changes harder to maintain.
 
-### Chosen Solution
+#### Chosen Solution
 
 Reusable React components were used to separate presentation responsibilities and provide consistent UI patterns across the application.
 
-### Alternatives Considered
+#### Alternatives Considered
 
 - Large page-specific components.
 - Static HTML templates.
 
-### Trade-offs
+#### Trade-offs
 
 Advantages:
 
@@ -390,9 +390,9 @@ Disadvantages:
 
 ---
 
-# Implementation
+## Implementation
 
-## Features
+### Features
 
 Implemented functionality includes:
 
@@ -406,7 +406,7 @@ Implemented functionality includes:
 - reCAPTCHA integration.
 - Static deployment through GitHub Pages.
 
-## APIs
+### APIs
 
 The application does not expose its own API.
 
@@ -415,19 +415,19 @@ External services are used for selected functionality:
 - EmailJS for contact form processing.
 - reCAPTCHA for contact form protection.
 
-## Data and Persistence
+### Data and Persistence
 
 The portfolio does not use a database or persistent application storage.
 
 Portfolio content is maintained as part of the frontend project and presented by the React application.
 
-## Automation
+### Automation
 
 The application is deployed through GitHub Pages as a static frontend.
 
 No backend processing or scheduled background jobs are required by the application.
 
-## Testing
+### Testing
 
 Frontend testing is implemented using:
 

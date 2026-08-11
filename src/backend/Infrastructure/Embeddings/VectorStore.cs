@@ -47,7 +47,8 @@ public class VectorStore
                 (
                     id,
                     source,
-                    section,
+                    heading_path,
+                    semantic_type,
                     content,
                     metadata,
                     embedding
@@ -56,7 +57,8 @@ public class VectorStore
                 (
                     @id,
                     @source,
-                    @section,
+                    @heading_path,
+                    @semantic_type,
                     @content,
                     @metadata,
                     @embedding
@@ -64,7 +66,8 @@ public class VectorStore
                 ON CONFLICT (id)
                 DO UPDATE SET
                     source = EXCLUDED.source,
-                    section = EXCLUDED.section,
+                    heading_path = EXCLUDED.heading_path,
+                    semantic_type = EXCLUDED.semantic_type,
                     content = EXCLUDED.content,
                     metadata = EXCLUDED.metadata,
                     embedding = EXCLUDED.embedding;
@@ -80,8 +83,12 @@ public class VectorStore
             chunk.Source);
 
         cmd.Parameters.AddWithValue(
-            "section",
-            chunk.Section);
+            "heading_path",
+            chunk.HeadingPath);
+
+        cmd.Parameters.AddWithValue(
+            "semantic_type",
+            chunk.SemanticType);
 
         cmd.Parameters.AddWithValue(
             "content",
@@ -126,7 +133,8 @@ public class VectorStore
                 SELECT
                     id,
                     source,
-                    section,
+                    heading_path,
+                    semantic_type,
                     content,
                     metadata,
                     embedding,
@@ -155,9 +163,9 @@ public class VectorStore
         while (await reader.ReadAsync())
         {
             var metadataJson =
-                reader.IsDBNull(4)
+                reader.IsDBNull(5)
                     ? null
-                    : reader.GetString(4);
+                    : reader.GetString(5);
 
             var metadata =
                 string.IsNullOrWhiteSpace(metadataJson)
@@ -171,16 +179,17 @@ public class VectorStore
                 {
                     Id = reader.GetString(0),
                     Source = reader.GetString(1),
-                    Section = reader.GetString(2),
-                    Content = reader.GetString(3),
+                    HeadingPath = reader.GetString(2),
+                    SemanticType = reader.GetString(3),
+                    Content = reader.GetString(4),
                     Metadata = metadata,
-                    Embedding = reader.IsDBNull(5)
+                    Embedding = reader.IsDBNull(6)
                         ? default!
-                        : reader.GetFieldValue<Vector>(5)
+                        : reader.GetFieldValue<Vector>(6)
                 };
 
             var similarity =
-                reader.GetDouble(6);
+                reader.GetDouble(7);
 
             results.Add(
                 new SearchResult

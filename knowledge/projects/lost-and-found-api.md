@@ -161,9 +161,11 @@ The complete backend environment can be started consistently through Docker Comp
 
 # Action
 
+## Architecture
+
 Implemented the backend as a layered ASP.NET Core application with a repository abstraction separating application logic from persistence.
 
-## Backend
+### Backend
 
 The ASP.NET Core Web API exposes endpoints for:
 
@@ -180,7 +182,7 @@ The API validates incoming requests and applies item status rules before perform
 
 Swagger/OpenAPI is included for endpoint documentation and interactive API testing.
 
-## Persistence
+### Persistence
 
 PostgreSQL 16 is used for persistent application data.
 
@@ -190,7 +192,7 @@ The repository abstraction keeps persistence operations separate from the rest o
 
 Entity Framework Core `EnsureCreated()` is used to create the database schema automatically during development.
 
-## Development Environment
+### Development Environment
 
 Docker Compose runs the ASP.NET Core API and PostgreSQL database as a single development environment.
 
@@ -198,7 +200,7 @@ Database credentials and connection configuration are supplied through environme
 
 PostgreSQL uses a Docker volume for persistent development data.
 
-## Testing
+### Testing
 
 xUnit is used for automated testing.
 
@@ -219,57 +221,57 @@ The test suite covers:
 
 ## Technical Decisions
 
-## Decision: Repository Abstraction
+### Decision: Repository Abstraction
 
-### Context
+#### Context
 
 The application needed persistent storage while also requiring fast automated tests.
 
-### Chosen Solution
+#### Chosen Solution
 
 A repository abstraction was introduced with separate implementations for PostgreSQL and in-memory storage.
 
-### Alternatives Considered
+#### Alternatives Considered
 
 The application could have accessed Entity Framework Core directly from the API layer and used the same database implementation for all tests.
 
-### Trade-offs
+#### Trade-offs
 
 The abstraction adds an extra layer to a relatively small application, but it provides a clear separation between application behaviour and persistence and makes fast in-memory testing possible.
 
 ---
 
-## Decision: PostgreSQL with Docker Compose
+### Decision: PostgreSQL with Docker Compose
 
-### Context
+#### Context
 
 The application required relational persistence and a reproducible local development environment.
 
-### Chosen Solution
+#### Chosen Solution
 
 PostgreSQL 16 was selected as the database and run through Docker Compose alongside the ASP.NET Core API.
 
 A Docker volume is used for database persistence.
 
-### Trade-offs
+#### Trade-offs
 
 The Docker-based setup introduces a dependency on Docker during development, but provides a consistent API and database environment without requiring PostgreSQL to be installed directly on the host machine.
 
 ---
 
-## Decision: In-Memory Repository for Tests
+### Decision: In-Memory Repository for Tests
 
-### Context
+#### Context
 
 Automated tests should run quickly and should not depend on a running PostgreSQL container.
 
-### Chosen Solution
+#### Chosen Solution
 
 An in-memory repository is used by the automated tests.
 
 The PostgreSQL repository remains the persistence implementation for normal application execution.
 
-### Trade-offs
+#### Trade-offs
 
 The in-memory implementation does not reproduce every behaviour of PostgreSQL, so it cannot replace database integration testing completely.
 
@@ -277,39 +279,39 @@ For this project, it provides a fast way to test application and repository beha
 
 ---
 
-## Decision: UTC Timestamps
+### Decision: UTC Timestamps
 
-### Context
+#### Context
 
 Found-item timestamps are part of the application's data and are used when reporting and testing item creation.
 
-### Chosen Solution
+#### Chosen Solution
 
 Timestamps are generated in UTC.
 
-### Trade-offs
+#### Trade-offs
 
 UTC avoids ambiguity caused by local time zones and provides a consistent representation for persisted timestamps.
 
 ---
 
-## Decision: Swagger/OpenAPI
+### Decision: Swagger/OpenAPI
 
-### Context
+#### Context
 
 The API needed to be easy to inspect and test during development.
 
-### Chosen Solution
+#### Chosen Solution
 
 Swagger/OpenAPI was added to document the HTTP API and provide an interactive Swagger UI.
 
-### Trade-offs
+#### Trade-offs
 
 Swagger adds a development dependency and generated documentation, but significantly reduces friction when manually exploring and testing the API.
 
 ---
 
-# Implementation
+## Implementation
 
 The application follows a backend architecture where the ASP.NET Core API handles HTTP requests, application rules are separated from persistence, and repositories provide access to stored items.
 

@@ -6,7 +6,9 @@ CREATE TABLE IF NOT EXISTS document_chunks
 
     source text NOT NULL,
 
-    section text NOT NULL,
+    heading_path text NOT NULL,
+
+    semantic_type text NOT NULL,
 
     content text NOT NULL,
 

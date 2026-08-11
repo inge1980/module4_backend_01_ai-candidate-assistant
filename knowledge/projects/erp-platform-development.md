@@ -273,29 +273,29 @@ The environment required ongoing maintenance because the ERP and connected appli
 
 ---
 
-# Technical Decisions
+## Technical Decisions
 
-## Decision: Introduce a REST API Between Online Store and ERP
+### Decision: Introduce a REST API Between Online Store and ERP
 
-### Context
+#### Context
 
 The existing online store accessed the ERP database directly.
 
 This created unnecessary coupling between the customer-facing application and internal database structures and made future development more difficult.
 
-### Chosen Solution
+#### Chosen Solution
 
 A REST API was introduced as the integration boundary between the online store and ERP.
 
 The API provided controlled access to required ERP functionality and data while keeping the ERP database behind the backend boundary.
 
-### Alternatives Considered
+#### Alternatives Considered
 
 - Continuing direct database communication between the online store and ERP.
 
 This approach was functional but maintained the existing tight coupling and dependency on internal database structures.
 
-### Trade-offs
+#### Trade-offs
 
 Advantages:
 
@@ -313,15 +313,15 @@ Disadvantages:
 
 ---
 
-## Decision: Incremental Modernization Instead of ERP Replacement
+### Decision: Incremental Modernization Instead of ERP Replacement
 
-### Context
+#### Context
 
 The ERP contained established business logic and was actively used for daily operations.
 
 A complete replacement would introduce significant operational risk and require recreating existing business workflows.
 
-### Chosen Solution
+#### Chosen Solution
 
 The system was modernized incrementally by:
 
@@ -331,14 +331,14 @@ The system was modernized incrementally by:
 - Extracting selected workflows into dedicated interfaces.
 - Maintaining compatibility with established ERP functionality.
 
-### Alternatives Considered
+#### Alternatives Considered
 
 - Replacing the ERP platform entirely.
 - Continuing to develop exclusively within the existing architecture.
 
 A complete replacement was not practical for the operational context, while continuing without modernization would preserve the existing architectural limitations.
 
-### Trade-offs
+#### Trade-offs
 
 Advantages:
 
@@ -355,28 +355,28 @@ Disadvantages:
 
 ---
 
-## Decision: Keep ERP as the Core Business System
+### Decision: Keep ERP as the Core Business System
 
-### Context
+#### Context
 
 The ERP already contained established business rules for operational workflows such as ordering and invoicing.
 
 Duplicating this logic in external applications would create additional consistency and maintenance problems.
 
-### Chosen Solution
+#### Chosen Solution
 
 The ERP remained responsible for core business functionality while external applications consumed selected capabilities through the REST API.
 
 This allowed new interfaces to be developed without duplicating the underlying business logic.
 
-### Alternatives Considered
+#### Alternatives Considered
 
 - Moving business logic into each consuming application.
 - Reimplementing ERP functionality in a separate backend.
 
 These approaches would have introduced duplicated business rules and increased the risk of inconsistent behavior between systems.
 
-### Trade-offs
+#### Trade-offs
 
 Advantages:
 
@@ -393,9 +393,9 @@ Disadvantages:
 
 ---
 
-# Implementation
+## Implementation
 
-## Features
+### Features
 
 Implemented functionality and modernization work included:
 
@@ -411,7 +411,7 @@ Implemented functionality and modernization work included:
 - SQL-backed data access for new functionality.
 - IIS-based production support.
 
-## APIs
+### APIs
 
 The REST API provided controlled communication between the ERP platform and external applications.
 
@@ -425,7 +425,7 @@ Important API capabilities included:
 
 The API replaced direct database communication from the online store and established a defined integration boundary.
 
-## Data and Persistence
+### Data and Persistence
 
 SQL Server remained the primary persistence layer for the ERP platform.
 
@@ -439,13 +439,13 @@ Implementation work included:
 
 External applications accessed required data through the API rather than connecting directly to the ERP database.
 
-## Automation
+### Automation
 
 No significant CI/CD or scheduled automation is documented as part of this project.
 
 Deployment and operational maintenance were primarily handled through the IIS-hosted production environment.
 
-## Testing
+### Testing
 
 Testing was primarily performed through development, integration, and production troubleshooting of the existing business systems.
 

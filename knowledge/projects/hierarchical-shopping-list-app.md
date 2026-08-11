@@ -408,15 +408,15 @@ Local development uses `.env` files, while deployed environments use Vercel Envi
 
 ## Technical Decisions
 
-## Decision: Redux as the Runtime Single Source of Truth
+### Decision: Redux as the Runtime Single Source of Truth
 
-### Context
+#### Context
 
 The application has local persistence, remote persistence, and active UI state.
 
 Without a clear ownership model, components could start reading directly from different data sources and produce inconsistent behavior.
 
-### Chosen Solution
+#### Chosen Solution
 
 Redux was selected as the central runtime state layer.
 
@@ -424,13 +424,13 @@ Components consume Redux state, while SQLite and Supabase act as persistence and
 
 This provides a predictable unidirectional state flow.
 
-### Alternatives Considered
+#### Alternatives Considered
 
 Direct database-driven UI was considered, where components would read directly from SQLite or Supabase.
 
 This was rejected because it would couple presentation directly to persistence and make offline synchronization harder to reason about.
 
-### Trade-offs
+#### Trade-offs
 
 Advantages:
 
@@ -448,23 +448,23 @@ Disadvantages:
 
 ---
 
-## Decision: React Native Reanimated for Gesture-Driven Animation
+### Decision: React Native Reanimated for Gesture-Driven Animation
 
-### Context
+#### Context
 
 Drag-and-drop interactions require frequent updates and need to remain responsive.
 
-### Chosen Solution
+#### Chosen Solution
 
 Reanimated 3 is used together with React Native Gesture Handler so that animation and gesture work can execute on the UI thread where appropriate.
 
-### Alternatives Considered
+#### Alternatives Considered
 
 React Native's traditional Animated API was an alternative.
 
 The chosen approach provided better control over high-frequency gesture interactions and reduced JavaScript-thread dependency.
 
-### Trade-offs
+#### Trade-offs
 
 Advantages:
 
@@ -479,27 +479,27 @@ Disadvantages:
 
 ---
 
-## Decision: SQLite for Local Persistence
+### Decision: SQLite for Local Persistence
 
-### Context
+#### Context
 
 Offline functionality requires data to remain available when the device has no network connection.
 
 The application also needs persistence across application restarts.
 
-### Chosen Solution
+#### Chosen Solution
 
 SQLite is used as the mobile persistence layer.
 
 Local state is persisted independently from the remote PostgreSQL database so that the application can continue operating offline.
 
-### Alternatives Considered
+#### Alternatives Considered
 
 A purely remote data model was unsuitable because network connectivity would become a prerequisite for normal operation.
 
 A simpler key-value storage approach would also be insufficient for the relational and hierarchical data model.
 
-### Trade-offs
+#### Trade-offs
 
 Advantages:
 
@@ -517,23 +517,23 @@ Disadvantages:
 
 ---
 
-## Decision: Custom SQLite Migration System
+### Decision: Custom SQLite Migration System
 
-### Context
+#### Context
 
 The application needs controlled schema evolution across installed versions.
 
-### Chosen Solution
+#### Chosen Solution
 
 A custom migration runner executes migrations sequentially and records completed migration versions.
 
 The current approach provides deterministic forward migration without automatic rollback.
 
-### Alternatives Considered
+#### Alternatives Considered
 
 An external migration framework could provide more functionality, but a custom implementation was chosen to keep the local database lifecycle explicit and lightweight.
 
-### Trade-offs
+#### Trade-offs
 
 Advantages:
 
@@ -550,13 +550,13 @@ Disadvantages:
 
 ---
 
-## Decision: Temporary QR Invitations for Child Device Linking
+### Decision: Temporary QR Invitations for Child Device Linking
 
-### Context
+#### Context
 
 Children need a simple way to join an existing family without exposing parent credentials or requiring full account registration.
 
-### Chosen Solution
+#### Chosen Solution
 
 The application uses temporary invitations containing unique QR tokens and verification information.
 
@@ -564,13 +564,13 @@ Invitations have expiration and single-use semantics.
 
 Authorization is then handled through family membership and roles rather than treating the QR token as a permanent credential.
 
-### Alternatives Considered
+#### Alternatives Considered
 
 Embedding account information directly in the QR code was rejected because it could expose sensitive information.
 
 Requiring children to create independent email-based accounts would also make the onboarding flow unnecessarily complex for the intended use case.
 
-### Trade-offs
+#### Trade-offs
 
 Advantages:
 
@@ -588,23 +588,23 @@ Disadvantages:
 
 ---
 
-## Decision: Environment-Based Configuration
+### Decision: Environment-Based Configuration
 
-### Context
+#### Context
 
 Development and production use different backend resources and deployment environments.
 
-### Chosen Solution
+#### Chosen Solution
 
 Local `.env` files are used during development, while deployed environments use Vercel Environment Variables.
 
 Application configuration is resolved from the active environment.
 
-### Alternatives Considered
+#### Alternatives Considered
 
 Hardcoded service endpoints and manually changing configuration before deployments were rejected because they increase deployment risk.
 
-### Trade-offs
+#### Trade-offs
 
 Advantages:
 
@@ -620,23 +620,23 @@ Disadvantages:
 
 ---
 
-## Decision: Progressive Synchronization Architecture
+### Decision: Progressive Synchronization Architecture
 
-### Context
+#### Context
 
 The application must provide immediate local interaction while eventually synchronizing data with a remote database.
 
-### Chosen Solution
+#### Chosen Solution
 
 Local changes are applied to the application state immediately and persisted locally. Synchronization with Supabase occurs separately when connectivity is available.
 
-### Alternatives Considered
+#### Alternatives Considered
 
 A remote-first approach would make user interaction dependent on network availability.
 
 A local-only architecture would not provide family-wide synchronization.
 
-### Trade-offs
+#### Trade-offs
 
 Advantages:
 

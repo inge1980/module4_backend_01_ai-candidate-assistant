@@ -4,6 +4,18 @@ namespace Infrastructure.Documents;
 
 public class DocumentChunker
 {
+    private readonly SemanticTypeResolver _semanticTypeResolver;
+
+    public DocumentChunker(SemanticTypeResolver semanticTypeResolver)
+    {
+        _semanticTypeResolver =
+            semanticTypeResolver;
+    }
+
+    private static readonly Regex HeadingRegex = new(
+        @"^(#{1,6})\s+(.+?)\s*$",
+        RegexOptions.Multiline | RegexOptions.Compiled);
+
     public List<DocumentChunk> Chunk(string markdown, string source, Dictionary<string, object?>? metadata = null)
     {
         var chunks = new List<DocumentChunk>();
@@ -17,16 +29,21 @@ public class DocumentChunker
             if (string.IsNullOrWhiteSpace(content))
                 continue;
 
-            var chunkId =
-                $"{source}-{index:D3}-{section.Title}";
+
+            var semanticType =
+                _semanticTypeResolver.Resolve(
+                    section.HeadingPath);
 
             chunks.Add(new DocumentChunk
             {
-                Id = chunkId,
+                Id = $"{source}-{index:D3}-{CreateIdPart(section.HeadingPath)}",
                 Source = source,
-                Section = section.Title,
+                HeadingPath = section.HeadingPath,
+                SemanticType = semanticType,
                 Content = content,
-                Metadata = metadata ?? new Dictionary<string, object?>()
+                Metadata = metadata is null
+                    ? new Dictionary<string, object?>()
+                    : new Dictionary<string, object?>(metadata)
             });
 
         }
@@ -35,55 +52,58 @@ public class DocumentChunker
     }
 
 
-    private List<MarkdownSection> SplitIntoSections(string markdown)
+    private static List<MarkdownSection> SplitIntoSections(string markdown)
     {
         var sections = new List<MarkdownSection>();
+        var headingStack = new string[6];
 
-        var matches = Regex.Split(
-            markdown,
-            @"(?=^#{1,3}\s)",
-            RegexOptions.Multiline
-        );
+        var matches = HeadingRegex.Matches(markdown);
 
-        foreach (var part in matches)
+        for (var index = 0; index < matches.Count; index++)
         {
-            if (string.IsNullOrWhiteSpace(part))
-                continue;
+            var match = matches[index];
 
-            var lines = part.Split(
-                '\n',
-                StringSplitOptions.RemoveEmptyEntries
-            );
+            var level = match.Groups[1].Value.Length;
+            var title = match.Groups[2].Value.Trim();
 
-            var firstLine = lines.FirstOrDefault();
+            var start = match.Index;
+            var end = index + 1 < matches.Count
+                ? matches[index + 1].Index
+                : markdown.Length;
 
-            if (firstLine == null)
-                continue;
+            var content = markdown[start..end];
 
+            headingStack[level - 1] = title;
 
-            var title = firstLine
-                .Trim()
-                .TrimStart('#')
-                .Trim();
+            for (var i = level; i < headingStack.Length; i++)
+            {
+                headingStack[i] = string.Empty;
+            }
+
+            var headingPath = string.Join(
+                " > ",
+                headingStack.Where(x => !string.IsNullOrWhiteSpace(x)));
 
             sections.Add(new MarkdownSection
             {
+                HeadingLevel = level,
                 Title = title,
-                Content = part
+                HeadingPath = headingPath,
+                Content = content
             });
         }
 
         return sections;
     }
 
-    private string CleanContent(string content)
+    private static string CleanContent(string content)
     {
         var lines = content
             .Replace("\r\n", "\n")
             .Split('\n')
             .ToList();
 
-        if (lines.Count > 0 && lines[0].StartsWith("#"))
+        if (lines.Count > 0 && HeadingRegex.IsMatch(lines[0]))
         {
             lines.RemoveAt(0);
         }
@@ -93,9 +113,22 @@ public class DocumentChunker
             .Trim();
     }
 
-    private class MarkdownSection
+    private static string CreateIdPart(string headingPath)
     {
+        return Regex.Replace(
+            headingPath.ToLowerInvariant(),
+            @"[^a-z0-9]+",
+            "-")
+            .Trim('-');
+    }
+
+    private sealed class MarkdownSection
+    {
+        public int HeadingLevel { get; set; }
+
         public string Title { get; set; } = string.Empty;
+
+        public string HeadingPath { get; set; } = string.Empty;
 
         public string Content { get; set; } = string.Empty;
     }

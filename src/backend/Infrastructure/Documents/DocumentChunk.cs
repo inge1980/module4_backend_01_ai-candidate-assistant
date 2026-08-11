@@ -8,7 +8,9 @@ public class DocumentChunk
 
     public string Source { get; set; } = string.Empty;
 
-    public string Section { get; set; } = string.Empty;
+    public string HeadingPath { get; set; } = string.Empty;
+
+    public string SemanticType { get; set; } = string.Empty;
 
     public string Content { get; set; } = string.Empty;
 

@@ -448,25 +448,25 @@ The production rollout was performed progressively so that individual schools co
 
 ## Technical Decisions
 
-## Decision: Bootstrap 3 as the Responsive Foundation
+### Decision: Bootstrap 3 as the Responsive Foundation
 
-### Context
+#### Context
 
 The existing frontend lacked a consistent responsive grid and relied heavily on fixed-width and table-based layouts.
 
 A common responsive layout system was required across many modules and customer configurations.
 
-### Chosen Solution
+#### Chosen Solution
 
 Bootstrap 3 was adopted as the foundation for the responsive frontend.
 
 The page scaffolding and CMS modules were adapted to use Bootstrap's grid and responsive conventions.
 
-### Alternatives Considered
+#### Alternatives Considered
 
 The existing custom CSS system could have been extended with additional responsive rules.
 
-### Trade-offs
+#### Trade-offs
 
 Bootstrap provided a consistent grid and responsive model but imposed stricter layout constraints than the legacy system.
 
@@ -474,25 +474,25 @@ That required the existing column configurations to be normalized.
 
 ---
 
-## Decision: Keep Customer Content Independent from Presentation
+### Decision: Keep Customer Content Independent from Presentation
 
-### Context
+#### Context
 
 Customers should not have to rebuild their websites because the presentation layer was being modernized.
 
 The same content needed to work with both frontend versions.
 
-### Chosen Solution
+#### Chosen Solution
 
 The legacy and responsive frontends shared the same underlying customer data.
 
 The PHP rendering layer selected the presentation mode using the per-school frontend setting.
 
-### Alternatives Considered
+#### Alternatives Considered
 
 The team could have migrated customers to a new content model or created a separate version of the customer website.
 
-### Trade-offs
+#### Trade-offs
 
 Maintaining two presentation modes temporarily increased implementation and maintenance complexity.
 
@@ -500,15 +500,15 @@ However, it avoided content migration, reduced rollout risk, and provided immedi
 
 ---
 
-## Decision: Per-School Frontend Feature Switch
+### Decision: Per-School Frontend Feature Switch
 
-### Context
+#### Context
 
 A platform-wide frontend switch would have created a large blast radius.
 
 The team needed to migrate schools independently.
 
-### Chosen Solution
+#### Chosen Solution
 
 A frontend-mode value was stored for each school.
 
@@ -516,11 +516,11 @@ Only authorized Moava employees could change the value through the administratio
 
 The PHP rendering layer used the value to determine which frontend should be generated.
 
-### Alternatives Considered
+#### Alternatives Considered
 
 A single global configuration could have switched the entire customer base at once.
 
-### Trade-offs
+#### Trade-offs
 
 The per-school approach introduced additional configuration and required both rendering modes to remain functional during the transition.
 
@@ -528,15 +528,15 @@ In return, it provided controlled rollout and immediate rollback at customer lev
 
 ---
 
-## Decision: Normalize Legacy Column Configurations
+### Decision: Normalize Legacy Column Configurations
 
-### Context
+#### Context
 
 The existing configuration system allowed arbitrary percentages, pixel values, mixed units, and invalid combinations.
 
 Bootstrap required a 12-column grid.
 
-### Chosen Solution
+#### Chosen Solution
 
 Approximately 1,000 production configurations were analyzed.
 
@@ -544,13 +544,13 @@ Six recurring patterns were identified and used as the basis for an automated co
 
 The algorithm converted legacy values into Bootstrap-compatible widths while attempting to preserve their approximate visual proportions.
 
-### Alternatives Considered
+#### Alternatives Considered
 
 Every customer configuration could have been manually reviewed and corrected.
 
 A single generic mathematical conversion could also have been applied to all configurations.
 
-### Trade-offs
+#### Trade-offs
 
 Some unusual configurations could not be reproduced perfectly.
 
@@ -558,15 +558,15 @@ However, analyzing actual production data produced a more reliable migration tha
 
 ---
 
-## Decision: Multi-Handle Bootstrap Grid Slider
+### Decision: Multi-Handle Bootstrap Grid Slider
 
-### Context
+#### Context
 
 The old administration interface allowed arbitrary text input for column widths.
 
 This flexibility had contributed to inconsistent historical configurations.
 
-### Chosen Solution
+#### Chosen Solution
 
 A custom multi-handle slider represented the Bootstrap 12-column grid.
 
@@ -579,11 +579,11 @@ The number of handles changed according to the number of columns:
 
 Handles snapped to Bootstrap grid positions.
 
-### Alternatives Considered
+#### Alternatives Considered
 
 The existing free-form inputs could have been retained with validation added.
 
-### Trade-offs
+#### Trade-offs
 
 The slider was less flexible than arbitrary text input.
 
@@ -591,23 +591,23 @@ That was intentional. The new interface enforced the constraints of the responsi
 
 ---
 
-## Decision: Progressive Customer Rollout
+### Decision: Progressive Customer Rollout
 
-### Context
+#### Context
 
 Migrating approximately 1,300 schools simultaneously would have increased operational risk and potentially created a large support burden.
 
-### Chosen Solution
+#### Chosen Solution
 
 The new frontend was introduced through internal testing, remote test environments, pilot customers, and progressive customer migration.
 
 The legacy frontend remained available during the transition.
 
-### Alternatives Considered
+#### Alternatives Considered
 
 A single platform-wide migration could have been performed after internal testing.
 
-### Trade-offs
+#### Trade-offs
 
 Maintaining two frontend modes temporarily increased maintenance overhead.
 
@@ -615,7 +615,7 @@ However, it reduced the impact of defects, enabled real-world feedback, and prov
 
 ---
 
-# Implementation
+## Implementation
 
 The implementation covered the frontend rendering architecture, PHP presentation layer, page scaffolding, more than 30 CMS modules, responsive behavior, legacy browser compatibility, customer configuration, legacy-data conversion, and rollout.
 
@@ -779,26 +779,6 @@ The modernization therefore addressed a real change in user behavior while also 
 Customer support was also part of the migration strategy.
 
 The design consultations gave customers practical assistance in adapting their configurations rather than leaving them to deal with the visual consequences of the migration themselves.
-
----
-
-# What I Would Do Differently Today
-
-With modern tooling, I would keep the core migration strategy but make the implementation significantly more observable, testable, and automated.
-
-I would add:
-
-- Automated visual regression testing for all CMS modules.
-- Component-level integration tests.
-- Automated responsive testing across a defined viewport matrix.
-- Automated cross-browser testing.
-- Automated accessibility testing against WCAG requirements.
-- Automated detection of layout regressions.
-- Better separation between CMS content, application logic, and presentation.
-- Metrics showing which modules and configurations produced the most migration problems.
-- Structured logging around frontend-mode changes and migration failures.
-
-I would also make the legacy-data conversion algorithm independently testable using a representative corpus of historical configurations. That would make it easier to verify that future changes did not unintentionally alter established customer layouts.
 
 ---
 

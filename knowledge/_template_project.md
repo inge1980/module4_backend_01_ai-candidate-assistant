@@ -292,9 +292,9 @@ Good candidates:
 Do not create a decision section for trivial implementation details.
 -->
 
-## Decision: Title
+### Decision: Title
 
-### Context
+#### Context
 
 <!-- DETAIL LEVEL: SHORT?MEDIUM
 
@@ -303,7 +303,7 @@ Why did this decision need to be made?
 Describe the specific requirement, constraint, or problem that led to the decision.
 -->
 
-### Chosen Solution
+#### Chosen Solution
 
 <!-- DETAIL LEVEL: MEDIUM?DETAILED
 
@@ -313,7 +313,7 @@ Focus on the decision itself.
 Detailed implementation belongs primarily in Challenge ? Solution or Implementation.
 -->
 
-### Alternatives Considered
+#### Alternatives Considered
 
 <!-- DETAIL LEVEL: SHORT?MEDIUM
 
@@ -324,7 +324,7 @@ Do not invent alternatives simply to make the section look complete.
 Explain briefly why they were not chosen.
 -->
 
-### Trade-offs
+#### Trade-offs
 
 <!-- DETAIL LEVEL: MEDIUM
 

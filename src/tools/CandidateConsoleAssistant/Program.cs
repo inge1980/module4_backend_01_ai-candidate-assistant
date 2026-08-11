@@ -51,13 +51,20 @@ var evidenceScorer =
 // TEST: Retrieval evaluation code
 var questions = new[]
 {
+    // Test small variations of the same question to evaluate retrieval and ranking
+    "Have you used PostgreSQL?",
+    "Have you used PostgreSQL in production?",
+    "Have you used PostgreSQL in a school project?",
+    "Have you used PostgreSQL for personal projects?",
+    "What production experience do I have?"
+
     // PostgreSQL-related questions to evaluate retrieval and ranking
-    "Have you built systems involving PostgreSQL?",     //  Multiple projects 
-    "What experience do I have with PostgreSQL?",       // Broad knowledge and specific examples
-    "Have you used pgvector?",                          // RAG-prosject ranked as nr 1, but also other projects
-    "Have you used PostgreSQL with .NET?",              // Lost & Found high ranked
-    "What databases have I worked with?",               // PostgreSQL + others
-    "Have you used PostgreSQL in production?"           // Should avoid school projects and focus on real-world experience
+    //"Have you built systems involving PostgreSQL?",     //  Multiple projects 
+    //"What experience do I have with PostgreSQL?",       // Broad knowledge and specific examples
+    //"Have you used pgvector?",                          // RAG-prosject ranked as nr 1, but also other projects
+    //"Have you used PostgreSQL with .NET?",              // Lost & Found high ranked
+    //"What databases have I worked with?",               // PostgreSQL + others
+    //"Have you used PostgreSQL in production?"           // Should avoid school projects and focus on real-world experience
 
 /* 
 // Initial test questions for retrieval evaluation

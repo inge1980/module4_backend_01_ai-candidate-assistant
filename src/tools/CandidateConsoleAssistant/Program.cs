@@ -1,6 +1,7 @@
 ﻿using Infrastructure.Embeddings;
+using Infrastructure.Reranking;
 
-const int retrievalLimit = 20;
+const int retrievalLimit = 10; // Limit the number of results retrieved from the vector store
 
 var rootDirectory =
     Directory.GetCurrentDirectory();
@@ -26,6 +27,9 @@ var embeddingService =
 
 var vectorStore =
     new VectorStore();
+
+var evidenceScorer =
+    new MetadataEvidenceScorer();
 
 // TEST: Retrieval evaluation code
 var questions = new[]
@@ -68,23 +72,25 @@ foreach (var question in questions)
     Console.WriteLine("==============================");
     Console.WriteLine($"Question: {question}");
     Console.WriteLine("==============================");
-
     Console.WriteLine();
     Console.WriteLine("Generating query embedding...");
 
-    var embedding =
-        await embeddingService.Create(question);
-
+    var embedding = await embeddingService.Create(question);
     Console.WriteLine(
         $"Embedding dimensions: {embedding.Length}");
-
     Console.WriteLine();
     Console.WriteLine("Searching PostgreSQL...");
 
-    var results =
-        await vectorStore.SearchAsync(
-            embedding,
-            limit: retrievalLimit);
+    var results = await vectorStore.SearchAsync(embedding, limit: retrievalLimit);
+    foreach (var result in results) {
+        evidenceScorer.Score(question, result);
+    }
+
+    results = results
+        .OrderByDescending(
+                result => result.CombinedScore
+        )
+        .ToList();
 
     Console.WriteLine();
     Console.WriteLine(
@@ -95,16 +101,13 @@ foreach (var question in questions)
     foreach (var result in results)
     {
         Console.WriteLine();
-
-
-        Console.WriteLine(
-            $"#{rank} | Vector score: {result.Similarity:F4}");
-
-        Console.WriteLine(
-            $"Source: {result.Chunk.Source}");
-
-        Console.WriteLine(
-            $"Section: {result.Chunk.Section}");
+        Console.WriteLine($"#{rank}");
+        Console.WriteLine($"Vector score:   {result.VectorScore:F4}");
+        Console.WriteLine($"Metadata score: {result.MetadataScore:F4}");
+        Console.WriteLine($"Evidence score: {result.EvidenceScore:F4}");
+        Console.WriteLine($"Combined score: {result.CombinedScore:F4}");
+        Console.WriteLine($"Source:         {result.Chunk.Source}");
+        Console.WriteLine($"Section:        {result.Chunk.Section}");
 
         var preview =
             result.Chunk.Content

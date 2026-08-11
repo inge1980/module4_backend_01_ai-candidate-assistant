@@ -186,7 +186,7 @@ public class VectorStore
                 new SearchResult
                 {
                     Chunk = chunk,
-                    Similarity = similarity
+                    VectorScore = similarity
                 });
         }
 

@@ -43,7 +43,7 @@ live:
 
 # Overview
 
-An ASP.NET Core Web API deployed to Microsoft Azure through a fully automated infrastructure and CI/CD workflow.
+An ASP.NET Core Web API deployed to Microsoft Azure through an automated infrastructure and CI/CD workflow.
 
 The project combines Terraform, Docker, Azure Container Registry, Azure Virtual Machines, and GitHub Actions to demonstrate how application infrastructure and deployments can be defined, version controlled, and reproduced through code.
 
@@ -55,7 +55,7 @@ The main objective was to gain practical experience with cloud infrastructure, c
 
 The project was created as a school project to explore the operational side of backend development beyond writing and running an API locally.
 
-The application needed to be deployed to Azure using reproducible infrastructure rather than manually configuring resources through the Azure Portal. The deployment process also needed to minimize manual steps and avoid storing long-lived Azure credentials in source control.
+The application needed to be deployed to Azure using reproducible infrastructure rather than manually configuring resources through the Azure Portal. The deployment process also needed to minimize manual steps and avoid storing long-lived Azure client secrets in GitHub.
 
 Important requirements included:
 
@@ -64,7 +64,7 @@ Important requirements included:
 - Containerized application deployment.
 - Automated application updates.
 - Secure CI/CD authentication.
-- No long-lived Azure credentials stored in GitHub.
+- No long-lived Azure client secret stored in GitHub.
 - A deployment workflow that could be reused for future application changes.
 
 The project was intentionally kept relatively small so the focus could remain on the deployment architecture and DevOps workflow rather than application complexity.
@@ -84,6 +84,7 @@ I owned:
 - Azure Virtual Machine deployment.
 - GitHub Actions CI/CD workflows.
 - GitHub Actions authentication to Azure using OpenID Connect.
+- SSH-based access from GitHub Actions to the Azure Virtual Machine.
 - User Assigned Managed Identity configuration for Azure Container Registry access.
 - Automated container deployment and updates on the Azure Virtual Machine.
 
@@ -102,6 +103,7 @@ Deploying a containerized application to Azure involves several independent step
 - Infrastructure must exist before the application can be deployed.
 - Container images must be built and made available to the target environment.
 - The CI/CD workflow needs authenticated access to Azure.
+- The GitHub Actions runner needs secure access to the deployment Virtual Machine.
 - The target Virtual Machine needs authenticated access to the container registry.
 - Application updates need to replace the running container reliably.
 
@@ -122,14 +124,17 @@ GitHub Actions handles the deployment workflow. The workflow:
 1. Authenticates to Azure using OpenID Connect.
 2. Builds the Docker image.
 3. Pushes the image to Azure Container Registry.
-4. Connects to the Azure Virtual Machine through SSH.
-5. Uses the VM's User Assigned Managed Identity for access to Azure Container Registry.
-6. Retrieves the new container image.
-7. Updates the running application through Docker Compose.
+4. Connects to the Azure Virtual Machine through SSH using a repository secret containing the VM's private SSH key.
+5. Authenticates the VM to Azure using its User Assigned Managed Identity.
+6. Authenticates Docker to Azure Container Registry using the VM's managed identity and `AcrPull` permissions.
+7. Retrieves the new container image.
+8. Updates the running application through Docker Compose.
 
-OpenID Connect was used for the GitHub-to-Azure trust relationship so the workflow does not require a long-lived Azure client secret stored in the repository.
+OpenID Connect was used for the GitHub-to-Azure trust relationship so the workflow did not require a long-lived Azure client secret stored in the repository.
 
-The Virtual Machine uses a User Assigned Managed Identity with the `AcrPull` role, separating registry access from manually managed registry credentials.
+The SSH private key was used separately for GitHub Actions to establish the connection to the Azure Virtual Machine.
+
+The Virtual Machine uses a User Assigned Managed Identity with the `AcrPull` role, allowing the VM to authenticate to Azure Container Registry without storing registry credentials on the VM.
 
 ### Result
 
@@ -179,7 +184,9 @@ Terraform provisions:
 
 The application runs as a Docker container on the Linux Virtual Machine.
 
-GitHub Actions provides the CI/CD layer. It builds and publishes the container image, connects to the Virtual Machine, retrieves the updated image, and restarts the application container through Docker Compose.
+GitHub Actions provides the CI/CD layer. It authenticates to Azure using OpenID Connect, builds and publishes the container image, connects to the Virtual Machine through SSH, and triggers the application update.
+
+The Virtual Machine uses its User Assigned Managed Identity to authenticate to Azure Container Registry and retrieve the container image.
 
 ---
 
@@ -238,9 +245,9 @@ Storing a long-lived Azure client secret in GitHub would create an unnecessary c
 
 GitHub Actions authenticates to Azure using OpenID Connect.
 
-The GitHub workflow establishes a trusted identity relationship with Azure and receives temporary authentication credentials during workflow execution.
+The workflow grants the GitHub Actions job permission to request an OIDC token and uses the Azure Login action with the Azure client ID, tenant ID, and subscription ID.
 
-This removes the need for a persistent Azure client secret in the repository.
+This establishes a federated trust relationship between the GitHub repository and the Azure identity without requiring long-lived Azure client secrets to be stored in GitHub.
 
 #### Alternatives Considered
 
@@ -255,7 +262,7 @@ These approaches were not chosen because they rely on longer-lived credentials t
 
 - No long-lived Azure client secret in GitHub.
 - Reduced credential-management overhead.
-- Temporary credentials during workflow execution.
+- Federated authentication between GitHub and Azure.
 - Better separation between GitHub and Azure identity management.
 
 **Disadvantages:**
@@ -278,7 +285,19 @@ Storing registry credentials directly on the Virtual Machine would introduce ano
 
 A User Assigned Managed Identity was provisioned with Terraform and associated with the Virtual Machine.
 
-The identity receives the `AcrPull` role on the Azure Container Registry, allowing the VM environment to authenticate to the registry using Azure-managed identity rather than manually stored registry credentials.
+The identity receives the `AcrPull` role on the Azure Container Registry.
+
+During deployment, the VM authenticates to Azure using:
+
+`az login --identity`
+
+It then uses:
+
+`az acr login`
+
+to authenticate Docker to the Azure Container Registry.
+
+This allows the VM to access the registry using Azure-managed identity rather than manually stored registry credentials.
 
 #### Alternatives Considered
 
@@ -291,7 +310,7 @@ These alternatives would introduce credentials that need to be stored, protected
 
 **Advantages:**
 
-- No manually managed registry password.
+- No manually managed registry password on the VM.
 - Azure-managed identity lifecycle.
 - Explicit role-based access.
 - Clear separation between application deployment and registry credentials.
@@ -351,7 +370,8 @@ Direct deployment was avoided because it would couple the VM more closely to the
 - Linux Virtual Machine deployment.
 - Automated container image publishing.
 - Automated application deployment.
-- Secure GitHub-to-Azure authentication.
+- OIDC-based GitHub-to-Azure authentication.
+- SSH-based GitHub Actions access to the deployment VM.
 - Managed Identity-based registry access.
 - Docker Compose-based container updates.
 
@@ -378,7 +398,9 @@ The automation includes:
 - Azure authentication through OpenID Connect.
 - Docker image building.
 - Container image publishing to Azure Container Registry.
-- SSH-based connection to the deployment VM.
+- SSH-based connection to the deployment VM using a GitHub repository secret.
+- VM authentication to Azure using User Assigned Managed Identity.
+- Container registry authentication from the VM.
 - Container image retrieval.
 - Docker Compose application update.
 
@@ -390,9 +412,11 @@ Testing focused primarily on validating the deployment workflow and infrastructu
 
 The important validation areas were:
 
-- Successful Azure authentication from GitHub Actions.
+- Successful OIDC-based Azure authentication from GitHub Actions.
 - Successful Docker image creation.
 - Successful image publication to Azure Container Registry.
+- Successful SSH connection from GitHub Actions to the Virtual Machine.
+- Successful Managed Identity authentication from the Virtual Machine.
 - Successful registry access from the Virtual Machine.
 - Successful container deployment.
 - Successful application startup after deployment.
@@ -411,8 +435,9 @@ The final solution provides:
 - Containerized application deployment.
 - Azure Container Registry-based image distribution.
 - GitHub Actions CI/CD automation.
-- OpenID Connect authentication for CI/CD.
-- Managed Identity-based registry access.
+- OpenID Connect authentication for CI/CD between GitHub Actions and Azure.
+- SSH-based deployment access to the Azure Virtual Machine.
+- Managed Identity-based registry access from the Virtual Machine.
 - Automated application updates on an Azure Linux Virtual Machine.
 
 The project achieved its primary goal of replacing a manually configured deployment process with a reproducible, version-controlled workflow.
@@ -431,13 +456,15 @@ This changed my approach toward treating infrastructure configuration as part of
 
 ## Lesson: Authentication Architecture Matters in CI/CD
 
-Using OpenID Connect instead of long-lived client secrets demonstrated the difference between simply making a deployment work and designing a deployment workflow with a better security model.
+Using OpenID Connect instead of long-lived Azure client secrets demonstrated the difference between simply making a deployment work and designing a deployment workflow with a better security model.
 
-The main lesson was to avoid introducing persistent credentials when the platform already provides short-lived workload identity mechanisms.
+The main lesson was to avoid introducing persistent Azure credentials when the platform already provides federated workload identity mechanisms.
+
+The project also showed that different parts of a deployment can require different authentication mechanisms. GitHub Actions used OIDC to authenticate to Azure, SSH was used to access the VM, and the VM used Managed Identity to access Azure Container Registry.
 
 ## Lesson: Managed Identity Reduces Credential Management
 
-Using a User Assigned Managed Identity for registry access showed how Azure-native identity mechanisms can remove credentials from application infrastructure.
+Using a User Assigned Managed Identity for registry access showed how Azure-native identity mechanisms can remove registry credentials from the VM deployment process.
 
 This makes permissions more explicit and reduces the number of secrets that need to be created, stored, rotated, and protected.
 

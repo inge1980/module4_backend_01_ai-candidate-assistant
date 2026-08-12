@@ -859,7 +859,9 @@ A larger evaluation dataset and automated regression tests are therefore future 
 ## Retrieval
 
 - Introduce metadata-aware filtering.
-- Add metadata-aware ranking.
+- Improve metadata-aware ranking by distinguishing descriptive and structured metadata.
+- Introduce metadata intent detection so structured attributes such as environment and organization can be matched explicitly against query intent.
+- Improve reranking for queries containing explicit metadata constraints.
 - Compare vector-only retrieval against hybrid retrieval.
 - Add lexical search for exact technologies and identifiers.
 - Add project-level result aggregation.

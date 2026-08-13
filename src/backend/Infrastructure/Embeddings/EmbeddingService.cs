@@ -7,12 +7,16 @@ public class EmbeddingService
 {
     private readonly HttpClient _httpClient;
 
-    private const string Model =
-        "qllama/bge-small-en-v1.5:latest";
+    private static readonly string Model =
+        Environment.GetEnvironmentVariable("OLLAMA_EMBEDDING_MODEL")
+        ?? throw new InvalidOperationException(
+        "OLLAMA_EMBEDDING_MODEL environment variable is missing.");
 
-    private const string OllamaUrl =
-        "http://localhost:11434/api/embed";
-
+    private static readonly string OllamaUrl =
+        Environment.GetEnvironmentVariable("OLLAMA_EMBED_URL")
+        ?? throw new InvalidOperationException(
+        "OLLAMA_EMBED_URL environment variable is missing.");
+    
     public EmbeddingService()
     {
         _httpClient = new HttpClient();

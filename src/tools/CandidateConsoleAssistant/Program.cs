@@ -1,5 +1,6 @@
 ﻿using Infrastructure.Embeddings;
 using Infrastructure.Reranking;
+using Microsoft.Extensions.Configuration;
 
 const int retrievalLimit = 10; // Limit the number of results retrieved from the vector store
 const int promptContextLimit = 5;
@@ -42,9 +43,14 @@ var answerPromptTemplate =
 var embeddingService =
     new EmbeddingService();
 
-var vectorStore =
-    new VectorStore();
+var connectionString =
+    Environment.GetEnvironmentVariable("ConnectionStrings__Postgres")
+    ?? throw new InvalidOperationException(
+        "ConnectionStrings__Postgres environment variable is missing.");
 
+var vectorStore =
+    new VectorStore(connectionString);
+    
 var evidenceScorer =
     new MetadataEvidenceScorer();
 

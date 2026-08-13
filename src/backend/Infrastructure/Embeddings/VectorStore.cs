@@ -1,6 +1,7 @@
 // Embedding to vector
 
 using System.Text.Json;
+using Microsoft.Extensions.Configuration;
 using Infrastructure.Documents;
 using Npgsql;
 using Pgvector;
@@ -11,15 +12,17 @@ public class VectorStore
 {
     private readonly NpgsqlDataSource _dataSource;
 
-    public VectorStore()
+    private readonly string _connectionString;
+
+    public VectorStore(string connectionString)
     {
-        var connectionString =
-            Environment.GetEnvironmentVariable("POSTGRES_CONNECTION")
+        _connectionString =
+            connectionString
             ?? throw new InvalidOperationException(
-                "POSTGRES_CONNECTION environment variable is missing.");
+                "Postgres connection string is missing.");
 
         var builder =
-            new NpgsqlDataSourceBuilder(connectionString);
+            new NpgsqlDataSourceBuilder(_connectionString);
 
         builder.UseVector();
 

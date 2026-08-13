@@ -30,12 +30,13 @@ builder.Services.Configure<LlmOptions>(
 // Add services to the container.
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 //builder.Services.AddOpenApi();
-builder.Services.AddHttpClient<GeminiClient>();
-builder.Services.AddHttpClient<CerebrasClient>();
+//builder.Services.AddHttpClient<GeminiClient>();
+//builder.Services.AddHttpClient<CerebrasClient>();
 
 // Controllers
 builder.Services.AddControllers();
 builder.Services.AddSingleton<ITaskService, TaskService>();
+builder.Services.AddSingleton<LlmClientFactory>();
 
 // Swagger
 builder.Services.AddEndpointsApiExplorer();

@@ -1,28 +1,13 @@
 ﻿using Infrastructure.Embeddings;
 using Infrastructure.Reranking;
 using Microsoft.Extensions.Configuration;
+using Infrastructure.Configuration;
 
 const int retrievalLimit = 10; // Limit the number of results retrieved from the vector store
 const int promptContextLimit = 5;
 
 var rootDirectory =
     Directory.GetCurrentDirectory();
-
-var envPath =
-    Path.Combine(
-        rootDirectory,
-        ".env");
-
-if (!File.Exists(envPath))
-{
-    throw new FileNotFoundException(
-        $"Could not find .env file at: {envPath}");
-}
-
-DotNetEnv.Env.Load(envPath);
-
-Console.WriteLine(
-    $"Loaded environment from: {envPath}");
 
 var promptPath =
     Path.Combine(
@@ -43,10 +28,19 @@ var answerPromptTemplate =
 var embeddingService =
     new EmbeddingService();
 
+// use global config file for all projects in solution
+var configuration =
+    AppConfiguration.Build();
+
 var connectionString =
-    Environment.GetEnvironmentVariable("ConnectionStrings__Postgres")
+    configuration.GetConnectionString("Postgres")
     ?? throw new InvalidOperationException(
         "ConnectionStrings__Postgres environment variable is missing.");
+
+//var connectionString =
+//    Environment.GetEnvironmentVariable("ConnectionStrings__Postgres")
+//    ?? throw new InvalidOperationException(
+//        "ConnectionStrings__Postgres environment variable is missing.");
 
 var vectorStore =
     new VectorStore(connectionString);

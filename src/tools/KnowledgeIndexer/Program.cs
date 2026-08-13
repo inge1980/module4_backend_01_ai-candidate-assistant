@@ -1,32 +1,26 @@
 ﻿using Infrastructure.Documents;
 using Infrastructure.Embeddings;
 using System.Text.Json;
+using Microsoft.Extensions.Configuration;
+using Infrastructure.Configuration;
 
 var rootDirectory =
     Directory.GetCurrentDirectory();
 
-var envPath =
-    Path.Combine(
-        rootDirectory,
-        ".env");
-
-if (!File.Exists(envPath))
-{
-    throw new FileNotFoundException(
-        $"Could not find .env file at: {envPath}");
-}
-
-DotNetEnv.Env.Load(envPath);
-
-Console.WriteLine(
-    $"Loaded environment from: {envPath}");
-
 var embeddingService =
     new EmbeddingService();
 
-var vectorStore =
-    new VectorStore();
+// use global config file for all projects in solution
+var configuration =
+    AppConfiguration.Build();
 
+var connectionString =
+    configuration.GetConnectionString("Postgres")
+    ?? throw new InvalidOperationException(
+        "ConnectionStrings__Postgres environment variable is missing.");
+
+var vectorStore =
+    new VectorStore(connectionString);
 
 var knowledgePath =
     Path.Combine(

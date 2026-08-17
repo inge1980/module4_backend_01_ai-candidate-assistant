@@ -4,12 +4,12 @@ using Microsoft.AspNetCore.Mvc;
 namespace Api.Controllers;
 
 [ApiController]
-[Route("api/llm")]
-public class LlmController : ControllerBase
+[Route("api/v1/llm")]
+public class LLMController : ControllerBase
 {
     private readonly LlmClientFactory _llmClientFactory;
 
-    public LlmController(
+    public LLMController(
         LlmClientFactory llmClientFactory)
     {
         _llmClientFactory = llmClientFactory;

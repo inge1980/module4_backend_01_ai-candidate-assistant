@@ -2,7 +2,7 @@
 // http://localhost:5179/swagger/index.html
 // http://localhost:5179/api/tasks/
 using System.Reflection;
-using aspnetintro.Services;
+using Api.Services;
 using Infrastructure.Configuration;
 using Infrastructure.LLM;
 //using Microsoft.Extensions.Options;
@@ -35,7 +35,7 @@ builder.Services.Configure<LlmOptions>(
 
 // Controllers
 builder.Services.AddControllers();
-builder.Services.AddSingleton<ITaskService, TaskService>();
+builder.Services.AddSingleton<IQuestionService, QuestionService>();
 builder.Services.AddSingleton<LlmClientFactory>();
 
 // Swagger

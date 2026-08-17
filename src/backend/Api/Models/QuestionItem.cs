@@ -1,6 +1,6 @@
-namespace aspnetintro.Models;
+namespace Api.Models;
 
-public class TaskItem
+public class QuestionItem
 {
     public int Id { get; set; }
 
@@ -8,7 +8,7 @@ public class TaskItem
 
     public string Description { get; set; } = string.Empty;
 
-    public TaskItemStatus Status { get; set; }
+    public QuestionItemStatus Status { get; set; }
 
     public DateTime CreatedAt { get; set; }
 

@@ -1,4 +1,4 @@
-namespace Api.Models;
+namespace Application.Questions;
 
 public sealed record QuestionRelevance(
     double Combined,

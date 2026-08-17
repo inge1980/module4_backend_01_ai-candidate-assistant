@@ -1,5 +1,6 @@
 ﻿using Infrastructure.Embeddings;
 using Infrastructure.Reranking;
+using Application.Knowledge;
 using Microsoft.Extensions.Configuration;
 using Infrastructure.Configuration;
 
@@ -47,6 +48,12 @@ var vectorStore =
     
 var evidenceScorer =
     new MetadataEvidenceScorer();
+
+var knowledgeRetrievalService =
+    new KnowledgeRetrievalService(
+        embeddingService,
+        vectorStore,
+        evidenceScorer);
 
 // TEST: Retrieval evaluation code
 var questions = new[]
@@ -111,40 +118,25 @@ foreach (var question in questions)
     Console.WriteLine($"Question: {question}");
     Console.WriteLine("==============================");
     Console.WriteLine();
-    // Console.WriteLine("Generating query embedding...");
 
-    var embedding = await embeddingService.Create(question);
-    // Console.WriteLine($"Embedding dimensions: {embedding.Length}");
-    // Console.WriteLine();
-    // Console.WriteLine("Searching PostgreSQL...");
-
-    var results = await vectorStore.SearchAsync(embedding, limit: retrievalLimit);
-    foreach (var result in results) {
-        evidenceScorer.Score(question, result);
-    }
-
-    results = results
-        .OrderByDescending(
-                result => result.CombinedScore
-        )
-        .ToList();
-
-    // Console.WriteLine();
-    // Console.WriteLine($"Results returned: {results.Count}");
+    var retrieval =
+        await knowledgeRetrievalService.RetrieveAsync(
+            query: question,
+            retrievalLimit: retrievalLimit);
 
     var rank = 1;
 
-    foreach (var result in results)
+    foreach (var result in retrieval.Items)
     {
         Console.WriteLine();
         Console.WriteLine($"#{rank} Combined: {result.CombinedScore:F4}");
         Console.WriteLine($"   Vector: {result.VectorScore:F4}, Metadata: {result.MetadataScore:F4}, Evidence: {result.EvidenceScore:F4}");
-        Console.WriteLine($"   Source: {result.Chunk.Source}");
-        Console.WriteLine($"   Heading: {result.Chunk.HeadingPath}");
-        Console.WriteLine($"   Semantic Type: {result.Chunk.SemanticType}");
+        Console.WriteLine($"   Source: {result.Source}");
+        Console.WriteLine($"   Heading: {result.Heading}");
+        Console.WriteLine($"   Semantic Type: {result.SemanticType}");
 
         var preview =
-            result.Chunk.Content
+            result.Content
                 .Replace("\r\n", " ")
                 .Replace("\n", " ")
                 .Trim();
@@ -163,14 +155,14 @@ foreach (var question in questions)
     var context =
         string.Join(
             "\n\n",
-            results
-                .Take(promptContextLimit)
+            retrieval.Items
+            .Take(promptContextLimit)
                 .Select(
                     (result, index) =>
-                        $"[{index + 1}] {result.Chunk.Source}\n" +
-                        $"Heading: {result.Chunk.HeadingPath}\n" +
-                        $"Semantic Type: {result.Chunk.SemanticType}\n" +
-                        $"Content: {result.Chunk.Content}"));
+                        $"[{index + 1}] {result.Source}\n" +
+                        $"Heading: {result.Heading}\n" +
+                        $"Semantic Type: {result.SemanticType}\n" +
+                        $"Content: {result.Content}"));
 
     var prompt =
         answerPromptTemplate

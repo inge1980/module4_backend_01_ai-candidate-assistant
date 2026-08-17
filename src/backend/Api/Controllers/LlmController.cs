@@ -15,6 +15,10 @@ public class LLMController : ControllerBase
         _llmClientFactory = llmClientFactory;
     }
 
+    /// <summary>
+    /// Testing connection to LLM provider and generating a simple response.
+    /// This endpoint is for testing purposes and should be removed in production.
+    /// </summary>
     [HttpGet("test")]
     public async Task<IActionResult> Test(
         CancellationToken cancellationToken)

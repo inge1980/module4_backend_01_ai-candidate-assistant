@@ -2,55 +2,49 @@ using Api.Models;
 
 namespace Api.Services;
 
-public class QuestionService : IQuestionService
+public sealed class QuestionService : IQuestionService
 {
-    private readonly List<QuestionItem> questions = new()
+    public async Task<AskQuestionResponse> AskAsync(
+        string question,
+        bool includeDebug = false,
+        CancellationToken cancellationToken = default)
     {
-        new QuestionItem
+        // TODO:
+        // 1. Attach function to enerate embedding for the question
+        // 2. Attach function to search the vector database
+        // 3. Attach function to retrieve relevant project chunks
+        // 4. Attach function to build the LLM prompt
+        // 5. Send the prompt to the LLM
+        // 6. Map retrieved projects to sources
+
+        await Task.CompletedTask;
+
+        var sources = new List<QuestionSource>
         {
-            Id = 1,
-            Title = "Fix up the boat",
-            Description = "Fix all stuff that broke during the last vacation",
-            Status = QuestionItemStatus.Open,
-            CreatedAt = DateTime.Now,
-            DueDate = DateTime.Now.AddDays(7)
-        },
-        new QuestionItem
-        {
-            Id = 2,
-            Title = "Take a boating trip",
-            Description = "Vacation!",
-            Status = QuestionItemStatus.Completed,
-            CreatedAt = DateTime.Now.AddDays(-2),
-            DueDate = null
-        }
-    };
+            new(
+                ProjectId: "azure-dotnet-devops-demo",
+                Title: "Azure .NET DevOps Demo",
+                Url: "/projects/azure-dotnet-devops-demo",
+                Heading: "Overview",
+                SemanticType: "overview",
+                Content: "An ASP.NET Core Web API deployed to Microsoft Azure...",
+                Source: includeDebug
+                    ? "azure-dotnet-devops-demo.md"
+                    : null,
+                Relevance: includeDebug
+                    ? new QuestionRelevance(
+                        Combined: 0.4861,
+                        Vector: 0.6970,
+                        Metadata: 0.1667,
+                        Evidence: 0.1750)
+                    : null
+            )
+        };
 
+        return new AskQuestionResponse(
+            Answer: "Not implemented yet.",
+            Sources: sources
+        );
 
-    public Task<IEnumerable<QuestionItem>> GetAllAsync()
-    {
-        return Task.FromResult<IEnumerable<QuestionItem>>(questions);
-    }
-
-
-    public Task<QuestionItem?> GetByIdAsync(int id)
-    {
-        var question = questions.FirstOrDefault(q => q.Id == id);
-
-        return Task.FromResult(question);
-    }
-
-
-    public Task<QuestionItem> CreateAsync(QuestionItem question)
-    {
-        question.Id = questions.Count > 0
-            ? questions.Max(q => q.Id) + 1
-            : 1;
-
-        question.CreatedAt = DateTime.Now;
-
-        questions.Add(question);
-
-        return Task.FromResult(question);
     }
 }

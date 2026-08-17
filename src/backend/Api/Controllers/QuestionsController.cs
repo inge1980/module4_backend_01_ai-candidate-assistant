@@ -4,67 +4,36 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace Api.Controllers;
 
-[Route("api/v1/[controller]/")]
+[Route("api/v1/[controller]")]
 [ApiController]
 public class QuestionsController(IQuestionService service) : ControllerBase
 {
-
     /// <summary>
-    /// Henter alle spørsmål.
-    /// </summary>
-    [HttpGet]
-    [ProducesResponseType(typeof(IEnumerable<QuestionItem>), StatusCodes.Status200OK)]
-    public async Task<ActionResult<IEnumerable<QuestionItem>>> Get()
-    {
-        var questions = await service.GetAllAsync();
-
-        return Ok(questions);
-    }
-
-
-    /// <summary>
-    /// Henter ett spørsmål basert på id.
-    /// </summary>
-    [HttpGet("{id}")]
-    [ProducesResponseType(typeof(QuestionItem), StatusCodes.Status200OK)]
-    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> Get(int id)
-    {
-        var question = await service.GetByIdAsync(id);
-
-        if (question == null)
-        {
-            return NotFound();
-        }
-
-        return Ok(question);
-    }
-
-
-    /// <summary>
-    /// Send et nytt spørsmål
+    /// Send a new question to the service for processing and receive a response.
     /// </summary>
     [HttpPost]
-    [ProducesResponseType(typeof(QuestionItem), StatusCodes.Status201Created)]
+    [ProducesResponseType(typeof(AskQuestionResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
-    public async Task<IActionResult> Post(QuestionItem question)
+    public async Task<ActionResult<AskQuestionResponse>> Post(
+        [FromBody] AskQuestionRequest request,
+        [FromQuery] bool includeDebug = false,
+        CancellationToken cancellationToken = default)
     {
-        if (string.IsNullOrWhiteSpace(question.Title))
+        if (string.IsNullOrWhiteSpace(request.Question))
         {
             return BadRequest(new ProblemDetails
             {
                 Title = "Validation error",
-                Detail = "Title is required",
+                Detail = "Question is required.",
                 Status = StatusCodes.Status400BadRequest
             });
         }
 
-        var createdQuestion = await service.CreateAsync(question);
+        var response = await service.AskAsync(
+            request.Question,
+            includeDebug,
+            cancellationToken);
 
-        return CreatedAtAction(
-            nameof(Get),
-            new { id = createdQuestion.Id },
-            createdQuestion
-        );
+        return Ok(response);
     }
 }

@@ -8,6 +8,7 @@ public sealed record KnowledgeRetrievalItem(
     string Heading,
     string SemanticType,
     string Content,
+    Dictionary<string, object?> Metadata,
     double CombinedScore,
     double VectorScore,
     double MetadataScore,

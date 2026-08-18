@@ -54,6 +54,7 @@ public sealed class KnowledgeRetrievalService(
                         Heading: result.Chunk.HeadingPath,
                         SemanticType: result.Chunk.SemanticType,
                         Content: result.Chunk.Content,
+                        Metadata: result.Chunk.Metadata,
                         CombinedScore: result.CombinedScore,
                         VectorScore: result.VectorScore,
                         MetadataScore: result.MetadataScore,

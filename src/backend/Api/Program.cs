@@ -1,10 +1,14 @@
 // To use:
 // http://localhost:5179/swagger/index.html
-// http://localhost:5179/api/tasks/
+// http://localhost:5179/api/v1/questions
+
 using System.Reflection;
 using Api.Services;
+using Application.Knowledge;
 using Infrastructure.Configuration;
+using Infrastructure.Embeddings;
 using Infrastructure.LLM;
+using Infrastructure.Reranking;
 //using Microsoft.Extensions.Options;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -33,9 +37,25 @@ builder.Services.Configure<LlmOptions>(
 //builder.Services.AddHttpClient<GeminiClient>();
 //builder.Services.AddHttpClient<CerebrasClient>();
 
+var connectionString =
+    builder.Configuration.GetConnectionString("Postgres")
+    ?? throw new InvalidOperationException(
+        "ConnectionStrings__Postgres environment variable is missing.");
+
 // Controllers
 builder.Services.AddControllers();
 builder.Services.AddSingleton<IQuestionService, QuestionService>();
+builder.Services.AddSingleton<EmbeddingService>();
+builder.Services.AddSingleton(new VectorStore(connectionString));
+builder.Services.AddSingleton<MetadataEvidenceScorer>();
+builder.Services.AddSingleton<IKnowledgeRetrievalService>(
+    serviceProvider =>
+        new KnowledgeRetrievalService(
+            serviceProvider.GetRequiredService<EmbeddingService>(),
+            serviceProvider.GetRequiredService<VectorStore>(),
+            serviceProvider.GetRequiredService<MetadataEvidenceScorer>()));
+
+// LLMs
 builder.Services.AddSingleton<LlmClientFactory>();
 
 // Swagger

@@ -7,13 +7,13 @@ using Microsoft.Extensions.Options;
 
 namespace Infrastructure.LLM;
 
-public class CerebrasClient : ILLMClient
+public class GroqClient : ILLMClient
 {
     private readonly HttpClient _httpClient;
     private readonly LlmOptions _options;
     private readonly IConfiguration _configuration;
 
-    public CerebrasClient(
+    public GroqClient(
         HttpClient httpClient,
         IOptions<LlmOptions> options,
         IConfiguration configuration)
@@ -27,29 +27,29 @@ public class CerebrasClient : ILLMClient
         string prompt,
         CancellationToken cancellationToken = default)
     {
-        var apiKey = _configuration["Cerebras:ApiKey"];
+        var apiKey = _configuration["Groq:ApiKey"];
 
         if (string.IsNullOrWhiteSpace(apiKey))
         {
             throw new LlmProviderException(
-                "Cerebras",
-                "Cerebras API key is missing.");
+                "Groq",
+                "Groq API key is missing.");
         }
 
-        var model = _options.Cerebras.Model;
+        var model = _options.Groq.Model;
 
         if (string.IsNullOrWhiteSpace(model))
         {
             throw new LlmProviderException(
-                "Cerebras",
-                "Cerebras model is missing.");
+                "Groq",
+                "Groq model is missing.");
         }
 
         var baseUrl =
-            _configuration["Cerebras:BaseUrl"]
+            _configuration["Groq:BaseUrl"]
             ?? throw new LlmProviderException(
-                "Cerebras",
-                "Cerebras base URL is missing.");
+                "Groq",
+                "Groq base URL is missing.");
 
         using var request =
             new HttpRequestMessage(
@@ -89,7 +89,7 @@ public class CerebrasClient : ILLMClient
 
             stopwatch.Stop();
 
-            Console.WriteLine($"[LLM] Cerebras HTTP: {stopwatch.ElapsedMilliseconds} ms");
+            Console.WriteLine($"[LLM] Groq HTTP: {stopwatch.ElapsedMilliseconds} ms");
 
             var responseBody =
                 await response.Content.ReadAsStringAsync(
@@ -105,8 +105,8 @@ public class CerebrasClient : ILLMClient
                     statusCode >= 500;
 
                 throw new LlmProviderException(
-                    "Cerebras",
-                    $"Cerebras request failed ({statusCode}): {responseBody}",
+                    "Groq",
+                    $"Groq request failed ({statusCode}): {responseBody}",
                     statusCode,
                     transient);
             }
@@ -122,8 +122,8 @@ public class CerebrasClient : ILLMClient
 
             return text
                 ?? throw new LlmProviderException(
-                    "Cerebras",
-                    "Cerebras returned an empty response.");
+                    "Groq",
+                    "Groq returned an empty response.");
         }
         catch (LlmProviderException)
         {
@@ -135,8 +135,8 @@ public class CerebrasClient : ILLMClient
             stopwatch.Stop();
 
             throw new LlmProviderException(
-                "Cerebras",
-                $"Cerebras request timed out after {stopwatch.ElapsedMilliseconds} ms.",
+                "Groq",
+                $"Groq request timed out after {stopwatch.ElapsedMilliseconds} ms.",
                 isTransient: true,
                 innerException: ex);
         }
@@ -145,8 +145,8 @@ public class CerebrasClient : ILLMClient
             stopwatch.Stop();
 
             throw new LlmProviderException(
-                "Cerebras",
-                "Cerebras network request failed.",
+                "Groq",
+                "Groq network request failed.",
                 isTransient: true,
                 innerException: ex);
         }

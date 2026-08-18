@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Options;
+using Microsoft.Extensions.Http;
 
 namespace Infrastructure.LLM;
 
@@ -7,40 +8,116 @@ public class LlmClientFactory
 {
     private readonly LlmOptions _options;
     private readonly IConfiguration _configuration;
+    private readonly IHttpClientFactory _httpClientFactory;
 
     public LlmClientFactory(
         IOptions<LlmOptions> options,
-        IConfiguration configuration)
+        IConfiguration configuration,
+        IHttpClientFactory httpClientFactory)
     {
         _options = options.Value;
         _configuration = configuration;
+        _httpClientFactory = httpClientFactory;
     }
 
     public ILLMClient Create()
     {
-        var httpClient = new HttpClient
+        var clients = new List<ILLMClient>();
+
+        var provider =
+            _options.Provider
+                .Trim()
+                .ToLowerInvariant();
+
+        switch (provider)
         {
-            Timeout = TimeSpan.FromSeconds(
-                _options.TimeoutSeconds)
-        };
+            case "gemini":
+                clients.Add(
+                    CreateGemini());
 
-        return _options.Provider.ToLowerInvariant() switch
-        {
-            "gemini" =>
-                new GeminiClient(
-                    httpClient,
-                    Options.Create(_options),
-                    _configuration),
+                clients.Add(
+                    CreateCerebras());
 
-            "cerebras" =>
-                new CerebrasClient(
-                    httpClient,
-                    Options.Create(_options),
-                    _configuration),
+                clients.Add(
+                    CreateGroq());
 
-            _ =>
-                throw new InvalidOperationException(
-                    $"Unsupported LLM provider: {_options.Provider}")
-        };
+                break;
+
+            case "cerebras":
+                clients.Add(
+                    CreateCerebras());
+
+                clients.Add(
+                    CreateGroq());
+
+                clients.Add(
+                    CreateGemini());
+
+                break;
+
+            case "groq":
+                clients.Add(
+                    CreateGroq());
+
+                clients.Add(
+                    CreateCerebras());
+
+                clients.Add(
+                    CreateGemini());
+
+                break;
+
+            default:
+                throw new InvalidOperationException($"Unsupported LLM provider: {_options.Provider}");
+        }
+        return new FallbackLlmClient(clients);
+    }
+
+    private GeminiClient CreateGemini()
+    {
+        var httpClient =
+            _httpClientFactory.CreateClient(
+                "Gemini");
+
+        httpClient.Timeout =
+            TimeSpan.FromSeconds(
+                _options.Gemini.TimeoutSeconds);
+
+        return new GeminiClient(
+            httpClient,
+            Options.Create(_options),
+            _configuration);
+    }
+
+    private CerebrasClient CreateCerebras()
+    {
+        var httpClient =
+            _httpClientFactory.CreateClient(
+                "Cerebras");
+
+        httpClient.Timeout =
+            TimeSpan.FromSeconds(
+                _options.Cerebras.TimeoutSeconds);
+
+        return new CerebrasClient(
+            httpClient,
+            Options.Create(_options),
+            _configuration);
+    }
+
+    private GroqClient CreateGroq()
+    {
+        var httpClient =
+            _httpClientFactory.CreateClient(
+                "Groq");
+
+        httpClient.Timeout =
+            TimeSpan.FromSeconds(
+                _options.Groq.TimeoutSeconds);
+
+        return new GroqClient(
+            httpClient,
+            Options.Create(_options),
+            _configuration);
     }
 }

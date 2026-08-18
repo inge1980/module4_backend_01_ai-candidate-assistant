@@ -34,8 +34,6 @@ builder.Services.Configure<LlmOptions>(
 // Add services to the container.
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 //builder.Services.AddOpenApi();
-//builder.Services.AddHttpClient<GeminiClient>();
-//builder.Services.AddHttpClient<CerebrasClient>();
 
 var connectionString =
     builder.Configuration.GetConnectionString("Postgres")
@@ -56,6 +54,10 @@ builder.Services.AddSingleton<IKnowledgeRetrievalService>(
             serviceProvider.GetRequiredService<MetadataEvidenceScorer>()));
 
 // LLMs
+builder.Services.AddHttpClient();
+builder.Services.AddHttpClient("Gemini");
+builder.Services.AddHttpClient("Cerebras");
+builder.Services.AddHttpClient("Groq");
 builder.Services.AddSingleton<LlmClientFactory>();
 
 // Swagger

@@ -1,7 +1,6 @@
 using System.Diagnostics;
 using System.Net.Http.Json;
 using System.Text.Json;
-using Infrastructure.LLM;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Options;
 
@@ -27,35 +26,40 @@ public class GeminiClient : ILLMClient
         string prompt,
         CancellationToken cancellationToken = default)
     {
-        var apiKey =
-            _configuration["Gemini:ApiKey"];
+        var apiKey = _configuration["Gemini:ApiKey"];
 
         if (string.IsNullOrWhiteSpace(apiKey))
         {
-            throw new InvalidOperationException(
+            throw new LlmProviderException(
+                "Gemini",
                 "Gemini API key is missing.");
         }
 
-        if (string.IsNullOrWhiteSpace(_options.Model))
+        var model = _options.Gemini.Model;
+
+        if (string.IsNullOrWhiteSpace(model))
         {
-            throw new InvalidOperationException(
+            throw new LlmProviderException(
+                "Gemini",
                 "Gemini model is missing.");
         }
 
         var baseUrl =
             _configuration["Gemini:BaseUrl"]
-            ?? throw new InvalidOperationException(
+            ?? throw new LlmProviderException(
+                "Gemini",
                 "Gemini base URL is missing.");
 
         var apiVersion =
             _configuration["Gemini:ApiVersion"]
-            ?? throw new InvalidOperationException(
+            ?? throw new LlmProviderException(
+                "Gemini",
                 "Gemini API version is missing.");
 
         var url =
             $"{baseUrl}/" +
             $"{apiVersion}/models/" +
-            $"{_options.Model}:generateContent" +
+            $"{model}:generateContent" +
             $"?key={apiKey}";
 
         var request = new
@@ -90,43 +94,80 @@ public class GeminiClient : ILLMClient
             Content = JsonContent.Create(request)
         };
 
-        var httpStopwatch = Stopwatch.StartNew();
-        using var response =
-            await _httpClient.SendAsync(
-                httpRequest,
-                HttpCompletionOption.ResponseHeadersRead,
-                cancellationToken);
-        httpStopwatch.Stop();
-        Console.WriteLine($"[Timing] Gemini HTTP request: {httpStopwatch.ElapsedMilliseconds} ms");
+        var stopwatch = Stopwatch.StartNew();
 
-        var readStopwatch = Stopwatch.StartNew();
-        var responseBody =
-            await response.Content.ReadAsStringAsync(
-                cancellationToken);
-        readStopwatch.Stop();
-        Console.WriteLine($"[Timing] Gemini response read: {readStopwatch.ElapsedMilliseconds} ms");
-
-        if (!response.IsSuccessStatusCode)
+        try
         {
-            throw new InvalidOperationException(
-                $"Gemini request failed ({(int)response.StatusCode}): {responseBody}");
+            using var response =
+                await _httpClient.SendAsync(
+                    httpRequest,
+                    HttpCompletionOption.ResponseHeadersRead,
+                    cancellationToken);
+
+            stopwatch.Stop();
+
+            Console.WriteLine($"[LLM] Gemini HTTP: {stopwatch.ElapsedMilliseconds} ms");
+
+            var responseBody =
+                await response.Content.ReadAsStringAsync(
+                    cancellationToken);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                var statusCode =
+                    (int)response.StatusCode;
+
+                var transient =
+                    statusCode == 408 ||
+                    statusCode == 429 ||
+                    statusCode >= 500;
+
+                throw new LlmProviderException(
+                    "Gemini",
+                    $"Gemini request failed ({statusCode}): {responseBody}",
+                    statusCode,
+                    transient);
+            }
+
+            using var json = JsonDocument.Parse(responseBody);
+
+            var text =
+                json.RootElement
+                    .GetProperty("candidates")[0]
+                    .GetProperty("content")
+                    .GetProperty("parts")[0]
+                    .GetProperty("text")
+                    .GetString();
+
+            return text
+                ?? throw new LlmProviderException(
+                    "Gemini",
+                    "Gemini returned an empty response.");
         }
+        catch (LlmProviderException)
+        {
+            throw;
+        }
+        catch (TaskCanceledException ex)
+            when (!cancellationToken.IsCancellationRequested)
+        {
+            stopwatch.Stop();
 
-        var parseStopwatch = Stopwatch.StartNew();
-        using var json =
-            JsonDocument.Parse(responseBody);
-        var text =
-            json.RootElement
-                .GetProperty("candidates")[0]
-                .GetProperty("content")
-                .GetProperty("parts")[0]
-                .GetProperty("text")
-                .GetString();
-        parseStopwatch.Stop();
-        Console.WriteLine($"[Timing] Gemini JSON parsing: {parseStopwatch.ElapsedMilliseconds} ms");
+            throw new LlmProviderException(
+                "Gemini",
+                $"Gemini request timed out after {stopwatch.ElapsedMilliseconds} ms.",
+                isTransient: true,
+                innerException: ex);
+        }
+        catch (HttpRequestException ex)
+        {
+            stopwatch.Stop();
 
-        return text
-            ?? throw new InvalidOperationException(
-                "Gemini returned an empty response.");
+            throw new LlmProviderException(
+                "Gemini",
+                "Gemini network request failed.",
+                isTransient: true,
+                innerException: ex);
+        }
     }
 }

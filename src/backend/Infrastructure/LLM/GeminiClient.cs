@@ -75,15 +75,26 @@ public class GeminiClient : ILLMClient
             },
             generationConfig = new
             {
-                maxOutputTokens = _options.MaxOutputTokens
+                maxOutputTokens = _options.MaxOutputTokens,
+                thinkingConfig = new
+                {
+                    thinkingLevel = _options.ThinkingLevel
+                }
             }
+        };
+
+        using var httpRequest = new HttpRequestMessage(
+            HttpMethod.Post,
+            url)
+        {
+            Content = JsonContent.Create(request)
         };
 
         var httpStopwatch = Stopwatch.StartNew();
         using var response =
-            await _httpClient.PostAsJsonAsync(
-                url,
-                request,
+            await _httpClient.SendAsync(
+                httpRequest,
+                HttpCompletionOption.ResponseHeadersRead,
                 cancellationToken);
         httpStopwatch.Stop();
         Console.WriteLine($"[Timing] Gemini HTTP request: {httpStopwatch.ElapsedMilliseconds} ms");

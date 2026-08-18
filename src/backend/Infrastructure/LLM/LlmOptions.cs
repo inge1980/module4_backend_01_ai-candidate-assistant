@@ -6,4 +6,5 @@ public class LlmOptions
     public string Model { get; init; } = string.Empty;
     public int MaxOutputTokens { get; init; } = 1500;
     public int TimeoutSeconds { get; init; } = 60;
+    public string ThinkingLevel { get; init; } = "minimal";
 }

@@ -7,13 +7,10 @@ using Infrastructure.Configuration;
 const int retrievalLimit = 10; // Limit the number of results retrieved from the vector store
 const int promptContextLimit = 5;
 
-var rootDirectory =
-    Directory.GetCurrentDirectory();
-
 var promptPath =
     Path.Combine(
-        rootDirectory,
-        "prompts",
+        AppContext.BaseDirectory,
+        "Prompts",
         "answer",
         "answer-prompt-v6.md");
 

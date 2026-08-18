@@ -49,10 +49,6 @@ public sealed class FallbackLlmClient : ILLMClient
                 stopwatch.Stop();
                 Console.WriteLine($"[LLM] Provider failed: {provider} ({stopwatch.ElapsedMilliseconds} ms) Status={ex.StatusCode} Transient={ex.IsTransient}");
                 lastException = ex;
-                if (!ex.IsTransient)
-                {
-                    throw;
-                }
                 Console.WriteLine($"[LLM] Falling back from {provider}.");
             }
         }

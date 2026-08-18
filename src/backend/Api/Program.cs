@@ -56,8 +56,9 @@ builder.Services.AddSingleton<IKnowledgeRetrievalService>(
 // LLMs
 builder.Services.AddHttpClient();
 builder.Services.AddHttpClient("Gemini");
-builder.Services.AddHttpClient("Cerebras");
 builder.Services.AddHttpClient("Groq");
+builder.Services.AddHttpClient("OpenRouter");
+//builder.Services.AddHttpClient("Cerebras");
 builder.Services.AddSingleton<LlmClientFactory>();
 
 // Swagger

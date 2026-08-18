@@ -32,41 +32,22 @@ public class LlmClientFactory
         switch (provider)
         {
             case "gemini":
-                clients.Add(
-                    CreateGemini());
-
-                clients.Add(
-                    CreateCerebras());
-
-                clients.Add(
-                    CreateGroq());
-
-                break;
-
-            case "cerebras":
-                clients.Add(
-                    CreateCerebras());
-
-                clients.Add(
-                    CreateGroq());
-
-                clients.Add(
-                    CreateGemini());
-
+                clients.Add(CreateGemini());
+                clients.Add(CreateGroq());
+                clients.Add(CreateOpenRouter());
                 break;
 
             case "groq":
-                clients.Add(
-                    CreateGroq());
-
-                clients.Add(
-                    CreateCerebras());
-
-                clients.Add(
-                    CreateGemini());
-
+                clients.Add(CreateGroq());
+                clients.Add(CreateOpenRouter());
+                clients.Add(CreateGemini());
                 break;
 
+            case "openrouter":
+                clients.Add(CreateOpenRouter());
+                clients.Add(CreateGroq());
+                clients.Add(CreateGemini());
+                break;
             default:
                 throw new InvalidOperationException($"Unsupported LLM provider: {_options.Provider}");
         }
@@ -89,22 +70,6 @@ public class LlmClientFactory
             _configuration);
     }
 
-    private CerebrasClient CreateCerebras()
-    {
-        var httpClient =
-            _httpClientFactory.CreateClient(
-                "Cerebras");
-
-        httpClient.Timeout =
-            TimeSpan.FromSeconds(
-                _options.Cerebras.TimeoutSeconds);
-
-        return new CerebrasClient(
-            httpClient,
-            Options.Create(_options),
-            _configuration);
-    }
-
     private GroqClient CreateGroq()
     {
         var httpClient =
@@ -116,6 +81,37 @@ public class LlmClientFactory
                 _options.Groq.TimeoutSeconds);
 
         return new GroqClient(
+            httpClient,
+            Options.Create(_options),
+            _configuration);
+    }
+
+    private OpenRouterClient CreateOpenRouter()
+    {
+        var httpClient =
+            _httpClientFactory.CreateClient("OpenRouter");
+
+        httpClient.Timeout =
+            TimeSpan.FromSeconds(
+                _options.OpenRouter.TimeoutSeconds);
+
+        return new OpenRouterClient(
+            httpClient,
+            Options.Create(_options),
+            _configuration);
+    }
+    
+    private CerebrasClient CreateCerebras()
+    {
+        var httpClient =
+            _httpClientFactory.CreateClient(
+                "Cerebras");
+
+        httpClient.Timeout =
+            TimeSpan.FromSeconds(
+                _options.Cerebras.TimeoutSeconds);
+
+        return new CerebrasClient(
             httpClient,
             Options.Create(_options),
             _configuration);

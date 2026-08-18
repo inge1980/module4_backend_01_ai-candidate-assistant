@@ -12,9 +12,12 @@ public class LlmOptions
 
     public GeminiOptions Gemini { get; init; } = new();
 
+    public GroqOptions Groq { get; init; } = new();
+
+    public OpenRouterOptions OpenRouter { get; init; } = new();
+
     public CerebrasOptions Cerebras { get; init; } = new();
 
-    public GroqOptions Groq { get; init; } = new();
 }
 
 public class GeminiOptions
@@ -24,16 +27,23 @@ public class GeminiOptions
     public int TimeoutSeconds { get; init; } = 20;
 }
 
-public class CerebrasOptions
+public class GroqOptions
 {
-    public string Model { get; init; } = "gpt-oss-120b";
+    public string Model { get; init; } = "openai/gpt-oss-120b";
 
     public int TimeoutSeconds { get; init; } = 20;
 }
 
-public class GroqOptions
+public class OpenRouterOptions
 {
     public string Model { get; init; } = "openai/gpt-oss-120b";
+
+    public int TimeoutSeconds { get; init; } = 20;
+}
+
+public class CerebrasOptions
+{
+    public string Model { get; init; } = "gpt-oss-120b";
 
     public int TimeoutSeconds { get; init; } = 20;
 }

@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using Application.Questions;
 using Application.Knowledge;
 using Infrastructure.LLM;
@@ -28,24 +29,36 @@ public sealed class QuestionService(
         // 1. Retrieve and rank knowledge
         // --------------------------------------------------------
 
+        var retrievalStopwatch = Stopwatch.StartNew();
+
         var retrieval =
             await knowledgeRetrievalService.RetrieveAsync(
                 query: question,
                 retrievalLimit: RetrievalLimit,
                 cancellationToken: cancellationToken);
 
+        retrievalStopwatch.Stop();
+        Console.WriteLine($"[Timing] Retrieval: {retrievalStopwatch.ElapsedMilliseconds} ms");
+
         // --------------------------------------------------------
         // 2. Select the context that will be sent to the LLM
         // --------------------------------------------------------
+
+        var contextSelectionStopwatch = Stopwatch.StartNew();
 
         var promptResults =
             retrieval.Items
                 .Take(PromptContextLimit)
                 .ToList();
 
+        contextSelectionStopwatch.Stop();
+        Console.WriteLine($"[Timing] Context selection: {contextSelectionStopwatch.ElapsedMilliseconds} ms");
+
         // --------------------------------------------------------
         // 3. Build the context for the answer prompt
         // --------------------------------------------------------
+        
+        var contextBuildStopwatch = Stopwatch.StartNew();
 
         var context =
             string.Join(
@@ -57,27 +70,42 @@ public sealed class QuestionService(
                         $"Heading: {result.Heading}\n" +
                         $"Semantic Type: {result.SemanticType}\n" +
                         $"Content: {result.Content}"));
+        
+        contextBuildStopwatch.Stop();
+        Console.WriteLine($"[Timing] Context build: {contextBuildStopwatch.ElapsedMilliseconds} ms");
 
         // --------------------------------------------------------
         // 4. Load the answer prompt template
         // --------------------------------------------------------
 
+        var promptLoadStopwatch = Stopwatch.StartNew();
+
         var promptTemplate =
             await LoadAnswerPromptAsync(
                 cancellationToken);
 
+        promptLoadStopwatch.Stop();
+        Console.WriteLine($"[Timing] Prompt loading: {promptLoadStopwatch.ElapsedMilliseconds} ms");
+
         // --------------------------------------------------------
         // 5. Build the final LLM prompt
         // --------------------------------------------------------
+
+        var promptBuildStopwatch = Stopwatch.StartNew();
 
         var prompt =
             promptTemplate
                 .Replace("{{question}}", question)
                 .Replace("{{context}}", context);
 
+        promptBuildStopwatch.Stop();
+        Console.WriteLine($"[Timing] Prompt build: {promptBuildStopwatch.ElapsedMilliseconds} ms");
+
         // --------------------------------------------------------
         // 6. Send prompt to the configured LLM
         // --------------------------------------------------------
+
+        var llmStopwatch = Stopwatch.StartNew();
 
         var client =
             llmClientFactory.Create();
@@ -87,9 +115,14 @@ public sealed class QuestionService(
                 prompt,
                 cancellationToken);
 
+        llmStopwatch.Stop();
+        Console.WriteLine($"[Timing] LLM: {llmStopwatch.ElapsedMilliseconds} ms");
+
         // --------------------------------------------------------
         // 7. Map retrieval results to API sources
         // --------------------------------------------------------
+
+        var sourceMappingStopwatch = Stopwatch.StartNew();
 
         var sources =
             promptResults
@@ -113,6 +146,9 @@ public sealed class QuestionService(
                                     Evidence: result.EvidenceScore)
                                 : null))
                 .ToList();
+
+        sourceMappingStopwatch.Stop();
+        Console.WriteLine($"[Timing] Source mapping: {sourceMappingStopwatch.ElapsedMilliseconds} ms");
 
         // --------------------------------------------------------
         // 8. Return final API response

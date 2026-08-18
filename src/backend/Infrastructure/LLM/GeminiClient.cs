@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Net.Http.Json;
 using System.Text.Json;
 using Infrastructure.LLM;
@@ -78,15 +79,21 @@ public class GeminiClient : ILLMClient
             }
         };
 
+        var httpStopwatch = Stopwatch.StartNew();
         using var response =
             await _httpClient.PostAsJsonAsync(
                 url,
                 request,
                 cancellationToken);
+        httpStopwatch.Stop();
+        Console.WriteLine($"[Timing] Gemini HTTP request: {httpStopwatch.ElapsedMilliseconds} ms");
 
+        var readStopwatch = Stopwatch.StartNew();
         var responseBody =
             await response.Content.ReadAsStringAsync(
                 cancellationToken);
+        readStopwatch.Stop();
+        Console.WriteLine($"[Timing] Gemini response read: {readStopwatch.ElapsedMilliseconds} ms");
 
         if (!response.IsSuccessStatusCode)
         {
@@ -94,9 +101,9 @@ public class GeminiClient : ILLMClient
                 $"Gemini request failed ({(int)response.StatusCode}): {responseBody}");
         }
 
+        var parseStopwatch = Stopwatch.StartNew();
         using var json =
             JsonDocument.Parse(responseBody);
-
         var text =
             json.RootElement
                 .GetProperty("candidates")[0]
@@ -104,6 +111,8 @@ public class GeminiClient : ILLMClient
                 .GetProperty("parts")[0]
                 .GetProperty("text")
                 .GetString();
+        parseStopwatch.Stop();
+        Console.WriteLine($"[Timing] Gemini JSON parsing: {parseStopwatch.ElapsedMilliseconds} ms");
 
         return text
             ?? throw new InvalidOperationException(

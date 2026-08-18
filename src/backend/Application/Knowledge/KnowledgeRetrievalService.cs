@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using Infrastructure.Embeddings;
 using Infrastructure.Reranking;
 
@@ -28,17 +29,25 @@ public sealed class KnowledgeRetrievalService(
                 "Retrieval limit must be greater than zero.");
         }
 
+        Console.WriteLine($"-------------------------------------------");
+        var embeddingStopwatch = Stopwatch.StartNew();
         // Console.WriteLine("Generating query embedding...");
         var embedding =
             await embeddingService.Create(query);
         // Console.WriteLine($"Embedding dimensions: {embedding.Length}");
+        embeddingStopwatch.Stop();
+        Console.WriteLine($"[Timing] Query embedding: {embeddingStopwatch.ElapsedMilliseconds} ms");
 
+        var vectorSearchStopwatch = Stopwatch.StartNew();
         // Console.WriteLine();
         // Console.WriteLine("Searching PostgreSQL...");
         var results =
             await vectorStore.SearchAsync(
                 embedding,
                 limit: retrievalLimit);
+        vectorSearchStopwatch.Stop();
+        Console.WriteLine($"[Timing] Vector search: {vectorSearchStopwatch.ElapsedMilliseconds} ms");
+
         foreach (var result in results)
         {
             evidenceScorer.Score(query, result);

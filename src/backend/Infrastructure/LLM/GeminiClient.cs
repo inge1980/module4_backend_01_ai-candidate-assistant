@@ -11,15 +11,20 @@ public class GeminiClient : ILLMClient
     private readonly HttpClient _httpClient;
     private readonly LlmOptions _options;
     private readonly IConfiguration _configuration;
+    private readonly string _model;
+    public string Provider => "Gemini";
+    public string Model => _model;
 
     public GeminiClient(
         HttpClient httpClient,
         IOptions<LlmOptions> options,
-        IConfiguration configuration)
+        IConfiguration configuration,
+        string model)
     {
         _httpClient = httpClient;
         _options = options.Value;
         _configuration = configuration;
+        _model = model;
     }
 
     public async Task<string> GenerateAsync(
@@ -35,9 +40,7 @@ public class GeminiClient : ILLMClient
                 "Gemini API key is missing.");
         }
 
-        var model = _options.Gemini.Model;
-
-        if (string.IsNullOrWhiteSpace(model))
+        if (string.IsNullOrWhiteSpace(_model))
         {
             throw new LlmProviderException(
                 "Gemini",
@@ -59,7 +62,7 @@ public class GeminiClient : ILLMClient
         var url =
             $"{baseUrl}/" +
             $"{apiVersion}/models/" +
-            $"{model}:generateContent" +
+            $"{_model}:generateContent" +
             $"?key={apiKey}";
 
         var request = new

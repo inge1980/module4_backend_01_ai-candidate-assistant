@@ -1,6 +1,5 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Options;
-using Microsoft.Extensions.Http;
 
 namespace Infrastructure.LLM;
 
@@ -24,37 +23,71 @@ public class LlmClientFactory
     {
         var clients = new List<ILLMClient>();
 
-        var provider =
-            _options.Provider
-                .Trim()
-                .ToLowerInvariant();
-
-        switch (provider)
+        foreach (var provider in _options.Providers)
         {
-            case "gemini":
-                clients.Add(CreateGemini());
-                clients.Add(CreateGroq());
-                clients.Add(CreateOpenRouter());
-                break;
+            if (string.IsNullOrWhiteSpace(provider.Name))
+            {
+                continue;
+            }
 
-            case "groq":
-                clients.Add(CreateGroq());
-                clients.Add(CreateOpenRouter());
-                clients.Add(CreateGemini());
-                break;
+            foreach (var model in provider.Models)
+            {
+                if (string.IsNullOrWhiteSpace(model))
+                {
+                    continue;
+                }
 
-            case "openrouter":
-                clients.Add(CreateOpenRouter());
-                clients.Add(CreateGroq());
-                clients.Add(CreateGemini());
-                break;
-            default:
-                throw new InvalidOperationException($"Unsupported LLM provider: {_options.Provider}");
+                clients.Add(
+                    CreateClient(
+                        provider,
+                        model));
+            }
         }
+
+        if (clients.Count == 0)
+        {
+            throw new InvalidOperationException(
+                "No LLM providers or models are configured.");
+        }
+
         return new FallbackLlmClient(clients);
     }
 
-    private GeminiClient CreateGemini()
+    private ILLMClient CreateClient(
+        LlmProviderOptions provider,
+        string model)
+    {
+        var providerName =
+            provider.Name
+                .Trim()
+                .ToLowerInvariant();
+
+        return providerName switch
+        {
+            "gemini" =>
+                CreateGemini(
+                    provider,
+                    model),
+
+            "groq" =>
+                CreateGroq(
+                    provider,
+                    model),
+
+            "openrouter" =>
+                CreateOpenRouter(
+                    provider,
+                    model),
+
+            _ =>
+                throw new InvalidOperationException(
+                    $"Unsupported LLM provider: {provider.Name}")
+        };
+    }
+
+    private GeminiClient CreateGemini(
+        LlmProviderOptions provider,
+        string model)
     {
         var httpClient =
             _httpClientFactory.CreateClient(
@@ -62,15 +95,29 @@ public class LlmClientFactory
 
         httpClient.Timeout =
             TimeSpan.FromSeconds(
-                _options.Gemini.TimeoutSeconds);
+                provider.TimeoutSeconds);
 
         return new GeminiClient(
             httpClient,
-            Options.Create(_options),
-            _configuration);
+            Options.Create(
+                new LlmOptions
+                {
+                    MaxOutputTokens =
+                        _options.MaxOutputTokens,
+
+                    ThinkingLevel =
+                        _options.ThinkingLevel,
+
+                    Providers =
+                        _options.Providers
+                }),
+            _configuration,
+            model);
     }
 
-    private GroqClient CreateGroq()
+    private GroqClient CreateGroq(
+        LlmProviderOptions provider,
+        string model)
     {
         var httpClient =
             _httpClientFactory.CreateClient(
@@ -78,42 +125,53 @@ public class LlmClientFactory
 
         httpClient.Timeout =
             TimeSpan.FromSeconds(
-                _options.Groq.TimeoutSeconds);
+                provider.TimeoutSeconds);
 
         return new GroqClient(
             httpClient,
-            Options.Create(_options),
-            _configuration);
+            Options.Create(
+                new LlmOptions
+                {
+                    MaxOutputTokens =
+                        _options.MaxOutputTokens,
+
+                    ThinkingLevel =
+                        _options.ThinkingLevel,
+
+                    Providers =
+                        _options.Providers
+                }),
+            _configuration,
+            model);
     }
 
-    private OpenRouterClient CreateOpenRouter()
-    {
-        var httpClient =
-            _httpClientFactory.CreateClient("OpenRouter");
-
-        httpClient.Timeout =
-            TimeSpan.FromSeconds(
-                _options.OpenRouter.TimeoutSeconds);
-
-        return new OpenRouterClient(
-            httpClient,
-            Options.Create(_options),
-            _configuration);
-    }
-    
-    private CerebrasClient CreateCerebras()
+    private OpenRouterClient CreateOpenRouter(
+        LlmProviderOptions provider,
+        string model)
     {
         var httpClient =
             _httpClientFactory.CreateClient(
-                "Cerebras");
+                "OpenRouter");
 
         httpClient.Timeout =
             TimeSpan.FromSeconds(
-                _options.Cerebras.TimeoutSeconds);
+                provider.TimeoutSeconds);
 
-        return new CerebrasClient(
+        return new OpenRouterClient(
             httpClient,
-            Options.Create(_options),
-            _configuration);
+            Options.Create(
+                new LlmOptions
+                {
+                    MaxOutputTokens =
+                        _options.MaxOutputTokens,
+
+                    ThinkingLevel =
+                        _options.ThinkingLevel,
+
+                    Providers =
+                        _options.Providers
+                }),
+            _configuration,
+            model);
     }
 }

@@ -54,7 +54,6 @@ builder.Services.AddSingleton<IKnowledgeRetrievalService>(
             serviceProvider.GetRequiredService<MetadataEvidenceScorer>()));
 
 // LLMs
-builder.Services.AddHttpClient();
 builder.Services.AddHttpClient("Gemini");
 builder.Services.AddHttpClient("Groq");
 builder.Services.AddHttpClient("OpenRouter");

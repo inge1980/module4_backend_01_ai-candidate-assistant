@@ -5,6 +5,8 @@ namespace Infrastructure.LLM;
 public sealed class FallbackLlmClient : ILLMClient
 {
     private readonly IReadOnlyList<ILLMClient> _clients;
+    public string Provider => "Fallback";
+    public string Model => "Fallback";
 
     public FallbackLlmClient(
         IEnumerable<ILLMClient> clients)
@@ -25,15 +27,10 @@ public sealed class FallbackLlmClient : ILLMClient
 
         foreach (var client in _clients)
         {
-            var provider =
-                client.GetType().Name.Replace(
-                    "Client",
-                    string.Empty);
-
             var stopwatch = Stopwatch.StartNew();
             try
             {
-                Console.WriteLine($"[LLM] Trying provider: {provider}");
+                Console.WriteLine($"[LLM] Trying: {client.Provider} / {client.Model}");
 
                 var result =
                     await client.GenerateAsync(
@@ -41,20 +38,25 @@ public sealed class FallbackLlmClient : ILLMClient
                         cancellationToken);
 
                 stopwatch.Stop();
-                Console.WriteLine($"[LLM] Provider succeeded: {provider} ({stopwatch.ElapsedMilliseconds} ms)");
+                Console.WriteLine($"[LLM] Succeeded: {client.Provider} / {client.Model} ({stopwatch.ElapsedMilliseconds} ms)");
                 return result;
             }
             catch (LlmProviderException ex)
             {
                 stopwatch.Stop();
-                Console.WriteLine($"[LLM] Provider failed: {provider} ({stopwatch.ElapsedMilliseconds} ms) Status={ex.StatusCode} Transient={ex.IsTransient}");
+                Console.WriteLine($"[LLM] Failed: {client.Provider} / {client.Model} ({stopwatch.ElapsedMilliseconds} ms) Status={ex.StatusCode} Transient={ex.IsTransient}");
                 lastException = ex;
-                Console.WriteLine($"[LLM] Falling back from {provider}.");
+                if (!ex.IsTransient)
+                {
+                    Console.WriteLine($"[LLM] Falling back from: {client.Provider} / {client.Model}");
+                    continue;
+                }
+                Console.WriteLine($"[LLM] Falling back from: {client.Provider} / {client.Model}");
             }
         }
 
         throw new InvalidOperationException(
-            "All configured LLM providers failed.",
+            "All configured LLM providers and models failed.",
             lastException);
     }
 }

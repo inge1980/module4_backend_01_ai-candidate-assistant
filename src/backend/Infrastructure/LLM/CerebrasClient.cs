@@ -3,24 +3,28 @@ using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text.Json;
 using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.Options;
 
 namespace Infrastructure.LLM;
 
 public class CerebrasClient : ILLMClient
 {
     private readonly HttpClient _httpClient;
-    private readonly LlmOptions _options;
     private readonly IConfiguration _configuration;
+    private readonly string _model;
+    private readonly int _maxOutputTokens;
+    public string Provider => "Cerebras";
+    public string Model => _model;
 
     public CerebrasClient(
         HttpClient httpClient,
-        IOptions<LlmOptions> options,
-        IConfiguration configuration)
+        IConfiguration configuration,
+        string model,
+        int maxOutputTokens)
     {
         _httpClient = httpClient;
-        _options = options.Value;
         _configuration = configuration;
+        _model = model;
+        _maxOutputTokens = maxOutputTokens;
     }
 
     public async Task<string> GenerateAsync(
@@ -36,9 +40,7 @@ public class CerebrasClient : ILLMClient
                 "Cerebras API key is missing.");
         }
 
-        var model = _options.Cerebras.Model;
-
-        if (string.IsNullOrWhiteSpace(model))
+        if (string.IsNullOrWhiteSpace(_model))
         {
             throw new LlmProviderException(
                 "Cerebras",
@@ -65,7 +67,7 @@ public class CerebrasClient : ILLMClient
             JsonContent.Create(
                 new
                 {
-                    model,
+                    model = _model,
                     messages = new[]
                     {
                         new
@@ -74,7 +76,7 @@ public class CerebrasClient : ILLMClient
                             content = prompt
                         }
                     },
-                    max_tokens = _options.MaxOutputTokens
+                    max_tokens = _maxOutputTokens
                 });
 
         var stopwatch = Stopwatch.StartNew();

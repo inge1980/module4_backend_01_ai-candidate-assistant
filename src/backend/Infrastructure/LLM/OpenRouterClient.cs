@@ -12,15 +12,20 @@ public class OpenRouterClient : ILLMClient
     private readonly HttpClient _httpClient;
     private readonly LlmOptions _options;
     private readonly IConfiguration _configuration;
+    private readonly string _model;
+    public string Provider => "OpenRouter";
+    public string Model => _model;
 
     public OpenRouterClient(
         HttpClient httpClient,
         IOptions<LlmOptions> options,
-        IConfiguration configuration)
+        IConfiguration configuration,
+        string model)
     {
         _httpClient = httpClient;
         _options = options.Value;
         _configuration = configuration;
+        _model = model;
     }
 
     public async Task<string> GenerateAsync(
@@ -36,9 +41,7 @@ public class OpenRouterClient : ILLMClient
                 "OpenRouter API key is missing.");
         }
 
-        var model = _options.OpenRouter.Model;
-
-        if (string.IsNullOrWhiteSpace(model))
+        if (string.IsNullOrWhiteSpace(_model))
         {
             throw new LlmProviderException(
                 "OpenRouter",
@@ -56,7 +59,7 @@ public class OpenRouterClient : ILLMClient
         var request =
             new
             {
-                model,
+                model = _model,
                 messages = new[]
                 {
                     new

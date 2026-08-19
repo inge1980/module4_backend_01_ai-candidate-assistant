@@ -41,10 +41,6 @@ public static class AppConfiguration
                 File.Exists(
                     Path.Combine(
                         directory.FullName,
-                        "appsettings.json")) &&
-                File.Exists(
-                    Path.Combine(
-                        directory.FullName,
                         "module4_backend_01_ai-candidate-assistant.slnx")))
             {
                 return directory.FullName;

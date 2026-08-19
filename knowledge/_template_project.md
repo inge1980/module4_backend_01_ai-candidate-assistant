@@ -321,7 +321,7 @@ Detailed implementation belongs primarily in Challenge ? Solution or Implementat
 
 List realistic alternatives you actually considered.
 
-Do not invent alternatives simply to make the section look complete.
+Do not invent plausible alternatives for completeness.
 
 Explain briefly why they were not chosen.
 -->

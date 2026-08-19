@@ -25,6 +25,9 @@ technologies:
   - ollama
   - bge-small-en-v1.5
   - github
+  - google-api
+  - groq-api
+  - openrouter-api
 
 concepts:
   - artificial-intelligence
@@ -39,6 +42,7 @@ concepts:
   - knowledge-management
   - api-design
   - backend-architecture
+  - sequential-fallback
 
 dependencies:
 
@@ -56,7 +60,7 @@ The project documentation is maintained as Markdown with YAML frontmatter contai
 
 The system ingests these documents, extracts their metadata, divides the content into semantic sections, generates embeddings, and stores the resulting retrieval representation in PostgreSQL using pgvector.
 
-The current implementation focuses on building and validating the ingestion and semantic retrieval foundation. The next stage is to connect the retrieved project knowledge to an LLM and use that context to generate grounded candidate responses and job-matching results.
+The backend also includes an LLM integration layer supporting multiple providers and multiple models per provider. Providers can be attempted sequentially, with model-level fallback within each provider and provider-level fallback when a model fails.
 
 The intended workflow is:
 
@@ -86,7 +90,7 @@ The system separates four concerns:
 - Human-maintained project knowledge.
 - Generated retrieval data.
 - Runtime semantic search.
-- Future LLM response generation.
+- LLM response generation.
 
 The project is also intended to demonstrate a practical RAG architecture rather than simply calling an LLM with a large static prompt.
 
@@ -94,7 +98,7 @@ The project is also intended to demonstrate a practical RAG architecture rather 
 
 # Task
 
-The current task is to build and validate the knowledge ingestion and semantic retrieval foundation for an AI-powered candidate assistant.
+The current task is to build and validate the knowledge ingestion, semantic retrieval, and LLM integration foundations for an AI-powered candidate assistant.
 
 My responsibilities include:
 
@@ -116,10 +120,13 @@ My responsibilities include:
 - Evaluating whether semantic retrieval is sufficient for candidate-oriented questions.
 - Evaluating whether retrieved evidence supports the claims made in generated answers.
 - Designing answer-generation instructions that prevent unsupported claims, including distinguishing technology usage from explicitly supported production experience.
+- Designing a provider-independent LLM abstraction.
+- Integrating multiple LLM providers.
+- Supporting multiple models per provider.
+- Implementing model-level and provider-level fallback.
+- Moving LLM provider/model configuration into a shared environment-based configuration structure.
+- Testing provider failures, invalid API keys, unavailable models, and successful fallback execution.
 - Identifying where metadata-aware retrieval can improve the system.
-- Designing the foundation for the later LLM-powered response-generation workflow.
-
-The current implementation intentionally stops before full LLM generation so that the retrieval layer and evidence grounding can be evaluated independently.
 
 ---
 
@@ -172,7 +179,7 @@ The ingestion and retrieval pipeline is operational.
 
 The system can ingest the project knowledge base, generate embeddings, persist the resulting vectors, and retrieve semantically related project sections from natural-language questions.
 
-The retrieval layer can be inspected independently from the future LLM generation layer, making it possible to evaluate retrieval quality before introducing generation into the workflow.
+The retrieval layer can be inspected independently from the LLM generation layer, making it possible to evaluate retrieval quality before introducing generation into the workflow.
 
 Initial manual retrieval tests have been performed using representative candidate-oriented questions. The retrieval output is inspected together with similarity scores, source documents, sections, content, and project metadata.
 
@@ -338,6 +345,128 @@ This evaluation is currently manual rather than an automated retrieval benchmark
 
 ---
 
+## Challenge: Supporting Multiple LLM Providers and Models
+
+### Problem
+
+Depending on a single LLM provider creates an unnecessary single point of failure.
+
+API keys can be invalid, models can become unavailable, quotas can be exhausted, endpoints can return errors, or provider-specific availability can change.
+
+Supporting multiple models within the same provider also requires a more granular fallback strategy than simply switching providers.
+
+### Solution
+
+I introduced a provider-independent `ILLMClient` abstraction and a `FallbackLlmClient` that executes configured provider/model combinations sequentially.
+
+The configuration represents providers as ordered entries, with multiple models per provider:
+
+- OpenRouter with multiple models.
+- Google with the possibility of multiple models.
+- Groq with the possibility multiple models.
+
+The fallback order is therefore effectively:
+
+`Provider 1 / Model 1` -> `Provider 1 / Model 2` -> `Provider 2 / Model 1` -> `Provider 2 / Model 2` -> ...
+
+Each concrete client receives its model from the factory rather than keeping a single model inside the client configuration.
+
+The factory creates the appropriate client for each configured provider/model combination.
+
+The fallback client logs both provider and model, making it possible to see exactly which model was attempted and where the fallback occurred.
+
+Provider failures are represented through `LlmProviderException`, including HTTP status and whether the failure is considered transient.
+
+### Result
+
+The LLM layer can now fall back between both models and providers without changing application code.
+
+For example, an unavailable OpenRouter free model can fail and allow another configured model to be attempted.
+
+Invalid API keys and unavailable providers no longer prevent other configured providers from being attempted.
+
+---
+
+## Challenge: Separating Configuration from Provider Implementation
+
+### Problem
+
+The original configuration model stored a single model and timeout directly under each provider.
+
+That structure worked for one model per provider but became awkward once model-level fallback was required.
+
+It also created unnecessary duplication between `appsettings.json` and `.env`.
+
+### Solution
+
+The LLM configuration was changed to a provider list.
+
+The central `LlmOptions` now contains shared generation settings and an ordered list of `LlmProviderOptions`.
+
+Conceptually, the configuration is structured as:
+
+`Llm -> Providers[]`
+
+Each provider entry contains:
+
+- Provider name.
+- Ordered model list.
+- Timeout.
+
+API keys and provider-specific endpoint configuration remain environment-based.
+
+The shared configuration is loaded through `AppConfiguration`, which loads the repository `.env` file and exposes environment variables through `IConfiguration`.
+
+The application therefore separates:
+
+- Non-secret LLM configuration.
+- Secret API keys.
+- Provider/model fallback order.
+
+### Result
+
+Adding or reordering models no longer requires changes to the concrete LLM clients.
+
+The same client implementation can be instantiated for multiple models, and provider/model selection is controlled by configuration.
+
+---
+
+## Challenge: Making Provider Failures Observable
+
+### Problem
+
+A fallback system can become difficult to debug if it only returns the final successful result.
+
+Without detailed logging, it is difficult to determine whether a failure came from an invalid API key, unavailable model, quota limitation, transient provider failure, or another HTTP error.
+
+### Solution
+
+The LLM clients record provider-specific HTTP timing and the fallback layer records provider/model attempts.
+
+The logs now use a format such as:
+
+`[LLM] Trying: Google / gemini-3.6-flash`
+
+followed by the HTTP result and:
+
+`[LLM] Failed: Google / gemini-3.6-flash (...) Status=400 Transient=False`
+
+or:
+
+`[LLM] Provider succeeded: Groq / openai/gpt-oss-120b (...)`
+
+The fallback layer continues to the next configured model/provider when appropriate.
+
+### Result
+
+Fallback behavior can be inspected directly from the application logs.
+
+During testing, invalid Google and Groq credentials were successfully skipped, while a valid OpenRouter configuration was able to complete the request.
+
+The logs also exposed unavailable OpenRouter free-model slugs, allowing the configured model list to be corrected.
+
+---
+
 # Action
 
 ## Architecture
@@ -379,7 +508,7 @@ The Markdown documents are version controlled and remain the source of truth.
 
 The intended application includes a React and TypeScript frontend.
 
-The current development focus is primarily on the backend ingestion and retrieval pipeline rather than a completed candidate-facing UI.
+The current development focus is primarily on the backend ingestion, retrieval, and LLM integration rather than a completed candidate-facing UI.
 
 The frontend is intended to provide the future interface for:
 
@@ -389,7 +518,7 @@ The frontend is intended to provide the future interface for:
 - Generating candidate responses.
 - Evaluating matching results.
 
-The current retrieval implementation is therefore intentionally usable independently of the final frontend workflow.
+The current retrieval and LLM implementation is therefore intentionally usable independently of the final frontend workflow.
 
 ---
 
@@ -409,8 +538,12 @@ The backend is responsible for:
 - Query embedding generation.
 - Vector similarity search.
 - Retrieval result formatting.
+- LLM provider integration.
+- Model selection.
+- Provider/model fallback.
+- LLM request execution.
 
-The backend acts as the orchestration layer between the Markdown knowledge base, embedding model, PostgreSQL/pgvector, and the future LLM generation workflow.
+The backend acts as the orchestration layer between the Markdown knowledge base, embedding model, PostgreSQL/pgvector, and LLM providers.
 
 ---
 
@@ -464,11 +597,60 @@ Each result contains:
 - Retrieved content.
 - Associated project metadata.
 
-The retrieval layer is intentionally exposed for inspection so that retrieval quality can be evaluated before the LLM generation stage is introduced.
+The retrieval layer is intentionally exposed for inspection so that retrieval quality can be evaluated before relying on the LLM generation stage.
 
 The current test output uses the top 10 retrieved results when evaluating whether sufficient evidence is available for an answer.
 
 The retrieval implementation does not currently treat the similarity score as a definitive relevance decision.
+
+---
+
+### LLM Integration
+
+The backend uses a provider-independent `ILLMClient` abstraction.
+
+Configured providers are instantiated through `LlmClientFactory`.
+
+The current provider configuration supports:
+
+- Google
+- Groq
+- OpenRouter
+
+Each provider can contain multiple models.
+
+The fallback chain is controlled by configuration order rather than hardcoded provider logic.
+
+For example:
+
+`Google / Model A` -> `Google / Model B` -> `Groq / Model A` -> `Groq / Model B` -> `OpenRouter / Model A` -> `OpenRouter / Model B`
+
+The concrete clients are responsible for provider-specific HTTP requests, authentication, request/response formats, and error handling.
+
+`FallbackLlmClient` is responsible for executing the configured clients in order and falling back when a provider/model fails.
+
+---
+
+### LLM Configuration
+
+LLM generation configuration is represented through `LlmOptions` and `LlmProviderOptions`.
+
+Shared settings include:
+
+- Maximum output tokens.
+- Thinking level / Reasoning effort.
+
+Provider configuration includes:
+
+- Provider name.
+- Ordered models.
+- Timeout.
+
+API keys are supplied through environment variables rather than being stored in source-controlled configuration.
+
+The `.env` file is loaded during application configuration through `AppConfiguration`.
+
+The environment-based configuration allows provider credentials to remain separate from the source-controlled project configuration.
 
 ---
 
@@ -482,9 +664,13 @@ The current query flow is:
 
 `User question` -> `Query embedding` -> `pgvector similarity search` -> `Top-k chunks` -> `Retrieved project context`
 
-The intended future flow is:
+The LLM flow is:
 
-`Job description/question` -> `Query processing` -> `Semantic + metadata retrieval` -> `Relevant project context` -> `LLM` -> `Grounded candidate response`
+`Prompt/context` -> `Configured provider/model chain` -> `LLM client` -> `Provider/model fallback` -> `Generated response`
+
+The intended complete flow is:
+
+`Job description/question` -> `Query processing` -> `Semantic + metadata retrieval` -> `Relevant project context` -> `LLM fallback chain` -> `Grounded candidate response`
 
 ---
 
@@ -658,11 +844,11 @@ It is difficult to determine whether a poor AI response is caused by retrieval q
 
 #### Chosen Solution
 
-The retrieval pipeline is being implemented and evaluated independently before connecting it to the LLM.
+The retrieval pipeline is implemented and evaluated independently from the LLM provider layer.
 
 The system exposes the retrieved project sections and similarity scores so that retrieval quality can be inspected directly.
 
-The answer-generation prompt is also designed to require the model to stay within the evidence retrieved for each question and to explicitly acknowledge insufficient evidence.
+The LLM generation prompt is designed to require the model to stay within the evidence retrieved for each question and to explicitly acknowledge insufficient evidence.
 
 #### Alternatives Considered
 
@@ -674,13 +860,112 @@ The answer-generation prompt is also designed to require the model to stay withi
 
 Separating retrieval makes the system easier to debug and evaluate.
 
-The trade-off is that the complete candidate-assistant workflow takes longer to implement because generation is deliberately postponed until the retrieval foundation is sufficiently reliable.
+The trade-off is that the complete candidate-assistant workflow takes longer to implement because generation is deliberately treated as a separate layer.
+
+---
+
+### Decision: Provider-Independent LLM Client Architecture
+
+#### Context
+
+The project should not become tightly coupled to one commercial LLM provider.
+
+Different providers have different pricing, model availability, rate limits, API formats, and failure modes.
+
+#### Chosen Solution
+
+A common `ILLMClient` interface is used by provider-specific clients.
+
+The current implementations include:
+
+- `GoogleClient`.
+- `GroqClient`.
+- `OpenRouterClient`.
+- `CerebrasClient` retained as an optional client for future use.
+
+Provider-specific HTTP and response handling remains inside each concrete client.
+
+`LlmClientFactory` creates the configured provider/model clients.
+
+`FallbackLlmClient` handles execution order and fallback behavior.
+
+#### Trade-offs
+
+The architecture makes providers interchangeable and allows multiple models to be configured without changing application-level code.
+
+The trade-off is additional abstraction and configuration complexity.
+
+---
+
+### Decision: Model-Level and Provider-Level Fallback
+
+#### Context
+
+A provider can fail because of an invalid key, unavailable model, quota, rate limiting, or service failure.
+
+A provider may also have multiple models that should be tried independently.
+
+#### Chosen Solution
+
+Providers contain ordered model lists.
+
+The fallback chain evaluates each provider/model combination independently.
+
+For example:
+
+`Gemini / Model A` -> `Gemini / Model B` -> `Groq / Model A` -> `Groq / Model B` -> `OpenRouter / Model A` -> `OpenRouter / Model B`
+
+The fallback layer records the provider and model for every attempt.
+
+Transient failures are distinguished from non-transient failures through `LlmProviderException`.
+
+#### Alternatives Considered
+
+- One model per provider.
+- Provider-only fallback.
+- Hardcoded model fallback inside every concrete client.
+- External retry infrastructure.
+
+#### Trade-offs
+
+The configuration is flexible and the fallback behavior is centralized.
+
+The trade-off is that the number of possible attempts increases as more models are configured, which can increase latency when several providers/models fail sequentially.
+
+---
+
+### Decision: Environment-Based LLM Configuration
+
+#### Context
+
+API credentials must not be committed to source control, while provider/model configuration should be easy to change between development environments.
+
+#### Chosen Solution
+
+LLM provider and model configuration is loaded through `IConfiguration`.
+
+API keys are supplied through environment variables and `.env` during local development.
+
+The provider/model structure is represented through `LlmOptions` rather than separate hardcoded configuration properties for every model.
+
+#### Alternatives Considered
+
+- Hardcoding API keys.
+- Storing secrets in source-controlled `appsettings.json`.
+- One configuration class per provider/model.
+- Hardcoding fallback order in `LlmClientFactory`.
+
+#### Trade-offs
+
+Environment-based configuration keeps secrets outside the repository and makes model fallback order configurable.
+
+The trade-off is that local development requires correct environment configuration, and configuration errors can be harder to diagnose without explicit startup validation.
 
 ---
 
 ## Implementation
 
-The implementation currently covers the complete ingestion and semantic retrieval pipeline.
+The implementation currently covers the ingestion and semantic retrieval pipeline together with a provider-independent LLM integration layer.
 
 The main implementation flow is:
 
@@ -699,13 +984,33 @@ The main implementation flow is:
 13. The query vector is compared against the stored document vectors.
 14. The top-ranked chunks are returned for inspection.
 15. Retrieval results expose the similarity score, source document, section, content, and project metadata.
-16. Retrieved evidence can be evaluated against candidate-oriented questions before being passed to the future LLM generation layer.
+16. Retrieved evidence can be evaluated against candidate-oriented questions.
+17. The LLM layer receives prompts through the common `ILLMClient` abstraction.
+18. `LlmClientFactory` creates configured provider/model clients.
+19. `FallbackLlmClient` attempts each configured provider/model in order.
+20. Provider/model failures are logged with provider, model, HTTP status, and timing.
+21. A successful provider/model terminates the fallback chain.
+22. If all configured provider/model combinations fail, the fallback client returns an aggregated failure.
 
 The current pipeline is:
 
-`Markdown` -> `Frontmatter parsing` -> `Document loading` -> `Section chunking` -> `Metadata propagation` -> `Embedding generation` -> `PostgreSQL + pgvector` -> `Query embedding` -> `Similarity search` -> `Top-N retrieved chunks`
+`Markdown` -> `Frontmatter parsing` -> `Document loading` -> `Section chunking` -> `Metadata propagation` -> `Embedding generation` -> `PostgreSQL + pgvector` -> `Query embedding` -> `Similarity search` -> `Top-N retrieved chunks` -> `LLM provider/model fallback` -> `Generated response`
 
 The current implementation intentionally does not treat the similarity score as a definitive relevance decision.
+
+---
+
+### LLM Providers
+
+The current LLM configuration supports multiple providers and models.
+
+Google, Groq and OpenRouter can contain multiple models.
+
+Cerebras is retained as a provider client for possible future use but is not currently part of the active fallback configuration.
+
+The provider/model order is configuration-driven.
+
+A provider can therefore be changed or removed without changing the fallback architecture itself.
 
 ---
 
@@ -730,6 +1035,16 @@ The system can currently:
 - Inspect retrieval results independently of LLM generation.
 - Inspect similarity scores, source sections, and associated project metadata.
 - Manually evaluate whether retrieved evidence supports candidate-oriented answers.
+- Connect to multiple LLM providers.
+- Configure multiple models per provider.
+- Fall back between models within a provider.
+- Fall back between providers.
+- Log provider/model attempts and failures.
+- Continue past invalid API keys and unavailable models when configured as fallback candidates.
+
+During LLM integration testing, invalid Google, OpenRouter and Groq credentials were correctly detected and skipped, while valid provider credentials allowed a later provider in the fallback chain to succeed.
+
+The fallback implementation also exposed a practical problem with free-tier OpenRouter model identifiers: a configured model can exist in configuration while no longer being available under that free endpoint. The HTTP response and provider error therefore need to be treated as part of runtime model availability rather than assuming that a `:free` model slug will remain valid indefinitely.
 
 Current retrieval tests show similarity scores approximately in the `0.58-0.82` range depending on the query and retrieved content.
 
@@ -753,7 +1068,7 @@ The answer-generation prompt has also been refined to reduce unsupported claims.
 
 The current evaluation remains manual. There is not yet an automated retrieval evaluation dataset, automated top-N comparison, metadata-aware ranking implementation, hybrid search implementation, or reranking layer.
 
-The current system therefore provides a working retrieval foundation and an initial manual evaluation workflow, while deliberately leaving those retrieval optimizations for later validation.
+The current system therefore provides a working retrieval foundation and an initial LLM integration with configurable multi-model/provider fallback, while deliberately leaving retrieval optimization for later validation.
 
 ---
 
@@ -854,6 +1169,36 @@ A larger evaluation dataset and automated regression tests are therefore future 
 
 ---
 
+## LLM Provider Availability Is Not the Same as Model Availability
+
+An API provider can be reachable and a valid API key can exist while a specific model is unavailable, restricted, renamed, deprecated, or no longer available through a particular tier.
+
+Testing showed this explicitly with OpenRouter free-model identifiers.
+
+The fallback architecture therefore needs to treat provider/model availability as a runtime concern rather than assuming that a configured model name guarantees successful generation.
+
+---
+
+## Fallback Order Is an Operational Decision
+
+Adding more models and providers increases resilience but also increases potential latency when several attempts fail sequentially.
+
+The fallback list should therefore not simply contain every available model.
+
+The order should reflect:
+
+- Expected availability.
+- Response latency.
+- Model quality.
+- Cost.
+- Rate limits.
+- Reliability.
+- Whether the model satisfies the project's generation requirements.
+
+A large fallback chain is not automatically better than a smaller, well-ordered one.
+
+---
+
 # Future Improvements
 
 ## Retrieval
@@ -879,16 +1224,23 @@ A larger evaluation dataset and automated regression tests are therefore future 
 - Add automated retrieval regression tests.
 - Compare retrieval strategies quantitatively rather than relying only on manual inspection.
 - Evaluate whether fewer than the current top-ranked results provide sufficient evidence for specific question types.
+- Add automated LLM answer-grounding evaluation.
+- Test fallback behavior automatically using mocked provider failures.
+- Measure end-to-end latency across different fallback chains.
 
 ## LLM Integration
 
-- Connect retrieved context to an LLM.
+- Add configurable retry policies for transient failures.
+- Distinguish provider authentication failures, model availability failures, rate limits, quota failures, and server errors more explicitly.
+- Add provider/model availability checks where appropriate.
+- Connect retrieved context directly to the production answer-generation workflow.
 - Generate grounded candidate responses.
 - Include source project references in generated answers.
 - Prevent unsupported claims when the knowledge base does not contain sufficient evidence.
 - Add job-description extraction.
 - Implement candidate-to-job matching.
 - Separate retrieval confidence from generation quality.
+- Add structured LLM response formats where appropriate.
 
 ## Knowledge Management
 
@@ -903,7 +1255,8 @@ A larger evaluation dataset and automated regression tests are therefore future 
 
 - Containerize the complete development environment.
 - Add automated indexing to the development workflow.
-- Add observability around ingestion and retrieval.
+- Add observability around ingestion, retrieval, and LLM fallback, by adding structured logging instead of relying primarily on `Console.WriteLine`.
+- Add production secret management rather than relying on `.env` outside local development.
 - Add production deployment when the retrieval and generation workflow is sufficiently validated.
 
 ---

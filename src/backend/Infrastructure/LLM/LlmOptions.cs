@@ -6,5 +6,7 @@ public class LlmOptions
 
     public string ThinkingLevel { get; init; } = "minimal";
 
+    public string? ReasoningEffort { get; set; }
+
     public List<LlmProviderOptions> Providers { get; init; } = [];
 }

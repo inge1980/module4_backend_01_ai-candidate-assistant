@@ -6,16 +6,16 @@ using Microsoft.Extensions.Options;
 
 namespace Infrastructure.LLM;
 
-public class GeminiClient : ILLMClient
+public class GoogleClient : ILLMClient
 {
     private readonly HttpClient _httpClient;
     private readonly LlmOptions _options;
     private readonly IConfiguration _configuration;
     private readonly string _model;
-    public string Provider => "Gemini";
+    public string Provider => "Google";
     public string Model => _model;
 
-    public GeminiClient(
+    public GoogleClient(
         HttpClient httpClient,
         IOptions<LlmOptions> options,
         IConfiguration configuration,
@@ -31,33 +31,33 @@ public class GeminiClient : ILLMClient
         string prompt,
         CancellationToken cancellationToken = default)
     {
-        var apiKey = _configuration["Gemini:ApiKey"];
+        var apiKey = _configuration[$"{Provider}:ApiKey"];
 
         if (string.IsNullOrWhiteSpace(apiKey))
         {
             throw new LlmProviderException(
-                "Gemini",
-                "Gemini API key is missing.");
+                Provider,
+                $"{Provider} API key is missing.");
         }
 
         if (string.IsNullOrWhiteSpace(_model))
         {
             throw new LlmProviderException(
-                "Gemini",
-                "Gemini model is missing.");
+                Provider,
+                $"{Provider} model is missing.");
         }
 
         var baseUrl =
-            _configuration["Gemini:BaseUrl"]
+            _configuration[$"{Provider}:BaseUrl"]
             ?? throw new LlmProviderException(
-                "Gemini",
-                "Gemini base URL is missing.");
+                Provider,
+                $"{Provider} base URL is missing.");
 
         var apiVersion =
-            _configuration["Gemini:ApiVersion"]
+            _configuration[$"{Provider}:ApiVersion"]
             ?? throw new LlmProviderException(
-                "Gemini",
-                "Gemini API version is missing.");
+                Provider,
+                $"{Provider} API version is missing.");
 
         var url =
             $"{baseUrl}/" +
@@ -109,7 +109,7 @@ public class GeminiClient : ILLMClient
 
             stopwatch.Stop();
 
-            Console.WriteLine($"[LLM] Gemini HTTP: {stopwatch.ElapsedMilliseconds} ms");
+            Console.WriteLine($"[LLM] {Provider} HTTP: {stopwatch.ElapsedMilliseconds} ms");
 
             var responseBody =
                 await response.Content.ReadAsStringAsync(
@@ -126,8 +126,8 @@ public class GeminiClient : ILLMClient
                     statusCode >= 500;
 
                 throw new LlmProviderException(
-                    "Gemini",
-                    $"Gemini request failed ({statusCode}): {responseBody}",
+                    Provider,
+                    $"{Provider} request failed ({statusCode}): {responseBody}",
                     statusCode,
                     transient);
             }
@@ -144,8 +144,8 @@ public class GeminiClient : ILLMClient
 
             return text
                 ?? throw new LlmProviderException(
-                    "Gemini",
-                    "Gemini returned an empty response.");
+                    Provider,
+                    $"{Provider} returned an empty response.");
         }
         catch (LlmProviderException)
         {
@@ -157,8 +157,8 @@ public class GeminiClient : ILLMClient
             stopwatch.Stop();
 
             throw new LlmProviderException(
-                "Gemini",
-                $"Gemini request timed out after {stopwatch.ElapsedMilliseconds} ms.",
+                Provider,
+                $"{Provider} request timed out after {stopwatch.ElapsedMilliseconds} ms.",
                 isTransient: true,
                 innerException: ex);
         }
@@ -167,8 +167,8 @@ public class GeminiClient : ILLMClient
             stopwatch.Stop();
 
             throw new LlmProviderException(
-                "Gemini",
-                "Gemini network request failed.",
+                Provider,
+                $"{Provider} network request failed.",
                 isTransient: true,
                 innerException: ex);
         }

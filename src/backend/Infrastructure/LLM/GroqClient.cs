@@ -32,27 +32,27 @@ public class GroqClient : ILLMClient
         string prompt,
         CancellationToken cancellationToken = default)
     {
-        var apiKey = _configuration["Groq:ApiKey"];
+        var apiKey = _configuration[$"{Provider}:ApiKey"];
 
         if (string.IsNullOrWhiteSpace(apiKey))
         {
             throw new LlmProviderException(
-                "Groq",
-                "Groq API key is missing.");
+                Provider,
+                $"{Provider} API key is missing.");
         }
 
         if (string.IsNullOrWhiteSpace(_model))
         {
             throw new LlmProviderException(
-                "Groq",
-                "Groq model is missing.");
+                Provider,
+                $"{Provider} model is missing.");
         }
 
         var baseUrl =
-            _configuration["Groq:BaseUrl"]
+            _configuration[$"{Provider}:BaseUrl"]
             ?? throw new LlmProviderException(
-                "Groq",
-                "Groq base URL is missing.");
+                Provider,
+                $"{Provider} base URL is missing.");
 
         using var request =
             new HttpRequestMessage(
@@ -77,7 +77,8 @@ public class GroqClient : ILLMClient
                             content = prompt
                         }
                     },
-                    max_tokens = _options.MaxOutputTokens
+                    max_tokens = _options.MaxOutputTokens,
+                    reasoning_effort = _options.ReasoningEffort
                 });
 
         var stopwatch = Stopwatch.StartNew();
@@ -92,7 +93,7 @@ public class GroqClient : ILLMClient
 
             stopwatch.Stop();
 
-            Console.WriteLine($"[LLM] Groq HTTP: {stopwatch.ElapsedMilliseconds} ms");
+            Console.WriteLine($"[LLM] {Provider} HTTP: {stopwatch.ElapsedMilliseconds} ms");
 
             var responseBody =
                 await response.Content.ReadAsStringAsync(
@@ -108,8 +109,8 @@ public class GroqClient : ILLMClient
                     statusCode >= 500;
 
                 throw new LlmProviderException(
-                    "Groq",
-                    $"Groq request failed ({statusCode}): {responseBody}",
+                    Provider,
+                    $"{Provider} request failed ({statusCode}): {responseBody}",
                     statusCode,
                     transient);
             }
@@ -125,8 +126,8 @@ public class GroqClient : ILLMClient
 
             return text
                 ?? throw new LlmProviderException(
-                    "Groq",
-                    "Groq returned an empty response.");
+                    Provider,
+                    $"{Provider} returned an empty response.");
         }
         catch (LlmProviderException)
         {
@@ -138,8 +139,8 @@ public class GroqClient : ILLMClient
             stopwatch.Stop();
 
             throw new LlmProviderException(
-                "Groq",
-                $"Groq request timed out after {stopwatch.ElapsedMilliseconds} ms.",
+                Provider,
+                $"{Provider} request timed out after {stopwatch.ElapsedMilliseconds} ms.",
                 isTransient: true,
                 innerException: ex);
         }
@@ -148,8 +149,8 @@ public class GroqClient : ILLMClient
             stopwatch.Stop();
 
             throw new LlmProviderException(
-                "Groq",
-                "Groq network request failed.",
+                Provider,
+                $"{Provider} network request failed.",
                 isTransient: true,
                 innerException: ex);
         }

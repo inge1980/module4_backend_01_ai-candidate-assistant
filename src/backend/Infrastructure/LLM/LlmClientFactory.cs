@@ -64,8 +64,8 @@ public class LlmClientFactory
 
         return providerName switch
         {
-            "gemini" =>
-                CreateGemini(
+            "google" =>
+                CreateGoogle(
                     provider,
                     model),
 
@@ -85,19 +85,19 @@ public class LlmClientFactory
         };
     }
 
-    private GeminiClient CreateGemini(
+    private GoogleClient CreateGoogle(
         LlmProviderOptions provider,
         string model)
     {
         var httpClient =
             _httpClientFactory.CreateClient(
-                "Gemini");
+                "Google");
 
         httpClient.Timeout =
             TimeSpan.FromSeconds(
                 provider.TimeoutSeconds);
 
-        return new GeminiClient(
+        return new GoogleClient(
             httpClient,
             Options.Create(
                 new LlmOptions

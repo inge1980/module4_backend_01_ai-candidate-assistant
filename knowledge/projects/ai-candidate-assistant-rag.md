@@ -58,7 +58,9 @@ An AI-powered candidate assistant that uses Retrieval-Augmented Generation (RAG)
 
 The project documentation is maintained as Markdown with YAML frontmatter containing structured information about each project, including role, technologies, concepts, organization, period, and status.
 
-The system ingests these documents, extracts their metadata, divides the content into semantic sections, generates embeddings, and stores the resulting retrieval representation in PostgreSQL using pgvector.
+The system currently ingests these documents, extracts their metadata, divides the content into semantic sections, and generates structured document chunks that can be persisted in PostgreSQL using pgvector.
+
+The Markdown knowledge base remains the source of truth, while PostgreSQL acts as a generated retrieval index.
 
 The backend also includes an LLM integration layer supporting multiple providers and multiple models per provider. Providers can be attempted sequentially, with model-level fallback within each provider and provider-level fallback when a model fails.
 
@@ -70,8 +72,6 @@ The intended workflow is:
 4. Relevant project sections and their metadata are retrieved.
 5. The retrieved information is supplied to an LLM.
 6. The LLM generates a response grounded in the candidate's documented project experience.
-
-The Markdown knowledge base remains the source of truth, while PostgreSQL acts as a generated retrieval index.
 
 ---
 
@@ -163,21 +163,25 @@ Each document is processed through a deterministic pipeline:
 3. Parse YAML frontmatter.
 4. Separate metadata from Markdown content.
 5. Split the content into sections based on Markdown headings.
-6. Propagate project metadata to each generated chunk.
-7. Validate the generated chunks.
-8. Generate embeddings for each chunk.
-9. Persist the chunks, metadata, and vectors in PostgreSQL.
-10. Generate an embedding for each user query.
-11. Perform vector similarity search using pgvector.
-12. Return the highest-ranked project sections for inspection.
+6. Clean generated section content.
+7. Ignore empty sections.
+8. Propagate project metadata to each generated chunk.
+9. Validate the generated chunks.
+10. Generate embeddings for each chunk.
+11. Persist the chunks, metadata, and vectors in PostgreSQL.
+12. Generate an embedding for each user query.
+13. Perform vector similarity search using pgvector.
+14. Return the highest-ranked project sections for inspection.
 
 The Markdown repository remains the source of truth, while PostgreSQL contains a generated representation that can be discarded and rebuilt.
 
 ### Result
 
-The ingestion and retrieval pipeline is operational.
+The Markdown ingestion and chunking pipeline is operational.
 
-The system can ingest the project knowledge base, generate embeddings, persist the resulting vectors, and retrieve semantically related project sections from natural-language questions.
+The indexer can recursively discover project Markdown files, ignore the template, parse project metadata, split documents into semantic sections, propagate metadata to generated chunks, and display the resulting index structure for verification.
+
+PostgreSQL is configured with pgvector and a `document_chunks` table capable of storing the generated retrieval representation and 384-dimensional embeddings.
 
 The retrieval layer can be inspected independently from the LLM generation layer, making it possible to evaluate retrieval quality before introducing generation into the workflow.
 
@@ -204,6 +208,7 @@ The metadata includes information such as:
 - Project title.
 - Organization.
 - Role.
+- Environment.
 - Period.
 - Status.
 - Technologies.
@@ -223,6 +228,7 @@ The metadata can later be used for:
 - Technology filtering.
 - Role filtering.
 - Organization filtering.
+- Environment filtering.
 - Project status filtering.
 - Project-level ranking.
 - Retrieval explanations.
@@ -273,6 +279,8 @@ Very large sections are intentionally left as a known limitation for a later ite
 
 The retrieval system produces understandable project sections rather than arbitrary fragments.
 
+The initial indexer output confirms that documents are split into predictable sections and that each section becomes an independent chunk.
+
 This makes retrieval results easier to inspect and debug while providing a reasonable initial semantic unit for embedding.
 
 ---
@@ -295,15 +303,17 @@ The database stores the generated retrieval representation:
 - Source document.
 - Section.
 - Project metadata.
-- Embedding vector.
+- 384-dimensional embedding vector.
 
 The original Markdown files remain outside the database as the authoritative knowledge source.
 
 ### Result
 
-Structured metadata and vector data can be queried from the same database.
+PostgreSQL is now configured with the pgvector extension and a `document_chunks` table.
 
-The retrieval index can also be rebuilt from the Markdown knowledge base without treating PostgreSQL as the authoritative source of project information.
+The database can store structured metadata and vector data together.
+
+The original Markdown knowledge base remains authoritative, allowing the PostgreSQL retrieval index to be regenerated when the chunking strategy, metadata schema, or embedding model changes.
 
 ---
 
@@ -359,11 +369,7 @@ Supporting multiple models within the same provider also requires a more granula
 
 I introduced a provider-independent `ILLMClient` abstraction and a `FallbackLlmClient` that executes configured provider/model combinations sequentially.
 
-The configuration represents providers as ordered entries, with multiple models per provider:
-
-- OpenRouter with multiple models.
-- Google with the possibility of multiple models.
-- Groq with the possibility multiple models.
+The configuration represents providers as ordered entries, with multiple models per provider.
 
 The fallback order is therefore effectively:
 
@@ -467,6 +473,40 @@ The logs also exposed unavailable OpenRouter free-model slugs, allowing the conf
 
 ---
 
+## Challenge: Separating Configuration from Provider Implementation
+
+### Problem
+
+The original configuration model stored a single model and timeout directly under each provider.
+
+That structure worked for one model per provider but became awkward once model-level fallback was required.
+
+### Solution
+
+The LLM configuration was changed to a provider list.
+
+The central `LlmOptions` now contains shared generation settings and an ordered list of `LlmProviderOptions`.
+
+Conceptually, the configuration is structured as:
+
+`Llm -> Providers[]`
+
+Each provider entry contains:
+
+- Provider name.
+- Ordered model list.
+- Timeout.
+
+API keys and provider-specific endpoint configuration remain environment-based.
+
+### Result
+
+Adding or reordering models no longer requires changes to the concrete LLM clients.
+
+The same client implementation can be instantiated for multiple models, and provider/model selection is controlled by configuration.
+
+---
+
 # Action
 
 ## Architecture
@@ -494,6 +534,7 @@ The frontmatter provides structured project metadata such as:
 - Title.
 - Organization.
 - Role.
+- Environment.
 - Period.
 - Status.
 - Technologies.
@@ -541,7 +582,6 @@ The backend is responsible for:
 - LLM provider integration.
 - Model selection.
 - Provider/model fallback.
-- LLM request execution.
 
 The backend acts as the orchestration layer between the Markdown knowledge base, embedding model, PostgreSQL/pgvector, and LLM providers.
 
@@ -553,12 +593,14 @@ PostgreSQL is used as the generated retrieval index.
 
 The pgvector extension provides vector storage and similarity search.
 
-The database stores each generated chunk together with:
+The current `document_chunks` table stores:
 
+- Chunk ID.
 - Source document.
 - Section.
-- Project metadata.
-- Embedding vector.
+- Content.
+- Project metadata as JSONB.
+- 384-dimensional embedding vector.
 
 The Markdown files remain authoritative.
 
@@ -751,6 +793,8 @@ Whole-document embeddings would be too broad for precise retrieval, while arbitr
 Documents are initially divided according to Markdown headings.
 
 Each section becomes a retrieval unit together with its source project and metadata.
+
+The section heading itself is stored separately as the chunk's `Section` metadata rather than being required as part of the cleaned chunk content.
 
 #### Alternatives Considered
 
@@ -965,7 +1009,7 @@ The trade-off is that local development requires correct environment configurati
 
 ## Implementation
 
-The implementation currently covers the ingestion and semantic retrieval pipeline together with a provider-independent LLM integration layer.
+The implementation currently covers the Markdown ingestion and chunking foundation, PostgreSQL/pgvector persistence setup, semantic retrieval foundation, and provider-independent LLM integration layer.
 
 The main implementation flow is:
 
@@ -975,22 +1019,24 @@ The main implementation flow is:
 4. The `FrontmatterParser` extracts YAML metadata.
 5. The document is separated into metadata and Markdown content.
 6. The content is split into sections based on Markdown headings.
-7. Project metadata is propagated to each generated chunk.
-8. Generated chunks are validated.
-9. Each chunk is passed through the local embedding model.
-10. The resulting 384-dimensional vectors are stored in PostgreSQL.
-11. pgvector provides vector similarity search over the stored embeddings.
-12. A user question is converted into an embedding using the same model.
-13. The query vector is compared against the stored document vectors.
-14. The top-ranked chunks are returned for inspection.
-15. Retrieval results expose the similarity score, source document, section, content, and project metadata.
-16. Retrieved evidence can be evaluated against candidate-oriented questions.
-17. The LLM layer receives prompts through the common `ILLMClient` abstraction.
-18. `LlmClientFactory` creates configured provider/model clients.
-19. `FallbackLlmClient` attempts each configured provider/model in order.
-20. Provider/model failures are logged with provider, model, HTTP status, and timing.
-21. A successful provider/model terminates the fallback chain.
-22. If all configured provider/model combinations fail, the fallback client returns an aggregated failure.
+7. Section headings are stored as section metadata.
+8. Empty sections are ignored after content cleaning.
+9. Project metadata is propagated to each generated chunk.
+10. Generated chunks are validated and can be inspected through the indexer.
+11. Each chunk is passed through the local embedding model.
+12. The resulting 384-dimensional vectors are stored in PostgreSQL.
+13. pgvector provides vector similarity search over the stored embeddings.
+14. A user question is converted into an embedding using the same model.
+15. The query vector is compared against the stored document vectors.
+16. The top-ranked chunks are returned for inspection.
+17. Retrieval results expose the similarity score, source document, section, content, and project metadata.
+18. Retrieved evidence can be evaluated against candidate-oriented questions.
+19. The LLM layer receives prompts through the common `ILLMClient` abstraction.
+20. `LlmClientFactory` creates configured provider/model clients.
+21. `FallbackLlmClient` attempts each configured provider/model in order.
+22. Provider/model failures are logged with provider, model, HTTP status, and timing.
+23. A successful provider/model terminates the fallback chain.
+24. If all configured provider/model combinations fail, the fallback client returns an aggregated failure.
 
 The current pipeline is:
 
@@ -1025,22 +1071,28 @@ The system can currently:
 - Parse YAML frontmatter.
 - Extract structured project metadata.
 - Split documents into semantic sections.
+- Remove Markdown section headings from chunk content.
+- Ignore empty sections.
 - Propagate project metadata to generated chunks.
 - Validate generated chunks.
+- Configure PostgreSQL with pgvector.
+- Store document chunks, metadata, and 384-dimensional embeddings.
 - Generate 384-dimensional embeddings locally.
-- Store embeddings in PostgreSQL.
 - Perform vector similarity search using pgvector.
 - Generate embeddings for natural-language queries.
 - Retrieve semantically related project sections.
 - Inspect retrieval results independently of LLM generation.
 - Inspect similarity scores, source sections, and associated project metadata.
-- Manually evaluate whether retrieved evidence supports candidate-oriented answers.
 - Connect to multiple LLM providers.
 - Configure multiple models per provider.
 - Fall back between models within a provider.
 - Fall back between providers.
 - Log provider/model attempts and failures.
 - Continue past invalid API keys and unavailable models when configured as fallback candidates.
+
+The current KnowledgeIndexer output can be used to verify the ingestion pipeline by inspecting discovered documents, parsed project titles, generated sections, chunk content, and index statistics.
+
+The Markdown knowledge base remains the source of truth, while PostgreSQL/pgvector acts as generated retrieval infrastructure.
 
 During LLM integration testing, invalid Google, OpenRouter and Groq credentials were correctly detected and skipped, while valid provider credentials allowed a later provider in the fallback chain to succeed.
 
@@ -1068,7 +1120,7 @@ The answer-generation prompt has also been refined to reduce unsupported claims.
 
 The current evaluation remains manual. There is not yet an automated retrieval evaluation dataset, automated top-N comparison, metadata-aware ranking implementation, hybrid search implementation, or reranking layer.
 
-The current system therefore provides a working retrieval foundation and an initial LLM integration with configurable multi-model/provider fallback, while deliberately leaving retrieval optimization for later validation.
+The current system therefore provides a working ingestion and retrieval foundation together with an initial LLM integration and configurable multi-model/provider fallback, while deliberately leaving retrieval optimization for later validation.
 
 ---
 

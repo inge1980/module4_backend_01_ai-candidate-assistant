@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Configuration;
 using System.Diagnostics;
 using Application.Questions;
 using Application.Knowledge;
@@ -7,16 +8,20 @@ namespace Api.Services;
 
 public sealed class QuestionService(
     IKnowledgeRetrievalService knowledgeRetrievalService,
-    LlmClientFactory llmClientFactory)
+    LlmClientFactory llmClientFactory,
+    IConfiguration configuration)
     : IQuestionService
 {
     private const int RetrievalLimit = 10;
     private const int PromptContextLimit = 5;
+    
+    private readonly IConfiguration _configuration = configuration;
 
     public async Task<AskQuestionResponse> AskAsync(
         string question,
         bool includeDebug = false,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default,
+        IConfiguration configuration = null!)
     {
         if (string.IsNullOrWhiteSpace(question))
         {
@@ -201,12 +206,13 @@ public sealed class QuestionService(
         return GetProjectId(result.Source);
     }
 
-    private static string GetProjectUrl(
+    private string GetProjectUrl(
         string source)
     {
+        var GithubProjectBaseUrl = "https://github.com/" + _configuration["Github:Owner"] + "/" + _configuration["Github:Repository"] + "/blob/" + _configuration["Github:Branch"] + "/" + _configuration["Github:ProjectsFolder"] + "/";
         var projectId =
             GetProjectId(source);
 
-        return $"/projects/{projectId}";
+        return $"{GithubProjectBaseUrl}/{projectId}.md";
     }
 }

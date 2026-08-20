@@ -42,6 +42,7 @@ Retrieved evidence is manually evaluated to determine whether it is sufficient t
 * Perform semantic similarity search against indexed knowledge
 * Retrieve top-ranked project sections
 * Build relevant context before sending it to the LLM
+* Return source URLs pointing directly to the corresponding GitHub project Markdown files
 
 ## AI Assistant
 
@@ -56,6 +57,7 @@ Retrieved evidence is manually evaluated to determine whether it is sufficient t
 * Multiple models per provider
 * Model-level fallback
 * Provider-level fallback
+* Returns source URLs for inspecting the original project documentation
 
 ## LLM Provider Fallback
 
@@ -177,6 +179,7 @@ The system follows a Retrieval-Augmented Generation (RAG) pipeline with three di
 1. The retrieved evidence is supplied to the LLM.
 2. The configured provider/model fallback chain attempts the request until a provider succeeds or all configured options fail.
 3. The LLM generates a candidate-oriented response based on the retrieved evidence.
+4. The API returns the generated answer together with the retrieved sources, including a GitHub URL to the corresponding project Markdown file.
 
 # How to Run
 
@@ -257,7 +260,8 @@ The API workflow is:
 5. Build the LLM prompt based on a set of instructions, the question and the retrieved evidence
 6. Send the prompt to the configured LLM.
 7. Use the configured fallback chain if the selected provider/model fails.
-8. Return the generated answer, together with evidence chunks and similarity scores
+8. Return the generated answer, together with evidence chunks, similarity scores, and source URLs.
+
 
 ---
 
@@ -280,8 +284,9 @@ Each retrieved result contains:
 - Section
 - Retrieved content
 - Project metadata
+- Source URL
 
-The current test workflow exposes the top 10 results for manual inspection.
+The current test workflow exposes the top 10 retrieved results for manual inspection.
 
 Similarity scores are used to compare retrieval results, but they are not treated as probabilities or as a universal relevance threshold.
 
@@ -446,6 +451,8 @@ For example:
     Technology used in production
 
 The system therefore attempts to prevent technically plausible but unsupported candidate claims.
+
+The API also exposes the source URL associated with each retrieved evidence chunk, allowing the underlying Markdown source to be inspected directly.
 
 ---
 
@@ -641,6 +648,7 @@ The retrieval output is inspected together with:
 * Semantic type
 * Retrieved content
 * Project metadata
+* Source URL
 
 The current test workflow exposes the top 10 retrieved results for manual inspection.
 
@@ -689,6 +697,7 @@ The project demonstrates:
 * Multi-provider LLM architecture
 * Model-level fallback
 * Provider-level fallback
+* Configurable GitHub source references
 * Clean backend architecture
 * Practical use of LLMs in developer tooling
 
@@ -719,7 +728,7 @@ The project demonstrates:
 * Add provider/model availability checks where appropriate
 * Distinguish authentication failures from model availability failures
 * Distinguish rate limits and quota failures
-* Improve source references in generated answers
+* Include source references directly in generated answer text where appropriate
 * Implement candidate-to-job matching
 
 ## Knowledge Management
@@ -768,8 +777,11 @@ The following components are operational:
 * Evidence-based LLM answer generation
 * Configurable multi-provider LLM fallback
 * REST API for question answering and retrieval results
+* Configurable GitHub source URLs for retrieved project evidence
 
-The API can answer questions using retrieved project evidence and exposes the retrieved sources and relevance information alongside the generated answer.
+The API can answer questions using retrieved project evidence and exposes the retrieved sources, source URLs, and relevance information alongside the generated answer.
+
+The GitHub source URL is constructed from configuration values for the repository owner, repository, branch, and projects folder, allowing the source repository location to be changed without modifying the question service implementation.
 
 The current implementation is intentionally focused on the backend ingestion, retrieval, evaluation, and LLM integration required for the project scope.
 

@@ -11,7 +11,7 @@ period:
   from: 2026-08
   to: 2026-08
 
-status: active
+status: completed
 
 technologies:
   - dotnet
@@ -45,7 +45,7 @@ concepts:
 dependencies:
 
 links:
-  github:
+  github: https://github.com/inge1980/module4_backend_01_ai-candidate-assistant
   live:
 
 ---
@@ -56,7 +56,7 @@ An AI-powered candidate assistant that uses Retrieval-Augmented Generation (RAG)
 
 The project documentation is maintained as Markdown with YAML frontmatter containing structured information about each project, including role, technologies, concepts, organization, period, and status.
 
-The system currently ingests these documents, extracts their metadata, divides the content into semantic sections, and generates structured document chunks that can be persisted in PostgreSQL using pgvector.
+The system ingests these documents, extracts their metadata, divides the content into semantic sections, and generates structured document chunks that can be persisted in PostgreSQL using pgvector.
 
 The Markdown knowledge base remains the source of truth, while PostgreSQL acts as a generated retrieval index.
 
@@ -96,9 +96,9 @@ The project is also intended to demonstrate a practical RAG architecture rather 
 
 # Task
 
-The current task is to build and validate the knowledge ingestion, semantic retrieval, and LLM integration foundations for an AI-powered candidate assistant.
+The current task was to build and validate the knowledge ingestion, semantic retrieval, and LLM integration foundations for an AI-powered candidate assistant.
 
-My responsibilities include:
+My responsibilities included:
 
 - Designing the Markdown-based knowledge representation.
 - Defining structured project metadata through YAML frontmatter.
@@ -307,7 +307,7 @@ The original Markdown files remain outside the database as the authoritative kno
 
 ### Result
 
-PostgreSQL is now configured with the pgvector extension and a `document_chunks` table.
+PostgreSQL is configured with the pgvector extension and a `document_chunks` table.
 
 The database can store structured metadata and vector data together.
 
@@ -329,7 +329,7 @@ The answer-generation layer therefore needs to distinguish between what the retr
 
 ### Solution
 
-I started manually testing the retrieval and answer-generation pipeline with representative candidate questions.
+I manually tested the retrieval and answer-generation pipeline with representative candidate questions.
 
 The tests compare questions against the retrieved top-ranked sections and inspect whether the resulting answer stays within the evidence provided.
 
@@ -341,13 +341,24 @@ The answer prompt was also strengthened with explicit instructions to:
 - Distinguish between evidence that a technology was used and evidence that it was used in production.
 - State clearly when the evidence is insufficient.
 
-Retrieval results are currently inspected manually before considering further changes to the retrieval strategy.
+Retrieval results are inspected manually before considering further changes to the retrieval strategy.
 
 ### Result
 
-The system can now be tested not only for whether it retrieves semantically related content, but also for whether the resulting answer makes claims that are actually supported by the retrieved evidence.
+The system can be tested not only for whether it retrieves semantically related content, but also for whether the resulting answer makes claims that are actually supported by the retrieved evidence.
 
-Initial manual tests have covered questions involving ASP.NET Core, PostgreSQL, pgvector, databases, CI/CD, Azure authentication, and ERP experience.
+The retrieval evaluation includes candidate-oriented questions covering areas such as:
+
+- ASP.NET Core.
+- Azure authentication.
+- CI/CD.
+- PostgreSQL.
+- pgvector.
+- .NET with PostgreSQL.
+- Databases.
+- ERP systems.
+- PostgreSQL production usage.
+- Platform Engineering responsibilities involving software development, developer experience, internal developer platforms, Kubernetes, IaC, CI/CD, automation, and hybrid on-prem/cloud environments.
 
 This evaluation is currently manual rather than an automated retrieval benchmark.
 
@@ -545,9 +556,9 @@ The Markdown documents are version controlled and remain the source of truth.
 
 ### Frontend
 
-The current development focus is primarily on the backend ingestion, retrieval, and LLM integration rather than a completed candidate-facing UI.
+The current project is intentionally focused on the backend ingestion, retrieval, and LLM integration rather than a completed candidate-facing UI.
 
-The frontend is intended to provide the future interface for:
+A future frontend could provide an interface for:
 
 - Entering job descriptions.
 - Asking candidate-oriented questions.
@@ -555,7 +566,7 @@ The frontend is intended to provide the future interface for:
 - Generating candidate responses.
 - Evaluating matching results.
 
-The current retrieval and LLM implementation is therefore intentionally usable independently of the final frontend workflow.
+A public-facing chat interface is outside the scope of the completed backend implementation.
 
 ---
 
@@ -637,7 +648,7 @@ Each result contains:
 
 The retrieval layer is intentionally exposed for inspection so that retrieval quality can be evaluated before relying on the LLM generation stage.
 
-The current test output uses the top 10 retrieved results when evaluating whether sufficient evidence is available for an answer.
+The current test output retrieves the top 10 results before selecting the top 5 results as context for the LLM.
 
 The retrieval implementation does not currently treat the similarity score as a definitive relevance decision.
 
@@ -700,15 +711,15 @@ The current ingestion flow is:
 
 The current query flow is:
 
-`User question` -> `Query embedding` -> `pgvector similarity search` -> `Top-k chunks` -> `Retrieved project context`
+`User question` -> `Query embedding` -> `pgvector similarity search` -> `Top-10 chunks` -> `Top-5 prompt context`
 
 The LLM flow is:
 
 `Prompt/context` -> `Configured provider/model chain` -> `LLM client` -> `Provider/model fallback` -> `Generated response`
 
-The intended complete flow is:
+The complete implemented workflow is:
 
-`Job description/question` -> `Query processing` -> `Semantic + metadata retrieval` -> `Relevant project context` -> `LLM fallback chain` -> `Grounded candidate response`
+`Job description/question` -> `Query embedding` -> `Semantic retrieval` -> `Top-ranked project evidence` -> `Prompt context selection` -> `LLM fallback chain` -> `Grounded candidate response + source references`
 
 ---
 
@@ -1003,9 +1014,9 @@ The trade-off is that local development requires correct environment configurati
 
 ---
 
-## Implementation
+# Implementation
 
-The implementation currently covers the Markdown ingestion and chunking foundation, PostgreSQL/pgvector persistence setup, semantic retrieval foundation, and provider-independent LLM integration layer.
+The implementation covers the Markdown ingestion and chunking foundation, PostgreSQL/pgvector persistence, semantic retrieval, provider-independent LLM integration, multi-model/provider fallback, and grounded answer generation.
 
 The main implementation flow is:
 
@@ -1024,19 +1035,20 @@ The main implementation flow is:
 13. pgvector provides vector similarity search over the stored embeddings.
 14. A user question is converted into an embedding using the same model.
 15. The query vector is compared against the stored document vectors.
-16. The top-ranked chunks are returned for inspection.
-17. Retrieval results expose the similarity score, source document, section, content, and project metadata.
-18. Retrieved evidence can be evaluated against candidate-oriented questions.
-19. The LLM layer receives prompts through the common `ILLMClient` abstraction.
-20. `LlmClientFactory` creates configured provider/model clients.
-21. `FallbackLlmClient` attempts each configured provider/model in order.
-22. Provider/model failures are logged with provider, model, HTTP status, and timing.
-23. A successful provider/model terminates the fallback chain.
-24. If all configured provider/model combinations fail, the fallback client returns an aggregated failure.
+16. The top 10 ranked chunks are retrieved.
+17. The top 5 retrieved chunks are selected as prompt context.
+18. Retrieved evidence is supplied to the configured LLM.
+19. Retrieval sources are returned alongside the generated answer.
+20. Source URLs point directly to the corresponding project Markdown file in the GitHub repository.
+21. The `LlmClientFactory` creates configured provider/model clients.
+22. `FallbackLlmClient` attempts each configured provider/model in order.
+23. Provider/model failures are logged with provider, model, HTTP status, and timing.
+24. A successful provider/model terminates the fallback chain.
+25. If all configured provider/model combinations fail, the fallback client returns an aggregated failure.
 
 The current pipeline is:
 
-`Markdown` -> `Frontmatter parsing` -> `Document loading` -> `Section chunking` -> `Metadata propagation` -> `Embedding generation` -> `PostgreSQL + pgvector` -> `Query embedding` -> `Similarity search` -> `Top-N retrieved chunks` -> `LLM provider/model fallback` -> `Generated response`
+`Markdown` -> `Frontmatter parsing` -> `Document loading` -> `Section chunking` -> `Metadata propagation` -> `Embedding generation` -> `PostgreSQL + pgvector` -> `Query embedding` -> `Similarity search` -> `Top-10 retrieved chunks` -> `Top-5 prompt context` -> `LLM provider/model fallback` -> `Generated answer + source references`
 
 The current implementation intentionally does not treat the similarity score as a definitive relevance decision.
 
@@ -1058,7 +1070,7 @@ A provider can therefore be changed or removed without changing the fallback arc
 
 # Result
 
-The ingestion and semantic retrieval foundation is operational.
+The ingestion, retrieval, and LLM integration workflow is operational.
 
 The system can currently:
 
@@ -1077,6 +1089,7 @@ The system can currently:
 - Perform vector similarity search using pgvector.
 - Generate embeddings for natural-language queries.
 - Retrieve semantically related project sections.
+- Select the highest-ranked retrieved sections as LLM context.
 - Inspect retrieval results independently of LLM generation.
 - Inspect similarity scores, source sections, and associated project metadata.
 - Connect to multiple LLM providers.
@@ -1085,6 +1098,9 @@ The system can currently:
 - Fall back between providers.
 - Log provider/model attempts and failures.
 - Continue past invalid API keys and unavailable models when configured as fallback candidates.
+- Generate answers grounded in retrieved project evidence.
+- Return retrieved source information alongside generated answers.
+- Provide direct GitHub URLs to the source Markdown files used as evidence.
 
 The current KnowledgeIndexer output can be used to verify the ingestion pipeline by inspecting discovered documents, parsed project titles, generated sections, chunk content, and index statistics.
 
@@ -1098,9 +1114,9 @@ Current retrieval tests show similarity scores approximately in the `0.58-0.82` 
 
 These scores are useful for comparing retrieval results but should not be interpreted as probabilities or as a universal relevance threshold.
 
-The retrieval output is currently inspected using the top-ranked results, with the test workflow exposing the top 10 results for evidence evaluation.
+The retrieval workflow retrieves the top 10 results and selects the top 5 results as context for answer generation.
 
-Initial manual tests have been performed against multiple candidate-oriented questions, including questions about:
+Retrieval evaluation has been performed manually using representative candidate-oriented questions covering areas including:
 
 - ASP.NET Core.
 - Azure authentication.
@@ -1111,12 +1127,13 @@ Initial manual tests have been performed against multiple candidate-oriented que
 - Databases.
 - ERP systems.
 - PostgreSQL production usage.
+- Platform Engineering responsibilities involving software development, developer experience, internal developer platforms, Kubernetes, IaC, CI/CD, automation, and hybrid on-prem/cloud environments.
 
 The answer-generation prompt has also been refined to reduce unsupported claims. In particular, it explicitly distinguishes between evidence that a technology was used and evidence that it was used in production.
 
-The current evaluation remains manual. There is not yet an automated retrieval evaluation dataset, automated top-N comparison, metadata-aware ranking implementation, hybrid search implementation, or reranking layer.
+The current evaluation is manual. There is not yet an automated retrieval evaluation dataset, automated top-N comparison, metadata-aware ranking implementation, hybrid search implementation, or reranking layer.
 
-The current system therefore provides a working ingestion and retrieval foundation together with an initial LLM integration and configurable multi-model/provider fallback, while deliberately leaving retrieval optimization for later validation.
+The completed backend therefore provides a working ingestion, retrieval, and grounded answer-generation workflow together with configurable multi-model/provider fallback. Retrieval optimization and a future candidate-facing interface remain outside the scope of the completed backend submission.
 
 ---
 
@@ -1207,7 +1224,7 @@ Retrieval quality should therefore be evaluated using actual questions and expec
 
 ## Manual Retrieval Testing Is Useful but Limited
 
-Manual inspection is useful during early development because it makes it possible to see which project sections are being retrieved and whether the generated answer remains grounded in those sections.
+Manual inspection is useful during development because it makes it possible to see which project sections are being retrieved and whether the generated answer remains grounded in those sections.
 
 The current tests use representative candidate-oriented questions and inspect the retrieved top-ranked results before judging the generated answer.
 
@@ -1281,9 +1298,8 @@ A large fallback chain is not automatically better than a smaller, well-ordered 
 - Add configurable retry policies for transient failures.
 - Distinguish provider authentication failures, model availability failures, rate limits, quota failures, and server errors more explicitly.
 - Add provider/model availability checks where appropriate.
-- Connect retrieved context directly to the production answer-generation workflow.
-- Generate grounded candidate responses.
-- Include source project references in generated answers.
+- Improve source references in generated answers.
+- Improve grounded candidate response generation.
 - Prevent unsupported claims when the knowledge base does not contain sufficient evidence.
 - Add job-description extraction.
 - Implement candidate-to-job matching.
@@ -1303,8 +1319,12 @@ A large fallback chain is not automatically better than a smaller, well-ordered 
 
 - Containerize the complete development environment.
 - Add automated indexing to the development workflow.
-- Add observability around ingestion, retrieval, and LLM fallback, by adding structured logging instead of relying primarily on `Console.WriteLine`.
+- Replace primarily console-based logging with structured logging.
+- Add observability around ingestion, retrieval, and LLM fallback.
 - Add production secret management rather than relying on `.env` outside local development.
 - Add production deployment when the retrieval and generation workflow is sufficiently validated.
+- Develop a candidate-facing web interface, potentially using React, as a separate frontend project.
+- Expose the completed backend through a public chat-oriented application in a future iteration.
+- Add authentication and access control if the assistant is made publicly accessible.
 
 ---

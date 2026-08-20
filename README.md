@@ -698,11 +698,11 @@ The project demonstrates:
 
 ## Retrieval
 
-* Introduce stronger metadata-aware filtering / search
+* Introduce stronger metadata-aware filtering and search
 * Improve metadata-aware ranking
 * Add project-level result deduplication
 * Evaluate additional reranking strategies
-* Consider query rewriting and model specific prompt optimalization
+* Consider query rewriting and model-specific prompt optimization
 * Evaluate different top-N values using an evaluation dataset
 
 ## Evaluation
@@ -724,6 +724,8 @@ The project demonstrates:
 
 ## Knowledge Management
 
+* Detect deleted or renamed source documents
+* Add explicit index rebuild commands
 * Automatically re-index changed documents
 
 ## Infrastructure
@@ -733,6 +735,20 @@ The project demonstrates:
 * Add observability around ingestion, retrieval, and LLM fallback
 * Add production secret management
 * Add production deployment when the retrieval and generation workflow is sufficiently validated
+
+## User Interface and Productization
+
+The current submission is intentionally backend-focused. A future version could extend the API into a publicly accessible candidate assistant with:
+
+* React-based chat interface
+* Candidate-oriented user experience
+* Job-description input and analysis
+* Candidate-to-job matching
+* Source references in generated answers
+* Authentication and access control
+* Production deployment and monitoring
+
+These features are outside the scope of the current Module 4 submission.
 
 ---
 

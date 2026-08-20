@@ -38,6 +38,9 @@ concepts:
   - semantic-search
   - vector-database
   - knowledge-management
+  - retrieval-evaluation
+  - prompt-generation
+  - manual-testing
   - api-design
   - backend-architecture
   - sequential-fallback
@@ -61,6 +64,8 @@ The system ingests these documents, extracts their metadata, divides the content
 The Markdown knowledge base remains the source of truth, while PostgreSQL acts as a generated retrieval index.
 
 The backend also includes an LLM integration layer supporting multiple providers and multiple models per provider. Providers can be attempted sequentially, with model-level fallback within each provider and provider-level fallback when a model fails.
+
+The project also includes a console-based retrieval evaluation tool that runs representative candidate-oriented questions, displays ranked retrieval results and similarity information, and outputs the generated LLM prompt for manual inspection.
 
 The intended workflow is:
 
@@ -115,6 +120,9 @@ My responsibilities included:
 - Generating embeddings for user queries.
 - Retrieving the most semantically relevant project sections.
 - Inspecting retrieval results and similarity scores.
+- Building a console-based retrieval evaluation tool for manual inspection.
+- Running representative candidate-oriented retrieval questions through the evaluation tool.
+- Inspecting generated answer prompts before LLM execution.
 - Evaluating whether semantic retrieval is sufficient for candidate-oriented questions.
 - Evaluating whether retrieved evidence supports the claims made in generated answers.
 - Designing answer-generation instructions that prevent unsupported claims, including distinguishing technology usage from explicitly supported production experience.
@@ -329,9 +337,22 @@ The answer-generation layer therefore needs to distinguish between what the retr
 
 ### Solution
 
-I manually tested the retrieval and answer-generation pipeline with representative candidate questions.
+I implemented a console-based retrieval evaluation tool that runs representative candidate-oriented questions against the retrieval layer.
 
-The tests compare questions against the retrieved top-ranked sections and inspect whether the resulting answer stays within the evidence provided.
+The evaluation tool displays:
+
+- Query embedding timing.
+- Vector search timing.
+- Combined retrieval scores.
+- Vector similarity.
+- Metadata score.
+- Evidence score.
+- Source document.
+- Section.
+- Semantic type.
+- Retrieved content.
+
+The tool also generates and displays the answer-generation prompt, including the retrieved evidence, so that the retrieval results and prompt construction can be manually inspected before LLM execution.
 
 The answer prompt was also strengthened with explicit instructions to:
 
@@ -345,7 +366,9 @@ Retrieval results are inspected manually before considering further changes to t
 
 ### Result
 
-The system can be tested not only for whether it retrieves semantically related content, but also for whether the resulting answer makes claims that are actually supported by the retrieved evidence.
+The system can be tested not only for whether it retrieves semantically related content, but also for whether the generated prompt contains appropriate evidence for answering the question.
+
+The console evaluation tool provides a repeatable way to inspect retrieval behavior and prompt generation using representative candidate-oriented questions.
 
 The retrieval evaluation includes candidate-oriented questions covering areas such as:
 
@@ -654,6 +677,53 @@ The retrieval implementation does not currently treat the similarity score as a 
 
 ---
 
+### Retrieval Evaluation Tool
+
+The `CandidateConsoleAssistant` is a console-based evaluation tool for inspecting the retrieval and prompt-generation stages independently.
+
+It runs representative candidate-oriented questions against the indexed knowledge base and outputs:
+
+- Query embedding timing.
+- Vector search timing.
+- Combined retrieval scores.
+- Vector similarity.
+- Metadata score.
+- Evidence score.
+- Source document.
+- Section.
+- Semantic type.
+- Retrieved content.
+
+After retrieval, the tool generates and displays the answer-generation prompt containing the selected evidence.
+
+This makes it possible to manually evaluate whether the retrieved project sections are relevant and whether the generated prompt provides sufficient evidence before invoking the LLM.
+
+The tool is intended for development and evaluation rather than as a production-facing application.
+
+---
+
+### Semantic Retrieval
+
+A user question is converted into an embedding and compared against the stored document embeddings using pgvector.
+
+The retrieval output currently exposes the top-ranked results for inspection.
+
+Each result contains:
+
+- Similarity score.
+- Source project.
+- Section.
+- Retrieved content.
+- Associated project metadata.
+
+The retrieval layer is intentionally exposed for inspection so that retrieval quality can be evaluated before relying on the LLM generation stage.
+
+The current test output retrieves the top 10 results before selecting the top 5 results as context for the LLM.
+
+The retrieval implementation does not currently treat the similarity score as a definitive relevance decision.
+
+---
+
 ### LLM Integration
 
 The backend uses a provider-independent `ILLMClient` abstraction.
@@ -716,6 +786,10 @@ The current query flow is:
 The LLM flow is:
 
 `Prompt/context` -> `Configured provider/model chain` -> `LLM client` -> `Provider/model fallback` -> `Generated response`
+
+The evaluation flow is:
+
+`Evaluation question` -> `Query embedding` -> `Vector search` -> `Ranked retrieval results` -> `Generated answer prompt` -> `Manual inspection`
 
 The complete implemented workflow is:
 
@@ -897,7 +971,7 @@ It is difficult to determine whether a poor AI response is caused by retrieval q
 
 The retrieval pipeline is implemented and evaluated independently from the LLM provider layer.
 
-The system exposes the retrieved project sections and similarity scores so that retrieval quality can be inspected directly.
+The `CandidateConsoleAssistant` exposes the retrieved project sections, ranking information, similarity scores, and generated answer prompt so that retrieval quality and prompt construction can be inspected directly.
 
 The LLM generation prompt is designed to require the model to stay within the evidence retrieved for each question and to explicitly acknowledge insufficient evidence.
 
@@ -1016,7 +1090,7 @@ The trade-off is that local development requires correct environment configurati
 
 # Implementation
 
-The implementation covers the Markdown ingestion and chunking foundation, PostgreSQL/pgvector persistence, semantic retrieval, provider-independent LLM integration, multi-model/provider fallback, and grounded answer generation.
+The implementation covers the Markdown ingestion and chunking foundation, PostgreSQL/pgvector persistence, semantic retrieval, provider-independent LLM integration, multi-model/provider fallback, grounded answer generation, and a console-based retrieval evaluation workflow.
 
 The main implementation flow is:
 
@@ -1040,15 +1114,22 @@ The main implementation flow is:
 18. Retrieved evidence is supplied to the configured LLM.
 19. Retrieval sources are returned alongside the generated answer.
 20. Source URLs point directly to the corresponding project Markdown file in the GitHub repository.
-21. The `LlmClientFactory` creates configured provider/model clients.
-22. `FallbackLlmClient` attempts each configured provider/model in order.
-23. Provider/model failures are logged with provider, model, HTTP status, and timing.
-24. A successful provider/model terminates the fallback chain.
-25. If all configured provider/model combinations fail, the fallback client returns an aggregated failure.
+21. The `CandidateConsoleAssistant` can run representative retrieval evaluation questions independently of the API.
+22. The evaluation tool displays retrieval timing, scores, source sections, semantic types, and retrieved content.
+23. The evaluation tool generates and displays the answer-generation prompt for manual inspection.
+24. The `LlmClientFactory` creates configured provider/model clients.
+25. `FallbackLlmClient` attempts each configured provider/model in order.
+26. Provider/model failures are logged with provider, model, HTTP status, and timing.
+27. A successful provider/model terminates the fallback chain.
+28. If all configured provider/model combinations fail, the fallback client returns an aggregated failure.
 
 The current pipeline is:
 
 `Markdown` -> `Frontmatter parsing` -> `Document loading` -> `Section chunking` -> `Metadata propagation` -> `Embedding generation` -> `PostgreSQL + pgvector` -> `Query embedding` -> `Similarity search` -> `Top-10 retrieved chunks` -> `Top-5 prompt context` -> `LLM provider/model fallback` -> `Generated answer + source references`
+
+The evaluation pipeline is:
+
+`Evaluation question` -> `Query embedding` -> `Vector search` -> `Ranked retrieval results` -> `Generated answer prompt` -> `Manual inspection`
 
 The current implementation intentionally does not treat the similarity score as a definitive relevance decision.
 
@@ -1070,7 +1151,7 @@ A provider can therefore be changed or removed without changing the fallback arc
 
 # Result
 
-The ingestion, retrieval, and LLM integration workflow is operational.
+The ingestion, retrieval, evaluation, and LLM integration workflow is operational.
 
 The system can currently:
 
@@ -1092,6 +1173,9 @@ The system can currently:
 - Select the highest-ranked retrieved sections as LLM context.
 - Inspect retrieval results independently of LLM generation.
 - Inspect similarity scores, source sections, and associated project metadata.
+- Run representative retrieval evaluation questions through `CandidateConsoleAssistant`.
+- Inspect retrieval timing, ranking information, and retrieved evidence.
+- Inspect the generated answer-generation prompt before LLM execution.
 - Connect to multiple LLM providers.
 - Configure multiple models per provider.
 - Fall back between models within a provider.
@@ -1103,6 +1187,8 @@ The system can currently:
 - Provide direct GitHub URLs to the source Markdown files used as evidence.
 
 The current KnowledgeIndexer output can be used to verify the ingestion pipeline by inspecting discovered documents, parsed project titles, generated sections, chunk content, and index statistics.
+
+The `CandidateConsoleAssistant` provides a separate manual evaluation path for inspecting retrieval results and the generated answer prompt using representative candidate-oriented questions.
 
 The Markdown knowledge base remains the source of truth, while PostgreSQL/pgvector acts as generated retrieval infrastructure.
 
@@ -1133,7 +1219,7 @@ The answer-generation prompt has also been refined to reduce unsupported claims.
 
 The current evaluation is manual. There is not yet an automated retrieval evaluation dataset, automated top-N comparison, metadata-aware ranking implementation, hybrid search implementation, or reranking layer.
 
-The completed backend therefore provides a working ingestion, retrieval, and grounded answer-generation workflow together with configurable multi-model/provider fallback. Retrieval optimization and a future candidate-facing interface remain outside the scope of the completed backend submission.
+The completed backend therefore provides a working ingestion, retrieval, retrieval-evaluation, and grounded answer-generation workflow together with configurable multi-model/provider fallback. Retrieval optimization and a future candidate-facing interface remain outside the scope of the completed backend submission.
 
 ---
 
@@ -1226,7 +1312,7 @@ Retrieval quality should therefore be evaluated using actual questions and expec
 
 Manual inspection is useful during development because it makes it possible to see which project sections are being retrieved and whether the generated answer remains grounded in those sections.
 
-The current tests use representative candidate-oriented questions and inspect the retrieved top-ranked results before judging the generated answer.
+The `CandidateConsoleAssistant` makes this evaluation repeatable by running representative questions and displaying retrieval results and the generated answer prompt.
 
 However, manual testing alone is not enough to determine whether a retrieval change consistently improves the system.
 

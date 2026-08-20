@@ -59,6 +59,18 @@ Retrieved evidence is manually evaluated to determine whether it is sufficient t
 * Provider-level fallback
 * Returns source URLs for inspecting the original project documentation
 
+## RAG Evaluation Tool
+
+* Standalone console tool for evaluating retrieval quality
+* Generate query embeddings for candidate-oriented questions
+* Display vector similarity scores
+* Display metadata and evidence scores
+* Display combined relevance scores
+* Display top-ranked retrieved project sections
+* Inspect source documents, section headings, semantic types, and metadata
+* Generate and inspect the LLM answer prompt
+* Manually evaluate whether retrieved evidence is sufficient to support an answer
+
 ## LLM Provider Fallback
 
 * Multiple models per provider
@@ -80,6 +92,7 @@ Retrieved evidence is manually evaluated to determine whether it is sufficient t
 * Provider-independent LLM integration layer
 * Configuration-driven provider/model fallback
 * Docker Compose for local infrastructure
+* Standalone console tools for indexing and retrieval evaluation
 
 ---
 
@@ -181,6 +194,8 @@ The system follows a Retrieval-Augmented Generation (RAG) pipeline with three di
 3. The LLM generates a candidate-oriented response based on the retrieved evidence.
 4. The API returns the generated answer together with the retrieved sources, including a GitHub URL to the corresponding project Markdown file.
 
+---
+
 # How to Run
 
 ## 1. Start infrastructure
@@ -227,7 +242,41 @@ The generated PostgreSQL index can be rebuilt from the Markdown knowledge base.
 
 ---
 
-## 4. Start backend API
+## 4. Evaluate RAG Retrieval and Evidence
+
+The `CandidateConsoleAssistant` is a standalone console tool for manually evaluating RAG retrieval and generated answer prompts.
+
+Run:
+
+    dotnet run --project src/tools/CandidateConsoleAssistant
+
+The evaluation tool:
+
+1. Takes a candidate-oriented question as input.
+2. Generates an embedding for the question.
+3. Performs vector similarity search against the indexed knowledge base.
+4. Calculates and displays combined relevance information, including vector, metadata, and evidence scores.
+5. Displays the top 10 retrieved results for manual inspection.
+6. Shows the source project, section, semantic type, retrieved content, and project metadata for each result.
+7. Generates the LLM answer prompt using the retrieved evidence.
+8. Displays the generated prompt for inspection before LLM execution.
+
+The tool is used to evaluate whether the retrieved project evidence is relevant and sufficient to support an answer before relying on the generated response.
+
+Example questions can cover:
+
+* Relevant projects for a specific job role
+* Technologies and technical experience
+* Production versus non-production experience
+* Specific responsibilities
+* Infrastructure, CI/CD, automation, and cloud experience
+* Experience spanning multiple projects
+
+The evaluation is intentionally manual. The output makes it possible to inspect retrieval quality, identify false-positive results, compare relevance scoring, and verify that the generated prompt contains appropriate evidence without requiring a separate frontend.
+
+---
+
+## 5. Start backend API
 
 Run the ASP.NET Core API:
 
@@ -235,7 +284,7 @@ Run the ASP.NET Core API:
 
 ---
 
-## 5. Use API with Swagger
+## 6. Use API with Swagger
 
 The API can be tested manually using Swagger UI:
 
@@ -257,11 +306,10 @@ The API workflow is:
 2. Generate an embedding for the question.
 3. Search relevant knowledge using pgvector.
 4. Retrieve the highest-ranked project sections.
-5. Build the LLM prompt based on a set of instructions, the question and the retrieved evidence
+5. Build the LLM prompt based on a set of instructions, the question and the retrieved evidence.
 6. Send the prompt to the configured LLM.
 7. Use the configured fallback chain if the selected provider/model fails.
 8. Return the generated answer, together with evidence chunks, similarity scores, and source URLs.
-
 
 ---
 
@@ -287,6 +335,13 @@ Each retrieved result contains:
 - Source URL
 
 The current test workflow exposes the top 10 retrieved results for manual inspection.
+
+Retrieval evaluation also exposes:
+
+- Vector similarity score
+- Metadata score
+- Evidence score
+- Combined relevance score
 
 Similarity scores are used to compare retrieval results, but they are not treated as probabilities or as a universal relevance threshold.
 
@@ -339,6 +394,7 @@ The current clients include:
 `FallbackLlmClient` controls the execution order and fallback behavior.
 
 ---
+
 # LLM Configuration
 
 LLM configuration is represented through:
@@ -605,7 +661,7 @@ The fallback order should therefore be based on availability, latency, model qua
 
 # Testing and Evaluation
 
-The retrieval system is currently evaluated primarily through manual test runs.
+The retrieval system is currently evaluated primarily through the standalone `CandidateConsoleAssistant` console tool.
 
 The evaluation has covered questions involving:
 
@@ -627,6 +683,7 @@ The evaluation has covered questions involving:
 * GDPR and form-builder development
 * API and system integrations
 * Job-oriented project matching
+* Platform Engineering responsibilities involving software development, developer experience, internal developer platforms, Kubernetes, IaC, CI/CD, automation, and hybrid on-prem/cloud environments
 
 The test questions are also used to investigate retrieval and ranking behavior, including:
 
@@ -650,7 +707,7 @@ The retrieval output is inspected together with:
 * Project metadata
 * Source URL
 
-The current test workflow exposes the top 10 retrieved results for manual inspection.
+The current evaluation workflow exposes the top 10 retrieved results for manual inspection and generates the LLM answer prompt using the retrieved evidence.
 
 Metadata-aware scoring and evidence-aware reranking are already implemented and exposed as part of the retrieval evaluation output.
 
@@ -773,11 +830,14 @@ The following components are operational:
 * Local embedding generation through Ollama
 * PostgreSQL and pgvector retrieval
 * Metadata-aware retrieval and reranking
+* Standalone console-based RAG retrieval evaluation
 * Manual retrieval evaluation and inspection
 * Evidence-based LLM answer generation
 * Configurable multi-provider LLM fallback
 * REST API for question answering and retrieval results
 * Configurable GitHub source URLs for retrieved project evidence
+
+The `CandidateConsoleAssistant` can be used to inspect retrieved project evidence, relevance scoring, and the generated LLM answer prompt independently of the API.
 
 The API can answer questions using retrieved project evidence and exposes the retrieved sources, source URLs, and relevance information alongside the generated answer.
 

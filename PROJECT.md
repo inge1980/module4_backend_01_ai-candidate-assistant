@@ -10,6 +10,8 @@ The project should combine backend development with practical use of semantic se
 
 The Markdown knowledge base should be the Single Source of Truth (SSoT). PostgreSQL with pgvector should be used as a generated retrieval index that can be discarded and rebuilt from the Markdown source.
 
+The project should also include a console-based evaluation tool for manually inspecting retrieval quality, relevance scoring, retrieved evidence, and the generated LLM prompt independently of the REST API.
+
 ---
 
 ## Learning Objectives
@@ -29,6 +31,7 @@ The project should demonstrate practical understanding of:
 * Provider and model fallback
 * Error handling and failure resilience
 * Observability for manual testing and evaluation
+* Retrieval evaluation and evidence inspection
 
 The project should prioritize a working end-to-end backend over implementing a large number of unrelated features.
 
@@ -55,8 +58,9 @@ The MVP should be a backend system that can:
 * Fall back to alternative models or providers when requests fail.
 * Return generated answers together with retrieved evidence and relevance information.
 * Generate source references to the corresponding project documents.
+* Provide a console-based retrieval evaluation workflow for manually inspecting retrieval results and generated answer prompts.
 
-The MVP should be considered complete when the complete flow from Markdown knowledge, through indexing and retrieval, to evidence-based answer generation works locally through the backend API.
+The MVP should be considered complete when the complete flow from Markdown knowledge, through indexing and retrieval, to evidence-based answer generation works locally through the backend API, with retrieval independently inspectable through the console evaluation tool.
 
 ---
 
@@ -90,6 +94,21 @@ The system must:
 3. Retrieve relevant project sections.
 4. Apply similarity / evidence scoring.
 5. Expose retrieval information for manual inspection.
+6. Support inspection of the top-ranked retrieved results through the console evaluation tool.
+
+### Retrieval Evaluation
+
+The project should provide a console-based evaluation tool that can:
+
+1. Accept candidate-oriented questions for evaluation.
+2. Generate an embedding for the question.
+3. Perform retrieval against the indexed knowledge base.
+4. Calculate and display combined retrieval information, including vector, and evidence scores.
+5. Display the top-ranked retrieved results.
+6. Show source project, section, semantic type and retrieved content.
+7. Generate and display the LLM answer prompt based on the retrieved evidence.
+
+The evaluation tool should make it possible to inspect retrieval quality and evidence sufficiency before relying on the generated answer.
 
 ### Answer Generation
 
@@ -151,6 +170,8 @@ LLM API keys must be supplied through environment variables rather than stored i
 
 The PostgreSQL database should be treated as generated infrastructure rather than SSoT.
 
+A console-based evaluation tool should be available for retrieval and evidence inspection independently of the REST API.
+
 ---
 
 ## Acceptance Criteria
@@ -162,12 +183,15 @@ The project should be considered successful when:
 * User questions can retrieve relevant project evidence.
 * Retrieval results can be inspected manually.
 * Retrieval and scoring are available.
+* The console evaluation tool can display retrieved results, scores and evidence.
+* The console evaluation tool can generate and display the LLM answer prompt based on retrieved evidence.
 * Retrieved evidence is supplied to the LLM.
 * Generated answers are constrained by available evidence.
 * Multiple LLM providers can be configured.
 * Provider/model fallback works when a configured candidate fails.
 * Swagger can be used to test the API from question to JSON constructed answer with evidence details.
 * The complete backend workflow can run locally.
+* Retrieval quality can be evaluated independently of the final generated answer.
 
 ---
 
@@ -181,6 +205,7 @@ The following should be outside the scope of the Module 4 project:
 * Cloud infrastructure
 * Production monitoring
 * Complete candidate-to-job matching product
+* Automated retrieval evaluation benchmark
 
 These may be natural future extensions, but should not be required for the current project.
 
@@ -190,9 +215,11 @@ These may be natural future extensions, but should not be required for the curre
 
 The project scope should be defined from the Module 4 learning objectives and the chosen technical direction.
 
-The main constraint should be to develop a realistic backend MVP within the available project period while demonstrating meaningful understanding of backend architecture, databases, AI integration, retrieval, and external service resilience.
+The main constraint should be to develop a realistic backend MVP within the available project period while demonstrating meaningful understanding of backend architecture, databases, AI integration, retrieval, external service resilience, and practical evaluation of retrieval quality.
 
 The project should intentionally focus on backend functionality rather than building a complete end-user product.
+
+The retrieval evaluation should initially remain manual through the console evaluation tool rather than requiring a formal automated benchmark.
 
 ---
 
@@ -201,5 +228,7 @@ The project should intentionally focus on backend functionality rather than buil
 The project should be considered complete for the Module 4 scope when the end-to-end backend workflow is operational:
 
 Markdown knowledge can be indexed, relevant evidence can be retrieved using semantic search, the evidence can be supplied to an LLM, and the generated answer can be returned through the REST API together with the retrieved sources and relevance information.
+
+The retrieval pipeline should also be independently inspectable through the console evaluation tool, including retrieved projects and sections, relevance information, evidence content, and the generated answer prompt.
 
 The implementation should have been manually tested using questions covering different technologies, projects, responsibilities, and distinctions such as production versus non-production experience.

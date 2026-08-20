@@ -3,7 +3,7 @@ title: AI Candidate Assistant with RAG Knowledge Base
 
 organization: Personal Project
 
-role: Fullstack Developer
+role: Backend Developer
 
 environment: development
 
@@ -17,8 +17,6 @@ technologies:
   - dotnet
   - csharp
   - aspnet-core
-  - react
-  - typescript
   - postgresql
   - pgvector
   - docker
@@ -546,8 +544,6 @@ The Markdown documents are version controlled and remain the source of truth.
 ---
 
 ### Frontend
-
-The intended application includes a React and TypeScript frontend.
 
 The current development focus is primarily on the backend ingestion, retrieval, and LLM integration rather than a completed candidate-facing UI.
 

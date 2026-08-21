@@ -1,11 +1,11 @@
 ---
 title: Project Name
 
-organization: Company Name | Personal Project | School Project | Open Source | Freelance
+organization: Company Name | Personal Project | School Project | Open Source | Freelance | Interview Case
 
 role: Fullstack Developer | Frontend Developer | Backend Developer
 
-environment: development | production
+environment: development | staging | production | demo
 
 period:
   from: YYYY-MM

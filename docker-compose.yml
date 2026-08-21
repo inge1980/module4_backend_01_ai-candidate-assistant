@@ -8,17 +8,24 @@ services:
     restart: unless-stopped
 
     environment:
+      # PostgreSQL credentials used by the database container.
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
+
+      # Database creation
       POSTGRES_DB: candidate_ai
 
     ports:
+      # PostgreSQL host port for local development
       - "5432:5432"
 
     volumes:
+      # Persistent PostgreSQL data in a named volume
       - postgres-data:/var/lib/postgresql/data
 
+      # Initializes db schema and extensions
       - ./docker/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql
 
 volumes:
+  # Named volume used for persistent PostgreSQL storage.
   postgres-data:

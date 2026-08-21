@@ -16,8 +16,13 @@ status: active
 technologies:
   - react
   - javascript
+  - css
   - react-router
   - react-bootstrap
+  - bootstrap
+  - material-ui
+  - react-scroll
+  - react-lazyload
   - emailjs
   - recaptcha
   - jest
@@ -33,20 +38,41 @@ concepts:
   - testing
   - deployment
   - personal-branding
+  - client-side-routing
+  - lazy-loading
 
 dependencies:
+  - "@emailjs/browser"
+  - "@emotion/react"
+  - "@emotion/styled"
+  - "@fontsource/roboto"
+  - "@mui/icons-material"
+  - "@mui/material"
+  - "@testing-library/jest-dom"
+  - "@testing-library/react"
+  - bootstrap
+  - react
+  - react-bootstrap
+  - react-dom
+  - react-google-recaptcha
+  - react-icons
+  - react-lazyload
+  - react-router-bootstrap
+  - react-router-dom
+  - react-scripts
+  - react-scroll
 
 links:
-  github:
+  github: https://github.com/inge1980/portfolio/
   live: https://inge1980.github.io/portfolio/
 
 ---
 
 # Overview
 
-A modern, responsive developer portfolio website for presenting technical skills, projects, professional experience, and contact information.
+A responsive developer portfolio website for presenting technical skills, projects, professional experience, and contact information.
 
-The portfolio is built with React and provides dynamic navigation between project and content sections. The application is designed to present technical work in a structured and professional way while providing a responsive experience across different screen sizes.
+The portfolio is built with React and provides dynamic navigation between portfolio sections and project-related content. The application combines reusable UI components, responsive layouts, and a structured presentation of technical work.
 
 The project also includes automated frontend testing with Jest and React Testing Library and is deployed as a static website through GitHub Pages.
 
@@ -56,7 +82,7 @@ The project also includes automated frontend testing with Jest and React Testing
 
 The portfolio was created as a personal platform for presenting software development experience and technical projects.
 
-A static collection of project descriptions was not sufficient because the portfolio needed to communicate both technical experience and the quality of the frontend implementation itself.
+A portfolio also provides an opportunity to demonstrate frontend development practices through the application itself rather than only describing technical experience.
 
 Important requirements included:
 
@@ -67,8 +93,6 @@ Important requirements included:
 - Providing a contact mechanism.
 - Demonstrating frontend development practices through the portfolio itself.
 - Deploying the application as a publicly accessible website.
-
-The portfolio also functions as a practical demonstration of frontend development, component-based architecture, responsive design, and frontend testing.
 
 ---
 
@@ -112,7 +136,9 @@ React Router was used to provide dynamic navigation between the main portfolio s
 
 UI responsibilities were separated into reusable components so that common layout and presentation patterns could be maintained consistently.
 
-The project-oriented structure also makes it possible to add additional project information without changing the fundamental navigation model.
+Project content was separated from rendering logic through a structured data model (`ProjectsAll-in-oneData`), allowing categories, sections, and individual project pages to be rendered from shared data rather than hardcoded layouts.
+
+Additional libraries were used where they provided specific UI or interaction functionality, including React-Bootstrap, Material UI, React Icons, React Scroll, and React Lazy Load.
 
 ### Result
 
@@ -134,7 +160,7 @@ Project descriptions can contain substantially more information than typical mar
 
 The frontend was implemented using responsive UI components and layout patterns.
 
-React-Bootstrap was used to provide responsive layout primitives, while the portfolio's UI structure and content presentation were adapted around the information being presented.
+React-Bootstrap and Material UI were used for UI and layout components, while the portfolio's UI structure and content presentation were adapted around the information being presented.
 
 The design prioritizes:
 
@@ -147,6 +173,8 @@ The design prioritizes:
 ### Result
 
 The portfolio provides a responsive presentation of projects, technical skills, and experience across desktop and mobile screen sizes.
+
+Project images are also lazy-loaded to reduce unnecessary initial rendering while maintaining a smooth browsing experience.
 
 ---
 
@@ -165,6 +193,8 @@ Automated frontend tests were introduced using Jest and React Testing Library.
 Tests focus on component behavior and rendered UI rather than implementation details.
 
 React Testing Library allows components to be tested from the perspective of how users interact with and observe the application, while Jest provides the test execution and assertion infrastructure.
+
+The test suite includes rendering tests, contact form interaction tests, mocked EmailJS integration, mocked reCAPTCHA behavior, and validation of both successful and failed submission flows.
 
 ### Result
 
@@ -214,7 +244,9 @@ Major frontend responsibilities include:
 
 React Router provides navigation between portfolio sections without requiring full page reloads.
 
-React-Bootstrap provides responsive UI and layout components.
+The project overview is generated from a centralized data structure that organizes projects by category, employer, and period, while React Scroll provides smooth in-page navigation and React Lazy Load defers loading of project images until they approach the viewport.
+
+React-Bootstrap and Material UI provide UI and layout components, while supporting libraries handle icons, scrolling, lazy loading, and other frontend functionality.
 
 ---
 
@@ -232,7 +264,7 @@ The application is therefore primarily a client-side React application with exte
 
 No database is used by the portfolio application.
 
-Project, skill, experience, and portfolio content are presented by the frontend rather than being retrieved from a dedicated application database.
+Project, skill, experience, and portfolio content are maintained as part of the frontend project rather than being retrieved from a dedicated application database.
 
 ---
 
@@ -371,6 +403,8 @@ Implementing each section independently would increase duplication and make visu
 
 Reusable React components were used to separate presentation responsibilities and provide consistent UI patterns across the application.
 
+A centralized project data structure was introduced so that navigation, project listings, and detail pages could reuse the same content model instead of duplicating information across components.
+
 #### Alternatives Considered
 
 - Large page-specific components.
@@ -402,6 +436,8 @@ Implemented functionality includes:
 - Technical skills presentation.
 - Project overview and project information.
 - Dynamic client-side navigation.
+- Smooth in-page navigation between project entries.
+- Lazy-loaded project images.
 - Responsive desktop and mobile layouts.
 - Reusable React UI components.
 - Contact functionality.
@@ -421,7 +457,7 @@ External services are used for selected functionality:
 
 The portfolio does not use a database or persistent application storage.
 
-Portfolio content is maintained as part of the frontend project and presented by the React application.
+Portfolio content is maintained as part of the frontend project and presented through a centralized data structure that organizes projects by category, section, and individual project entries.
 
 ### Automation
 
@@ -435,8 +471,9 @@ Frontend testing is implemented using:
 
 - Jest.
 - React Testing Library.
+- Testing Library Jest DOM.
 
-Tests are used to verify frontend component behavior and help detect regressions when the application is modified.
+Tests verify component rendering, contact form interaction, EmailJS integration through mocks, reCAPTCHA behavior through mocks, and successful and failed submission scenarios.
 
 ---
 

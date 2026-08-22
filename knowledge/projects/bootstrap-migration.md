@@ -15,6 +15,7 @@ status: completed
 
 technologies:
   - php
+  - mysql
   - javascript
   - bootstrap-3
   - css

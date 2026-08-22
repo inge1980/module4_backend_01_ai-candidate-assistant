@@ -14,10 +14,11 @@ period:
 status: completed
 
 technologies:
-  - csharp
-  - dotnet
+  - php
   - sql-server
   - rest-api
+  - csharp
+  - dotnet
   - javascript
   - css
   - bootstrap

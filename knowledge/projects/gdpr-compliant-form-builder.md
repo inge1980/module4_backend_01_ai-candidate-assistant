@@ -15,7 +15,6 @@ status: completed
 
 technologies:
   - php
-  - php-8.1
   - mysql
   - javascript
   - jquery

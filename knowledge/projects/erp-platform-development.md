@@ -14,12 +14,13 @@ period:
 status: completed
 
 technologies:
+  - php
+  - sql-server
+  - rest-api
   - csharp
   - dotnet
   - javascript
-  - sql-server
   - iis
-  - rest-api
 
 concepts:
   - enterprise-software

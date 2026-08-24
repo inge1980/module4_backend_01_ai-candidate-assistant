@@ -200,7 +200,9 @@ The system follows a Retrieval-Augmented Generation (RAG) pipeline with three di
 
 ## 1. Start infrastructure
 
-Start PostgreSQL with pgvector:
+Make sure a Docker runtime is installed and running.
+
+Then start PostgreSQL with pgvector:
 
     docker compose up -d
 

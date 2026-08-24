@@ -15,10 +15,11 @@ status: completed
 
 technologies:
   - php
-  - sql-server
-  - rest-api
   - csharp
   - dotnet
+  - swagger
+  - sql-server
+  - rest-api
   - javascript
   - css
   - bootstrap
@@ -50,6 +51,8 @@ A fullstack canteen management system built to support food ordering across work
 
 The platform supported multiple departments, allowing department managers to manage users and place orders for their departments, while individual users could place personal food orders through a streamlined interface.
 
+---
+
 # Context
 
 The project was designed for canteens in both workplaces and schools, where food ordering needed to support different organizational structures and user roles.
@@ -60,11 +63,15 @@ The system operated against the live database, meaning testing had to account fo
 
 Different user roles required separate ordering workflows, making role-specific functionality a key requirement.
 
+---
+
 # Task
 
 I developed the fullstack solution, including multi-department support and ERP integration.
 
 My responsibilities included implementing user management, department ordering, individual food ordering, and functionality required to safely test ordering workflows against the live environment.
+
+---
 
 # Challenge
 
@@ -81,22 +88,6 @@ I implemented separate ordering workflows tailored to each role. Department mana
 ### Result
 
 The system supported both department-wide and individual ordering within a single application.
-
----
-
-## Challenge: Supporting Different Canteen Environments
-
-### Problem
-
-The system was intended for use across different types of organizations, including workplaces and schools. This required the ordering functionality to support different organizational structures while maintaining a consistent ordering experience.
-
-### Solution
-
-The system was designed around departments, users, and role-specific ordering workflows, allowing the same core solution to support both workplace and school canteens.
-
-### Result
-
-The solution could be used across both workplace and school canteen environments without requiring separate ordering systems.
 
 ---
 
@@ -130,6 +121,8 @@ Test orders were explicitly marked with a test marker so they could be distingui
 
 The ordering workflows could be tested using realistic production data and real user scenarios while maintaining a clear distinction between test orders and actual orders.
 
+---
+
 # Action
 
 ## Architecture
@@ -142,19 +135,17 @@ Department managers could manage users and place orders for their departments, w
 
 ### Backend
 
-The backend handled departments, users, orders, REST API endpoints, and the ERP integration.
+The web application backend was built in PHP, while the REST API was developed in C# and .NET with Swagger for API documentation. The backend handled departments, users, orders, and the ERP integration.
 
 ### Database
 
 SQL Server stored data related to departments, users, and food orders.
 
-The application operated against the live database, including real users and recipes.
-
 ### File Storage
 
 ### Infrastructure
 
-The application was hosted on IIS and operated against the live database.
+The application was hosted on IIS and operated in a production environment.
 
 Testing was performed against the live environment using explicitly marked test orders to distinguish them from actual orders.
 
@@ -179,26 +170,6 @@ Not documented.
 #### Trade-offs
 
 Separate workflows improved usability for each role but introduced additional complexity in handling different ordering processes.
-
----
-
-### Decision: Supporting Multiple Canteen Environments
-
-#### Context
-
-The system was intended for both workplace and school canteens, which could have different organizational structures and user groups.
-
-#### Chosen Solution
-
-The solution used departments, users, and role-specific ordering workflows as the core structure, allowing the same system to support different canteen environments.
-
-#### Alternatives Considered
-
-Not documented.
-
-#### Trade-offs
-
-A shared model allowed the same core solution to support multiple environments but required the system to account for different organizational and user structures.
 
 ---
 
@@ -242,6 +213,26 @@ Testing against live data provided realistic validation of the complete ordering
 
 ---
 
+### Decision: Use a Shared Domain Model Across Different Canteen Types
+
+#### Context
+
+The system needed to support both workplace and school canteens without maintaining separate implementations for each environment.
+
+#### Chosen Solution
+
+I structured the application around departments, users, and role-based ordering workflows, allowing the same domain model to support different organizational structures.
+
+#### Alternatives Considered
+
+Not documented.
+
+#### Trade-offs
+
+Using a shared model reduced duplication and kept the application consistent across different canteen environments, but required the domain model to accommodate different organizational structures within a single implementation.
+
+---
+
 ## Implementation
 
 ### Features
@@ -257,13 +248,11 @@ Testing against live data provided realistic validation of the complete ordering
 
 ### APIs
 
-REST API endpoints supporting the canteen application and ERP integration.
+REST API built with C# and .NET, documented with Swagger, supporting the canteen application and ERP integration.
 
 ### Data and Persistence
 
 The application managed data for departments, users, and food orders using SQL Server.
-
-The application used the live database during testing, including real usernames and recipes.
 
 ### Automation
 
@@ -273,11 +262,15 @@ Testing was performed against the live environment using real usernames, recipes
 
 Test orders were explicitly marked to distinguish them from actual orders.
 
+---
+
 # Result
 
-The project delivered a fullstack canteen management system that could support both workplace and school canteens, with multiple departments, department-wide ordering, and individual food ordering within a single platform.
+The project delivered a fullstack canteen management system that supported both workplace and school canteens, with multiple departments, department-wide ordering, and individual food ordering within a single platform.
 
 The ERP integration connected food ordering with inventory management, while live-environment testing allowed the complete ordering workflow to be validated using real users, recipes, and production data.
+
+---
 
 # Lessons Learned
 
@@ -291,11 +284,12 @@ Testing directly against live data provided realistic validation of the complete
 
 Using explicit test markers made it possible to test with real users and recipes while maintaining a clear distinction between test orders and actual orders.
 
+---
+
 # Future Improvements
 
 - Introduce a dedicated test environment and test database to reduce reliance on live data.
-- Expand the ERP integration.
-- Further improve the user experience for different user roles.
+- Improve observability around ERP-integrated order flows.
 - Extend department administration and order management functionality.
 
 ---

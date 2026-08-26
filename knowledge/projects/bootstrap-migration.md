@@ -53,7 +53,7 @@ links:
 
 Modernized the customer-facing frontend of Moava AS's school CMS from a fixed-width, desktop-oriented architecture to a responsive Bootstrap 3-based system.
 
-Moava operated a SaaS CMS used by approximately 1,300 schools in Norway. Teachers and principals managed their own public school websites through the CMS, using more than 30 reusable modules such as navigation, news, articles, images, galleries, video, forms, tables, calendars, search, and content blocks.
+Moava operated a SaaS CMS used by approximately 1,300 schools in Norway. Teachers and principals managed their own public school websites through the CMS, using more than 20 reusable modules such as navigation, news, articles, images, galleries, video, forms, tables, calendars, search, and content blocks.
 
 The modernization was therefore not a redesign of a single website. It was a change to the reusable rendering architecture responsible for generating thousands of customer websites and dynamically generated pages.
 
@@ -77,7 +77,7 @@ Moava AS provided a SaaS CMS used by approximately 1,300 schools in Norway.
 
 Schools had substantial autonomy over their public websites. Teachers and principals could create content and configure pages themselves using reusable CMS modules.
 
-The platform contained more than 30 modules, including:
+The platform contained more than 20 modules, including:
 
 - Navigation and menus
 - News
@@ -153,7 +153,7 @@ The project required changes across the frontend rendering layer, PHP presentati
 
 The project involved approximately 1,300 schools using a shared CMS platform.
 
-Each school could combine more than 30 reusable modules to construct its public website. Those modules generated HTML, CSS, and JavaScript based on customer-specific content and configuration.
+Each school could combine more than 20 reusable modules to construct its public website. Those modules generated HTML, CSS, and JavaScript based on customer-specific content and configuration.
 
 The existing frontend had been built around desktop-oriented assumptions, including fixed-width layouts, tables, pixel dimensions, custom CSS, and module-specific layout logic.
 
@@ -166,7 +166,7 @@ The modernization had to:
 - Support approximately 1,300 existing schools.
 - Preserve existing customer content.
 - Avoid rebuilding individual pages.
-- Support more than 30 reusable CMS modules.
+- Support more than 20 reusable CMS modules.
 - Allow old and new frontend versions to operate simultaneously.
 - Allow individual schools to migrate independently.
 - Provide an immediate rollback mechanism.
@@ -194,7 +194,7 @@ The same customer content could be rendered using either frontend version, makin
 
 ---
 
-## Challenge: Making More Than 30 CMS Modules Responsive
+## Challenge: Making More Than 20 CMS Modules Responsive
 
 ### Problem
 
@@ -206,7 +206,7 @@ A responsive page framework alone was therefore insufficient.
 
 ### Solution
 
-I systematically reviewed and updated the 30+ CMS modules so their generated output worked within the new Bootstrap 3-based frontend.
+I systematically reviewed and updated the 20+ CMS modules so their generated output worked within the new Bootstrap 3-based frontend.
 
 The work included:
 
@@ -396,7 +396,7 @@ The frontend was rebuilt around Bootstrap 3 and responsive layout principles.
 
 The fixed-width page scaffolding was replaced with a Bootstrap-based grid and responsive structure.
 
-The 30+ CMS modules were updated to generate markup and behavior compatible with the new frontend.
+The 20+ CMS modules were updated to generate markup and behavior compatible with the new frontend.
 
 The frontend supported:
 
@@ -620,12 +620,12 @@ However, it reduced the impact of defects, enabled real-world feedback, and prov
 
 ## Implementation
 
-The implementation covered the frontend rendering architecture, PHP presentation layer, page scaffolding, more than 30 CMS modules, responsive behavior, legacy browser compatibility, customer configuration, legacy-data conversion, and rollout.
+The implementation covered the frontend rendering architecture, PHP presentation layer, page scaffolding, more than 20 CMS modules, responsive behavior, legacy browser compatibility, customer configuration, legacy-data conversion, and rollout.
 
 Key implementation work included:
 
 - Rebuilding the page scaffolding around Bootstrap 3.
-- Converting more than 30 CMS modules to responsive layouts.
+- Converting more than 20 CMS modules to responsive layouts.
 - Refactoring PHP rendering code toward a more object-oriented structure.
 - Separating shared application logic from frontend-specific presentation.
 - Supporting simultaneous legacy and responsive rendering modes.
@@ -667,7 +667,7 @@ The project transformed Moava's customer-facing CMS from a fixed-width, desktop-
 The main outcomes were:
 
 - Approximately 1,300 schools were transitioned to the responsive frontend.
-- More than 30 CMS modules were modernized.
+- More than 20 CMS modules were modernized.
 - At least approximately 39,000 generated pages were covered by the responsive architecture based on the conservative baseline of 30 pages per school.
 - Customer content did not need to be individually migrated or rebuilt.
 - Existing customer databases remained usable.

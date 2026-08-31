@@ -25,8 +25,9 @@ technologies:
   - structured JSON
 
 concepts:
-  - workflow-automation
   - LLM-content-generation
+  - workflow-automation
+  - workflow-orchestration
   - human-in-the-loop
   - content-status-tracking
   - duplicate-detection
@@ -39,6 +40,8 @@ concepts:
   - content-pipeline
   - API-integration
   - stock-image-attribution
+  - prompt-engineering
+  - provenance-tracking
 
 dependencies:
   - n8n
@@ -61,7 +64,7 @@ The workflow generates structured social media content with Google Gemini, retri
 
 Google Sheets serves as both lightweight persistence and the human-facing content-management interface. The workflow supports scheduled and manual execution and keeps content creation and posting states separate so generated material can remain subject to human review.
 
-The project is a development-stage automation prototype. It produces content and image assets but does not implement automated social-media publishing.
+The project is a development-stage automation prototype. It produces content and image assets but does not implement automated social media publishing.
 
 ---
 
@@ -109,7 +112,7 @@ The implementation was an automation pipeline rather than a conventional applica
 
 # Challenge
 
-## Challenge: Establishing a Reliable Boundary Between LLM Output and Workflow Processing
+## Challenge: Validating LLM Output Before Workflow Processing
 
 ### Problem
 
@@ -145,7 +148,7 @@ A production version should validate every generated object against an explicit 
 
 ### Result
 
-A single generation step, with corresponding promt sent to an LLM, can produce multiple content records at once that are processed independently.
+A single generation step, with a corresponding prompt sent to an LLM, can produce multiple content records that are processed independently.
 
 The workflow has a defined data contract for normal model responses, while the limitations of model-generated structured data are clearly isolated at the LLM boundary.
 
@@ -205,7 +208,7 @@ Generated image keywords are sent to the Pexels search API.
 
 The search is constrained to portrait-oriented imagery and returns a limited candidate set.
 
-Candidate metadata is then supplied to the chose LLM together with the generated content.
+Candidate metadata is then supplied to the chosen LLM together with the generated content.
 
 The selection context includes information such as:
 
@@ -223,7 +226,7 @@ The selected image ID and associated metadata are then passed into the image-pro
 The important architectural boundary is:
 
 1. Pexels retrieves candidates.
-2. LLM ranks candidates semantically.
+2. The LLM selects the most contextually appropriate candidate.
 3. The workflow validates and processes the selected candidate.
 4. The selected source metadata is preserved for persistence.
 
@@ -277,7 +280,7 @@ This provides an audit trail but does not itself guarantee legal compliance. Act
 
 ### Problem
 
-The Pexels result is only an input image. The workflow needed to turn that image into a usable social-media asset containing generated text.
+The Pexels result is only an input image. The workflow needed to turn that image into a usable social media asset containing generated text.
 
 The processing also had to work with binary image data while keeping the generated content and source metadata available for later persistence.
 
@@ -297,7 +300,7 @@ The Drive reference is stored separately from the original Pexels URL so that th
 
 ### Result
 
-The workflow automatically transforms a remote stock image into a finished social-media-oriented image and stores the resulting asset in Google Drive.
+The workflow automatically transforms a remote stock image into a finished social media oriented image and stores the resulting asset in Google Drive.
 
 The composition is functional but not fully responsive. Text placement is based on fixed positioning rather than calculating layout from image dimensions, text length, wrapping, and safe areas.
 
@@ -305,7 +308,7 @@ This limits robustness for unusually long subjects or captions.
 
 ---
 
-## Challenge: Keeping Binary Processing Separate From Business Metadata
+## Challenge: Separating Binary Image Processing from Business Metadata
 
 ### Problem
 
@@ -340,7 +343,7 @@ The trade-off is that the workflow must explicitly correlate the separate branch
 
 ---
 
-## Challenge: Representing Human Review Without a Dedicated CMS
+## Challenge: Human Review with Google Sheets Instead of a CMS
 
 ### Problem
 
@@ -377,7 +380,7 @@ The workflow therefore treats the spreadsheet as both a persistence layer and a 
 
 The project provides human review without requiring a custom frontend.
 
-However, while the creation status field are enforced, the posting status field are not currently an enforced state machine as long as this prototype is not connected to a social media account.
+However, while the creation status field is enforced, the posting status field is not currently an enforced state machine as long as this prototype is not connected to a social media account.
 
 ---
 
@@ -446,7 +449,7 @@ The records serve three related purposes:
 
 Creation and posting are represented as separate dimensions.
 
-The spreadsheet should be considered lightweight persistence rather than a strongly consistent application database. It provides limited transactional guarantees, validation, concurrency control, and schema enforcement.
+The spreadsheet functions as lightweight persistence rather than a strongly consistent application database, with limited transactional guarantees, validation, concurrency control, and schema enforcement.
 
 ### File Storage
 
@@ -646,7 +649,7 @@ Approval could be moved earlier in the lifecycle, to reduce resource use.
 
 #### Context
 
-Content generation and social-media publishing are different lifecycle concerns.
+Content generation and social media publishing are different lifecycle concerns.
 
 A piece of content can be created and approved without necessarily being published.
 
@@ -721,7 +724,7 @@ The disadvantage is the need for explicit correlation before the final record is
 - Separate creation and posting lifecycle fields.
 - Human review through spreadsheet-based status management.
 
-The workflow does not implement automated social-media publishing.
+The workflow does not implement automated social media publishing.
 
 ### APIs
 
@@ -821,9 +824,9 @@ The LLM should generate or rank candidates. Deterministic workflow logic should 
 
 A structured response can still contain incorrect information.
 
-For example, an LLM can return a correctly shaped image-selection record containing an image ID that does not correspond to the candidate set.
+A model can return structurally valid data that still violates business rules, such as selecting an inappropriate image, exceeding content constraints, or repeating existing topics.
 
-Similarly, a content record can satisfy the expected JSON structure while violating length, topic, duplication, or formatting requirements.
+This reinforced that structural validation and business-rule validation are separate concerns.
 
 ---
 
@@ -837,7 +840,7 @@ Gemini interprets the generated content and ranks the candidates semantically.
 
 Keeping these responsibilities separate creates a useful architectural boundary for future deterministic filtering, scoring, or alternative ranking mechanisms.
 
-Seperation is important retrieval and semantic ranking have different cost, reliability, and scalability characteristics.
+The separation is important because retrieval and semantic candidate selection have different cost, reliability, and scalability characteristics.
 
 ---
 
@@ -888,7 +891,7 @@ This pattern reduces unnecessary coupling in workflows that combine binary proce
 
 ## Lesson: LLM Calls Are Explicit Cost and Reliability Boundaries
 
-Gemini is used for two different operations:
+The LLM is used for two different operations:
 
 1. Content generation.
 2. Semantic image selection.

@@ -144,7 +144,7 @@ The workflow then separated the generated collection into individual n8n items s
 
 The implementation relied on parsing the model response before splitting the generated records. This was sufficient for the prototype, but parsing alone was intentionally treated as a reliability boundary rather than a complete validation strategy.
 
-A production version should validate every generated object against an explicit white-list schema before allowing it to proceed. Validation should cover required properties, data types, length constraints, allowed formats, and any business-specific rules.
+A production version should validate every generated object against an explicit whitelist schema that defines permitted fields, data types, and formats before allowing it to proceed. Validation should cover required properties, length constraints, allowed formats, and other business-specific rules.
 
 ### Result
 

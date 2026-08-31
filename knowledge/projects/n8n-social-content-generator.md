@@ -3,7 +3,7 @@ title: n8n Social Content Generator
 
 organization: Personal Project
 
-role: Automation Developer
+role: AI Developer
 
 environment: development
 
@@ -141,11 +141,11 @@ The workflow then separated the generated collection into individual n8n items s
 
 The implementation relied on parsing the model response before splitting the generated records. This was sufficient for the prototype, but parsing alone was intentionally treated as a reliability boundary rather than a complete validation strategy.
 
-A production version should validate every generated object against an explicit schema before allowing it to proceed. Validation should cover required properties, data types, length constraints, allowed formats, and any business-specific rules.
+A production version should validate every generated object against an explicit white-list schema before allowing it to proceed. Validation should cover required properties, data types, length constraints, allowed formats, and any business-specific rules.
 
 ### Result
 
-A single generation step can produce multiple content records that are processed independently.
+A single generation step, with corresponding promt sent to an LLM, can produce multiple content records at once that are processed independently.
 
 The workflow has a defined data contract for normal model responses, while the limitations of model-generated structured data are clearly isolated at the LLM boundary.
 
@@ -169,7 +169,7 @@ The challenge was to reuse the available history without turning the prototype i
 
 Historical records are retrieved from Google Sheets before new content is generated.
 
-The workflow extracts previously used subjects and image IDs and supplies them as exclusion context to subsequent Gemini operations.
+The workflow extracts previously used subjects and image IDs and supplies them as exclusion context to subsequent LLM operations.
 
 Historical subjects are used during content generation to discourage repeated topics.
 
@@ -205,7 +205,7 @@ Generated image keywords are sent to the Pexels search API.
 
 The search is constrained to portrait-oriented imagery and returns a limited candidate set.
 
-Candidate metadata is then supplied to Gemini together with the generated content.
+Candidate metadata is then supplied to the chose LLM together with the generated content.
 
 The selection context includes information such as:
 
@@ -216,22 +216,22 @@ The selection context includes information such as:
 - Photographer information.
 - Previously used image IDs.
 
-Gemini selects the candidate that best represents the generated content and intended tone.
+The LLM then selects the candidate that best represents the generated content and intended tone.
 
 The selected image ID and associated metadata are then passed into the image-processing pipeline.
 
 The important architectural boundary is:
 
 1. Pexels retrieves candidates.
-2. Gemini ranks candidates semantically.
+2. LLM ranks candidates semantically.
 3. The workflow validates and processes the selected candidate.
 4. The selected source metadata is preserved for persistence.
 
 ### Result
 
-The workflow does not simply accept the first search result and does not require Gemini to invent an image URL.
+The workflow does not simply accept the first search result and does not require the LLM to provide an image URL.
 
-Pexels remains responsible for retrieving real candidates while Gemini provides contextual selection.
+Pexels remains responsible for retrieving real candidates while the LLM provides contextual selection.
 
 The selection is still probabilistic and depends on the quality of the retrieved candidate set and available metadata.
 
@@ -356,17 +356,18 @@ Google Sheets is used as the human-facing content interface.
 
 Each generated record contains separate creation and posting status fields.
 
-Observed creation states include:
+Creation states include:
 
 - `To Do`
 - `Created`
 - `Approved`
 - `Declined`
 
-Observed posting states include:
+Posting states include:
 
 - `To Do`
 - `Unlisted`
+- `Published`
 
 The spreadsheet allows a human reviewer to inspect generated content, review the associated image, and change lifecycle state.
 
@@ -376,9 +377,7 @@ The workflow therefore treats the spreadsheet as both a persistence layer and a 
 
 The project provides human review without requiring a custom frontend.
 
-However, the status fields are not currently an enforced state machine.
-
-The workflow can perform image generation and asset storage before a human changes the creation state, meaning the review field represents human intent but does not necessarily act as an execution gate.
+However, while the creation status field are enforced, the posting status field are not currently an enforced state machine as long as this prototype is not connected to a social media account.
 
 ---
 
@@ -387,8 +386,6 @@ The workflow can perform image generation and asset storage before a human chang
 ## Architecture
 
 ### Frontend
-
-There is no custom frontend application.
 
 Google Sheets acts as the human-facing interface for generated content and lifecycle review.
 
@@ -425,7 +422,7 @@ Google Sheets is used as a lightweight persistence and workflow-state store.
 
 Each row represents a generated content item.
 
-The observed schema includes:
+The schema includes:
 
 - `Subject`
 - `Creation Status`
@@ -474,8 +471,6 @@ External services used by the workflow include:
 - Google Drive.
 - Pexels.
 
-The supplied implementation does not demonstrate custom infrastructure provisioning, CI/CD, automated production deployment, centralized observability, automated test execution, or a dedicated database.
-
 ---
 
 ## Technical Decisions
@@ -500,7 +495,7 @@ The schema contains generated content, lifecycle state, image metadata, source p
 
 #### Alternatives Considered
 
-A dedicated database and custom administration UI were possible alternatives, but they were outside the implemented prototype and are not documented as evaluated solutions.
+A dedicated database and custom administration UI were possible alternatives, but they were outside the implemented prototype.
 
 #### Trade-offs
 
@@ -537,13 +532,13 @@ The workflow needed a mechanism to choose among multiple plausible results based
 
 Pexels retrieves a bounded candidate set.
 
-Gemini receives the generated content and candidate metadata and selects the most contextually appropriate image.
+The LLM receives the generated content and candidate metadata and selects the most contextually appropriate image.
 
 The workflow retains the selected image's original Pexels metadata.
 
 #### Alternatives Considered
 
-The supplied implementation does not document an actual evaluation of alternative ranking approaches such as first-result selection, deterministic metadata scoring, embeddings, or a dedicated image-ranking model.
+Alternative ranking approaches could have been deterministic metadata scoring, embeddings, or a dedicated image-ranking model.
 
 #### Trade-offs
 
@@ -556,13 +551,9 @@ Advantages include:
 
 Disadvantages include:
 
-- Additional model latency.
-- Additional API usage.
 - Probabilistic selection.
 - Dependence on Pexels metadata quality.
 - Potentially inappropriate but technically valid selections.
-
-A more mature implementation should combine deterministic filtering with semantic ranking and final validation.
 
 ---
 
@@ -581,10 +572,6 @@ The image-selection path uses structured output through the n8n LLM integration.
 The content-generation path converts the model response into structured records before the records enter the item-processing pipeline.
 
 The workflow treats the model boundary as a contract that must be validated before downstream processing.
-
-#### Alternatives Considered
-
-The supplied implementation does not document other structured-output mechanisms that were actually evaluated.
 
 #### Trade-offs
 
@@ -608,11 +595,7 @@ The existing spreadsheet already represented the project's historical content li
 
 Historical records are read from Google Sheets and reduced to previously used subjects and image IDs.
 
-These values are supplied to Gemini as exclusion context during generation and image selection.
-
-#### Alternatives Considered
-
-The supplied implementation does not document an actual evaluation of a relational database, vector database, embeddings, or a semantic-search service.
+These values are supplied to the LLM as exclusion context during generation and image selection.
 
 #### Trade-offs
 
@@ -635,9 +618,7 @@ For a larger content library, deterministic duplicate checks should happen befor
 
 #### Context
 
-Generated content was intended to remain subject to human review.
-
-The project did not include a dedicated moderation interface.
+Generated content was intended to remain subject to human review without a dedicated frontend interface.
 
 #### Chosen Solution
 
@@ -645,15 +626,9 @@ Google Sheets stores separate creation and posting status fields.
 
 The human reviewer can inspect generated records and update their lifecycle state directly in the spreadsheet.
 
-#### Alternatives Considered
-
-No separate moderation interface or workflow-management system was implemented or evaluated.
-
 #### Trade-offs
 
 The approach is transparent and simple.
-
-The main weakness is that the current status values do not form an enforced state machine.
 
 The workflow can consume resources before human approval, including:
 
@@ -663,7 +638,7 @@ The workflow can consume resources before human approval, including:
 - Image processing.
 - Google Drive storage.
 
-If approval is intended to control these operations, the approval step should be moved earlier in the lifecycle.
+Approval could be moved earlier in the lifecycle, to reduce resource use.
 
 ---
 
@@ -683,15 +658,11 @@ Creation status describes the content-production and review lifecycle.
 
 Posting status describes the separate publishing lifecycle.
 
-#### Alternatives Considered
-
-The supplied implementation does not document an evaluated alternative lifecycle model.
-
 #### Trade-offs
 
 Separating the two dimensions prevents publishing state from being conflated with content-review state.
 
-The limitation is that the spreadsheet currently represents states without enforcing valid transitions.
+The limitation is that the spreadsheet currently represents posting states without enforcing valid transitions.
 
 A production implementation should define explicit transitions and make workflow execution depend on those transitions.
 
@@ -714,10 +685,6 @@ The binary branch handles the generated asset.
 The metadata branch preserves source and content information.
 
 The final persistence stage combines the two.
-
-#### Alternatives Considered
-
-The supplied implementation does not document an alternative metadata-preservation architecture that was actually evaluated.
 
 #### Trade-offs
 
@@ -786,8 +753,6 @@ Google Sheets stores the metadata required to connect the generated asset with i
 
 Historical spreadsheet records are read before generation so previous subjects and image IDs can be supplied as model context.
 
-No dedicated relational database or vector database is used.
-
 ### Automation
 
 The workflow has two execution entry points.
@@ -808,8 +773,6 @@ The workflow includes a manual execution path for development and testing.
 
 The workflow also contains handling for the empty-history case so generation can proceed when no previous spreadsheet records exist.
 
-No automated unit, integration, end-to-end, performance, or load-testing suite is evidenced by the supplied workflow.
-
 Validation was primarily performed through manual workflow execution and inspection of generated spreadsheet records and image assets.
 
 ---
@@ -820,11 +783,7 @@ The project produced a working development-stage automated content-production pi
 
 The resulting spreadsheet functions as a lightweight content library and human review interface without requiring a custom CMS or frontend.
 
-The project demonstrates practical integration of LLM generation, API-based candidate retrieval, semantic ranking, binary image processing, cloud storage, spreadsheet persistence, historical context, and human-controlled lifecycle state within a single automation workflow.
-
-The implementation does not provide evidence of automated social-media publishing, audience growth, engagement improvements, revenue generation, quantified time savings, production-scale reliability, deterministic duplicate prevention, or enforced approval gates.
-
-It is therefore best characterized as an automated social-content production prototype with human-controlled lifecycle state rather than an autonomous social-media publishing platform.
+The project demonstrates practical integration of LLM generation, API-based candidate retrieval, semantic candidate selection, binary image processing, cloud storage, spreadsheet persistence, historical context, and human-controlled lifecycle state within a single automation workflow.
 
 ---
 
@@ -866,12 +825,6 @@ For example, an LLM can return a correctly shaped image-selection record contain
 
 Similarly, a content record can satisfy the expected JSON structure while violating length, topic, duplication, or formatting requirements.
 
-The important distinction is:
-
-`syntactic validity ? structural validity ? business validity`
-
-A mature implementation should validate each layer explicitly.
-
 ---
 
 ## Lesson: Retrieval and Ranking Should Be Separate
@@ -884,11 +837,7 @@ Gemini interprets the generated content and ranks the candidates semantically.
 
 Keeping these responsibilities separate creates a useful architectural boundary for future deterministic filtering, scoring, or alternative ranking mechanisms.
 
-A more mature pipeline could follow:
-
-`query ? candidate retrieval ? deterministic filtering ? semantic ranking ? final validation`
-
-This pattern is applicable beyond image selection because retrieval and semantic ranking have different cost, reliability, and scalability characteristics.
+Seperation is important retrieval and semantic ranking have different cost, reliability, and scalability characteristics.
 
 ---
 
@@ -901,38 +850,6 @@ The model receives historical exclusions as context rather than retrieving only 
 As the history grows, prompt size, latency, and model cost can increase while semantic duplicate detection remains probabilistic.
 
 For a larger content library, deterministic normalization and exact duplicate checks should happen first, followed by selective semantic retrieval when semantic similarity actually needs to be evaluated.
-
----
-
-## Lesson: Human Review Is Not Automatically a Workflow Gate
-
-The project exposed an important distinction between recording a human decision and enforcing that decision.
-
-A spreadsheet field such as `Approved` communicates intent, but it does not automatically prevent earlier workflow stages from consuming resources.
-
-If approval is intended to control expensive processing, the workflow must explicitly check the state before continuing.
-
-A stronger lifecycle would be:
-
-`Draft generation ? validation ? human approval ? asset generation ? asset validation ? ready for publishing`
-
-This would also reduce unnecessary API usage and asset creation for content that is ultimately declined.
-
----
-
-## Lesson: Creation and Publishing Are Different State Machines
-
-Creation and publishing represent different lifecycle dimensions.
-
-Creation concerns whether content has been generated, reviewed, accepted, or rejected.
-
-Publishing concerns whether approved content has been prepared for or published to an external platform.
-
-Keeping the dimensions separate is appropriate.
-
-However, spreadsheet values alone do not constitute an enforced state machine.
-
-A mature implementation should define valid transitions and make workflow execution depend on those transitions rather than treating status values as arbitrary labels.
 
 ---
 
@@ -1032,26 +949,12 @@ The prototype architecture was not inherently wrong. Its trade-offs were appropr
 - Replace fragile model-response parsing with native structured output where supported and validate every generated record against an explicit schema.
 - Add deterministic validation for required fields, field types, content lengths, keyword formatting, and allowed lifecycle values.
 - Add deterministic duplicate detection for normalized subjects and selected image IDs before relying on model-generated exclusions.
-- Introduce a persistent `contentId` so records can be correlated independently of subject text or spreadsheet row position.
 - Move human approval before image search, image selection, image download, image processing, and Drive upload if approval is intended to act as a resource-control gate.
 - Define explicit lifecycle transitions for draft, validated, approved, processing, ready, declined, publishing, published, and failed states.
-- Add per-item retry and failure handling so one failed content item does not unnecessarily invalidate an entire generation run.
-- Make processing idempotent so retries do not create duplicate spreadsheet records or duplicate Drive assets.
-- Add correlation identifiers to make separate workflow branches deterministic and easier to recover.
 - Add dynamic image composition based on image dimensions, text length, line wrapping, margins, and safe areas.
-- Validate downloaded image responses, content types, dimensions, binary payloads, and decodability before processing.
-- Add fallback image candidates when the selected asset cannot be downloaded or processed.
-- Record workflow execution identifiers, content identifiers, timestamps, processing states, and external API failures for debugging and recovery.
-- Separate human-facing lifecycle state from internal operational state rather than using the spreadsheet as the sole representation of processing state.
-- Reduce historical prompt growth by performing deterministic checks first and supplying only relevant historical context to the model.
 - Introduce semantic retrieval or embeddings if the historical content library becomes large enough that full-history prompting becomes inefficient.
-- Add explicit content categories so generation can maintain controlled coverage across topics such as parenting, chores, meal planning, family technology, finance, and household organization.
 - Move generation parameters such as number of ideas, categories, content-length limits, image orientation, candidate count, model configuration, and schedule into centralized configuration.
-- Add automated tests for data transformations, structured-output validation, duplicate detection, branch correlation, and lifecycle transitions.
 - Add publishing integration only after generation, approval, asset generation, validation, retry handling, and recovery are reliable.
-- Keep API credentials in n8n credential management and outside JavaScript nodes or source-controlled workflow exports.
-- Use least-privilege permissions for Google Sheets, Google Drive, Gemini, Pexels, and the n8n environment.
-- Add operational logging and alerting for failed workflow executions, failed API calls, invalid model responses, and incomplete asset generation.
 - Introduce a stronger persistence layer if spreadsheet scale, concurrency, or data-integrity requirements exceed what Google Sheets can reliably provide.
 
 ---

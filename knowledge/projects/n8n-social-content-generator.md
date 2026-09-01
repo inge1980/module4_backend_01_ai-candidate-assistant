@@ -15,17 +15,20 @@ status: completed
 
 technologies:
   - n8n
-  - Railway
-  - Google Gemini
-  - Google Sheets
-  - Google Drive
-  - Pexels API
-  - JavaScript
-  - HTTP API
-  - structured JSON
+  - railway-server
+  - google-api
+  - google-gemini
+  - google-sheets
+  - google-drive
+  - pexels-api
+  - javaScript
+  - http-api
+  - structured-json
 
 concepts:
-  - LLM-content-generation
+  - llm
+  - artificial-intelligence
+  - content-generation
   - workflow-automation
   - workflow-orchestration
   - human-in-the-loop
@@ -41,6 +44,7 @@ concepts:
   - API-integration
   - stock-image-attribution
   - prompt-engineering
+  - prompt-generation
   - provenance-tracking
 
 dependencies:
@@ -58,45 +62,66 @@ links:
 
 # Overview
 
-This project is an n8n-based automated social media content-production pipeline for a family planning and family organization themed social media channel.
+An AI-assisted content-generation and workflow-automation project built with n8n and Google Gemini.
 
-The workflow generates structured social media content with Google Gemini, retrieves relevant stock-image candidates from Pexels, uses Gemini to select an appropriate candidate, processes the selected image into a finished social asset, stores the generated asset in Google Drive, and persists the resulting content and metadata in Google Sheets.
+The project demonstrates practical experience integrating LLMs into an automated production pipeline, including prompt engineering, structured LLM output, content generation, semantic candidate selection, historical context, and human-in-the-loop review.
 
-Google Sheets serves as both lightweight persistence and the human-facing content-management interface. The workflow supports scheduled and manual execution and keeps content creation and posting states separate so generated material can remain subject to human review.
+Google Gemini is used for two distinct AI tasks:
 
-The project is a development-stage automation prototype. It produces content and image assets but does not implement automated social media publishing.
+1. Generating structured social media content from defined content requirements and historical context.
+2. Semantically selecting the most appropriate stock image from candidates retrieved from the Pexels API.
+
+The workflow therefore combines generative AI with deterministic API integrations and automation logic. LLM-generated data is parsed, transformed, and passed through downstream processing rather than being treated as trusted application state.
+
+The project also demonstrates practical handling of common LLM integration concerns, including probabilistic output, structured-data contracts, validation boundaries, prompt constraints, duplicate avoidance, semantic selection, and the separation of model responsibilities from deterministic workflow logic.
+
+The automation pipeline integrates Google Gemini, Pexels, Google Sheets, Google Drive, and n8n. Generated content is persisted in Google Sheets, generated assets are stored in Google Drive, and the spreadsheet provides a human-facing review mechanism.
+
+The project is a development-stage AI automation prototype rather than a production social media publishing system. It does not implement automated social media publishing.
 
 ---
 
 # Context
 
-The project originated as a hobby experiment with n8n and cloud productivity tools.
+The project was created to explore practical applications of LLMs within workflow automation.
 
-The objective was to automate repetitive social media content production without building a dedicated content-management application, while retaining a simple human review mechanism for generated content.
+The central AI requirement was to use a general-purpose language model for tasks where semantic interpretation and content generation are useful, while keeping deterministic workflow operations outside the model.
+
+Google Gemini was therefore used for both generative and semantic tasks:
+
+- Generating structured content from natural-language requirements.
+- Applying content constraints through prompting.
+- Using previous generated content as contextual input.
+- Selecting semantically appropriate stock images from retrieved candidates.
+- Producing structured outputs that could be consumed by deterministic workflow nodes.
+
+The project intentionally combines probabilistic AI operations with deterministic automation. The LLM is responsible for generation and semantic interpretation, while n8n and external APIs handle orchestration, retrieval, transformation, persistence, and asset processing.
+
+This architecture exposed practical limitations of LLM-based automation, including unreliable adherence to instructions, probabilistic duplicate avoidance, the difference between syntactically valid structured output and valid business data, and the need for deterministic validation around model boundaries.
+
+The project originated as a hobby experiment with n8n and cloud productivity tools. The objective was to automate repetitive social media content production without building a dedicated content-management application, while retaining a simple human review mechanism for generated content.
 
 The intended content domain covers family planning and organization topics including parenting, household organization, time management, digital parenting, chores, kid responsibility, allowance and money literacy, family technology, meal planning, seasonal planning, family teamwork, and relatable family situations.
 
-The content was intended to provide useful family-oriented advice while indirectly building awareness and perceived value around an upcoming family planner application.
-
-The workflow needed to generate both written content and an associated visual asset. It also needed to reduce repeated subjects and avoid reusing previously selected stock images where possible.
-
-The project was intentionally constrained to existing cloud productivity and automation tools rather than a custom frontend, backend, or dedicated database.
+The workflow was intentionally constrained to existing cloud productivity and automation tools rather than a custom frontend, backend, or dedicated database.
 
 ---
 
 # Task
 
-The responsibility in this project was to design and implement the automated content-production workflow in n8n.
+The responsibility in this project was to design and implement an automated AI-assisted content-production workflow in n8n.
 
 The work included:
 
 - Designing the n8n workflow architecture.
 - Integrating Google Sheets for persistence and human review.
 - Retrieving historical content and using previous subjects and image IDs as generation context.
+- Designing prompts and generation constraints for Google Gemini.
 - Generating multiple structured content ideas with Google Gemini.
-- Converting generated records into independently processable workflow items.
+- Parsing and transforming structured LLM output into independently processable workflow items.
 - Integrating the Pexels search API.
 - Providing Pexels candidate metadata to Gemini for semantic image selection.
+- Using Gemini to select the stock image that best matched the generated content and intended context.
 - Preserving Pexels image and photographer metadata.
 - Downloading selected image binaries.
 - Processing images and overlaying generated text.
@@ -106,7 +131,7 @@ The work included:
 - Persisting completed records in Google Sheets.
 - Supporting scheduled and manual workflow execution.
 
-The implementation was an automation pipeline rather than a conventional application. No dedicated frontend, custom REST API, or custom backend service was implemented.
+The implementation was an AI-assisted automation pipeline rather than a conventional application. No dedicated frontend, custom REST API, or custom backend service was implemented.
 
 ---
 

@@ -55,8 +55,11 @@ var knowledgeRetrievalService =
 // TEST: Retrieval evaluation code
 var questions = new[]
 {
+    // Test document diversity
+    "What experience do you have working with AI or LLMs?",
+
     // Test summary of a job advertisement to evaluate retrieval and ranking
-    "Which of my projects demonstrate experience relevant to a Platform Engineer role involving software development, developer experience, internal developer platforms, Kubernetes, IaC, CI/CD, automation, and hybrid on-prem/cloud?"
+    //"Which of my projects demonstrate experience relevant to a Platform Engineer role involving software development, developer experience, internal developer platforms, Kubernetes, IaC, CI/CD, automation, and hybrid on-prem/cloud?"
 
     // Test small variations of the same question to evaluate retrieval and ranking
     //"Have you used PostgreSQL?",

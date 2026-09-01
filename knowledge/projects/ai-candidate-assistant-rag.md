@@ -39,6 +39,7 @@ concepts:
   - vector-database
   - knowledge-management
   - retrieval-evaluation
+  - prompt-engineering
   - prompt-generation
   - manual-testing
   - api-design
@@ -55,26 +56,46 @@ links:
 
 # Overview
 
-An AI-powered candidate assistant that uses Retrieval-Augmented Generation (RAG) to match job descriptions and candidate-oriented questions against a structured knowledge base of personal project experience.
+An AI and LLM application demonstrating practical experience building a Retrieval-Augmented Generation (RAG) system for answering candidate-oriented questions from a structured knowledge base of personal project experience.
 
-The project documentation is maintained as Markdown with YAML frontmatter containing structured information about each project, including role, technologies, concepts, organization, period, and status.
+The project combines multiple areas of applied AI and LLM development, including RAG architecture, embedding generation, semantic search, vector databases, LLM integration, prompt engineering, grounded generation, retrieval evaluation, and multi-provider LLM fallback.
 
-The system ingests these documents, extracts their metadata, divides the content into semantic sections, and generates structured document chunks that can be persisted in PostgreSQL using pgvector.
+The system uses BAAI `bge-small-en-v1.5` through Ollama to generate 384-dimensional embeddings for both project knowledge and user queries. PostgreSQL with pgvector is used to persist embeddings and perform semantic vector search over the indexed project documentation.
 
-The Markdown knowledge base remains the source of truth, while PostgreSQL acts as a generated retrieval index.
+Retrieved project sections are supplied to an LLM as controlled context. The LLM then generates candidate-oriented responses grounded in the retrieved project evidence rather than relying on general model knowledge.
 
-The backend also includes an LLM integration layer supporting multiple providers and multiple models per provider. Providers can be attempted sequentially, with model-level fallback within each provider and provider-level fallback when a model fails.
+The project also includes a provider-independent LLM integration layer supporting multiple providers and multiple models per provider. The system can fall back between models within a provider and between different providers when a model or provider fails.
 
-The project also includes a console-based retrieval evaluation tool that runs representative candidate-oriented questions, displays ranked retrieval results and similarity information, and outputs the generated LLM prompt for manual inspection.
+Practical LLM and AI concerns addressed by the project include:
+
+- Retrieval-Augmented Generation (RAG).
+- Embedding generation and vector search.
+- Semantic retrieval of project experience.
+- PostgreSQL and pgvector as a vector database.
+- Metadata-aware retrieval foundations.
+- Prompt engineering and prompt generation.
+- Grounded LLM response generation.
+- Retrieval and evidence evaluation.
+- Distinguishing supported evidence from unsupported inference.
+- Preventing unsupported claims about technologies, responsibilities, and production experience.
+- Multi-model and multi-provider LLM integration.
+- Model-level and provider-level fallback.
+- LLM provider failure handling and observability.
+- Manual evaluation of retrieval quality and generated prompts.
+
+The project includes a console-based retrieval evaluation tool that runs representative candidate-oriented questions, displays ranked retrieval results and similarity information, and generates the LLM prompt for manual inspection before generation.
 
 The intended workflow is:
 
 1. A user provides a job description or candidate-oriented question.
 2. The backend generates an embedding for the query.
-3. PostgreSQL performs semantic similarity search against the indexed project knowledge.
-4. Relevant project sections and their metadata are retrieved.
-5. The retrieved information is supplied to an LLM.
-6. The LLM generates a response grounded in the candidate's documented project experience.
+3. PostgreSQL with pgvector performs semantic similarity search against the indexed project knowledge.
+4. Relevant project sections and metadata are retrieved.
+5. Retrieved evidence is assembled into an LLM prompt.
+6. A configured LLM provider and model generate a grounded response.
+7. Source references are returned alongside the generated answer.
+
+The project is intended to demonstrate practical AI, LLM, and RAG application development rather than simply calling an LLM with a large static prompt.
 
 ---
 
@@ -82,20 +103,43 @@ The intended workflow is:
 
 A general-purpose LLM does not reliably know the details of a candidate's personal project history.
 
-Using an LLM without a controlled knowledge source creates a risk of producing plausible but unsupported claims about technologies, responsibilities, architectural decisions, or project outcomes.
+Using an LLM without a controlled knowledge source creates a risk of generating plausible but unsupported claims about technologies, responsibilities, architectural decisions, or project outcomes.
 
-The project therefore uses a version-controlled knowledge base containing structured documentation of completed and ongoing projects.
+The project was therefore designed as a practical application of Retrieval-Augmented Generation (RAG), where semantic retrieval determines which parts of the candidate's documented experience are provided to the LLM as evidence.
 
-The knowledge base is intentionally maintained as Markdown rather than being authored directly in the database. This keeps the information human-readable, reviewable, and version controlled.
+The AI pipeline combines several distinct components:
 
-The system separates four concerns:
+- Local embedding generation.
+- Semantic vector search.
+- Structured project metadata.
+- Retrieval and evidence ranking.
+- LLM prompt construction.
+- Grounded response generation.
+- Multi-provider and multi-model LLM fallback.
+- Manual retrieval evaluation.
+
+Project knowledge is maintained as version-controlled Markdown with YAML frontmatter. The Markdown files remain the source of truth, while PostgreSQL with pgvector acts as a generated retrieval index.
+
+During ingestion, project documents are parsed into semantic sections and enriched with structured metadata such as role, technologies, concepts, organization, environment, period, and status. Embeddings are generated for the resulting chunks and stored alongside their metadata.
+
+At query time, a natural-language question is converted into an embedding using the same embedding model. PostgreSQL with pgvector retrieves semantically related project sections, which are then assembled into context for the LLM.
+
+The LLM is responsible for interpreting and synthesizing the retrieved evidence, while the retrieval system is responsible for determining which documented project experience is relevant.
+
+This separation is important because a semantically plausible answer is not necessarily a supported answer. For example, evidence that a technology was used in a project does not automatically establish that it was used in production. The answer-generation instructions therefore explicitly require the model to distinguish documented evidence from unsupported inference.
+
+The project also treats LLM providers as replaceable infrastructure rather than coupling the application to a single model or provider. Multiple models can be configured per provider, and the system can fall back sequentially across models and providers when failures occur.
+
+The retrieval evaluation tooling was introduced to make AI system behavior inspectable rather than evaluating only the final generated answer. Representative candidate-oriented questions can be executed against the retrieval layer, with similarity scores, metadata, source sections, retrieved evidence, and the generated LLM prompt exposed for manual inspection.
+
+The project therefore separates four primary concerns:
 
 - Human-maintained project knowledge.
-- Generated retrieval data.
-- Runtime semantic search.
-- LLM response generation.
+- Embedding and retrieval infrastructure.
+- Semantic retrieval and evidence selection.
+- LLM-based response generation.
 
-The project is also intended to demonstrate a practical RAG architecture rather than simply calling an LLM with a large static prompt.
+The overall objective is to demonstrate practical experience designing and implementing an AI application where embeddings, semantic retrieval, vector storage, LLM integration, prompt engineering, evaluation, and grounded generation work together as distinct parts of the system.
 
 ---
 

@@ -12,7 +12,7 @@ public sealed class QuestionService(
     IConfiguration configuration)
     : IQuestionService
 {
-    private const int RetrievalLimit = 10;
+    private const int RetrievalLimit = 25;
     private const int PromptContextLimit = 5;
     
     private readonly IConfiguration _configuration = configuration;

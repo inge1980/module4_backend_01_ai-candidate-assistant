@@ -100,9 +100,9 @@ public class MetadataEvidenceScorer
         double evidenceScore)
     {
         return
-            (vectorScore * 0.60) +
-            (metadataScore * 0.25) +
-            (evidenceScore * 0.15);
+            (vectorScore * 0.70) +
+            (metadataScore * 0.20) +
+            (evidenceScore * 0.10);
     }
 
     private HashSet<string> ExtractMetadataTerms(

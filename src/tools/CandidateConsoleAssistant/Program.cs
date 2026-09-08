@@ -23,12 +23,13 @@ if (!File.Exists(promptPath))
 var answerPromptTemplate =
     await File.ReadAllTextAsync(promptPath);
 
-var embeddingService =
-    new EmbeddingService();
-
-// use global config file for all projects in solution
+// Use global config file for all projects in solution
 var configuration =
     AppConfiguration.Build();
+
+// Initialize services
+var embeddingService =
+    new EmbeddingService();
 
 var connectionString =
     configuration.GetConnectionString("Postgres")

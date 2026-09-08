@@ -173,6 +173,7 @@ GitHub source URLs: `GitHub:Owner`, `Repository`, `Branch`, `ProjectsFolder`. `Q
 - API retrieve-25 vs console/docs retrieve-10; both use 5 chunks in the prompt.
 - Indexer upserts only; wipe the table or Docker volume for a true rebuild after deletes/renames.
 - `EmbeddingService` ignores `appsettings.json` `Embeddings` / `Ollama` sections.
+- `EmbeddingService` reads `OLLAMA_*` from process env at type init. In console tools, call `AppConfiguration.Build()` before `new EmbeddingService()` so `.env` is loaded. The API already loads config first.
 - No automated tests, no retrieval eval dataset, no frontmatter schema validation.
 - Out of scope: React UI, auth, production deploy, candidate-to-job matching product, hybrid search.
 
